@@ -1,0 +1,34 @@
+# Конфигурация API сервера для CVC
+
+# Настройки сервера
+server:
+  host: "0.0.0.0"
+  port: 8000
+
+# Настройки модели
+model:
+  # Путь к сохраненной обученной модели
+  path: "models/my_model"
+  # Базовая модель для обучения (если модель не найдена)
+  name: "google/embeddinggemma-300M"
+  # Порог уверенности для классификации
+  confidence_threshold: 0.5
+
+# Настройки базы данных
+database:
+  # Путь к SQLite базе данных
+  path: "training_data.db"
+  # Путь к CSV файлу для автоматической миграции (опционально)
+  csv_migration_path: "data/commands_example.csv"
+
+# Параметры обучения по умолчанию
+training:
+  iterations: 20
+  epochs: 1
+  batch_size: 32
+  learning_rate: 2e-5
+  # Устройство для обучения (cpu - единственный вариант в CPU-only версии)
+  device: cpu
+
+
+

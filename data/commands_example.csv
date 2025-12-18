@@ -1,0 +1,118 @@
+text,command
+вставай,stand_up
+встань,stand_up
+встать,stand_up
+поднимись,stand_up
+подняться,stand_up
+встань на ноги,stand_up
+робот вставай,stand_up
+вставай робот,stand_up
+робот встань,stand_up
+вставай быстро,stand_up
+встань сейчас,stand_up
+поднимись вверх,stand_up
+равняйсь,align
+равняйся,align
+выровняйся,align
+стань прямо,align
+выпрямись,align
+ровняйся,align
+равнение,align
+робот равняйсь,align
+равняйсь рядом со мной,align
+равняйся ко мне,align
+выровняйся по линии,align
+стань прямо передо мной,align
+выпрямись сейчас,align
+ровняйся по команде,align
+отставить,dismiss
+отбой,dismiss
+прекратить,dismiss
+остановись,dismiss
+стоп,dismiss
+хватит,dismiss
+закончи,dismiss
+отставить все,dismiss
+робот отставить,dismiss
+отставить выполнение,dismiss
+прекрати выполнение,dismiss
+остановись сейчас,dismiss
+лежать,lie_down
+ложись,lie_down
+принять положение лежа,lie_down
+ляг,lie_down
+упади,lie_down
+ложись на пол,lie_down
+робот лежать,lie_down
+лежать сейчас,lie_down
+прими положение лежа,lie_down
+ляг на землю,lie_down
+упади на пол,lie_down
+кувырок,somersault
+сделай кувырок,somersault
+перекувырнись,somersault
+кувыркайся,somersault
+кувырок вперед,somersault
+кувырок назад,somersault
+робот кувырок,somersault
+сделай кувырок сейчас,somersault
+перекувырнись вперед,somersault
+выполни кувырок,somersault
+бегать,run
+беги,run
+побеги,run
+бегай,run
+беги быстро,run
+побеги вперед,run
+робот бегать,run
+беги ко мне,run
+побеги туда,run
+бегай по кругу,run
+давай поговорим,talk
+поговорим,talk
+давай поговорить,talk
+поговори со мной,talk
+давай общаться,talk
+поболтаем,talk
+робот давай поговорим,talk
+давай поговорим о погоде,talk
+поговорим о чем-нибудь,talk
+давай обсудим что-то,talk
+держи джойстик,hold_joystick
+возьми джойстик,hold_joystick
+держи контроллер,hold_joystick
+возьми контроллер,hold_joystick
+держи геймпад,hold_joystick
+возьми геймпад,hold_joystick
+робот держи джойстик,hold_joystick
+держи джойстик в руке,hold_joystick
+возьми джойстик сейчас,hold_joystick
+привет,unknown
+как дела,unknown
+что происходит,unknown
+сегодня хорошая погода,unknown
+робот ты здесь,unknown
+сколько времени,unknown
+расскажи анекдот,unknown
+пока,unknown
+как тебя зовут,unknown
+что ты умеешь,unknown
+расскажи о себе,unknown
+какая погода,unknown
+что на ужин,unknown
+включи музыку,unknown
+выключи свет,unknown
+открой дверь,unknown
+закрой окно,unknown
+принеси мне воды,unknown
+где ты находишься,unknown
+как дела на работе,unknown
+что нового,unknown
+как настроение,unknown
+давай посмотрим фильм,unknown
+поиграем в игру,unknown
+что ты думаешь,unknown
+расскажи историю,unknown
+спой песню,unknown
+танцуй,unknown
+покажи фокус,unknown

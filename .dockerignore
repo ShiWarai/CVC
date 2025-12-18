@@ -24,13 +24,17 @@ wheels/
 venv/
 env/
 ENV/
+.venv/
 
-# Models
+# Models (не копируем в образ, используем volumes)
 models/
 checkpoints/
 *.pkl
 *.pt
 *.pth
+
+# Database (не копируем в образ, используем volumes)
+*.db
 
 # IDE
 .cursor/
@@ -43,11 +47,19 @@ checkpoints/
 .DS_Store
 Thumbs.db
 
-# Database
-*.db
+# Git
+.git/
+.gitignore
 
-# Hugging Face cache (для Docker)
-cache/
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
 
-# Environment variables
-.env
+# Documentation
+README.md
+LICENSE
+
+# Logs
+*.log
+
