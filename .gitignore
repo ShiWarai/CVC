@@ -33,6 +33,7 @@ checkpoints/
 *.pth
 
 # IDE
+.cursor/
 .vscode/
 .idea/
 *.swp
@@ -42,3 +43,5 @@ checkpoints/
 .DS_Store
 Thumbs.db
 
+# Database
+*.db

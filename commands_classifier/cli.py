@@ -1,183 +1,81 @@
-"""CLI интерфейс для классификатора команд."""
+"""CLI для запуска API сервера."""
 
 import argparse
 import sys
-from pathlib import Path
-from .model import CommandsClassifier
-from .dataset import load_dataset
 
 
-def train_command(args):
-    """Команда для обучения модели."""
-    print(f"Загрузка датасета из {args.dataset}...")
+def serve_command(args):
+    """Команда для запуска API сервера."""
     try:
-        texts, labels = load_dataset(args.dataset)
-        print(f"Загружено {len(texts)} примеров")
+        import uvicorn
         
-        # Показываем статистику по классам
-        from collections import Counter
-        label_counts = Counter(labels)
-        print(f"Классы: {dict(label_counts)}")
+        print(f"Запуск API сервера на {args.host}:{args.port}")
+        print(f"Конфигурация: {args.config}")
+        print(f"Документация API: http://{args.host}:{args.port}/docs")
         
-        print("Инициализация модели...")
-        classifier = CommandsClassifier(model_name=args.model_name)
-        
-        print("Обучение модели...")
-        classifier.train(
-            texts,
-            labels,
-            num_iterations=args.iterations,
-            num_epochs=args.epochs,
-            batch_size=args.batch_size,
-            learning_rate=args.learning_rate
-        )
-        
-        print(f"Сохранение модели в {args.output}...")
-        classifier.save(args.output)
-        print("Модель успешно обучена и сохранена!")
-        
-    except Exception as e:
-        print(f"Ошибка при обучении: {e}", file=sys.stderr)
-        sys.exit(1)
-
-
-def predict_command(args):
-    """Команда для предсказания."""
-    print(f"Загрузка модели из {args.model}...")
-    try:
-        classifier = CommandsClassifier(confidence_threshold=args.confidence_threshold)
-        classifier.load(args.model, confidence_threshold=args.confidence_threshold)
-        
-        if args.text:
-            # Классификация одного текста
-            if args.show_confidence:
-                result, confidence = classifier.predict(args.text, return_confidence=True)
-                print(f"Команда: {result} (уверенность: {confidence:.2%})")
-            else:
-                result = classifier.predict(args.text)
-                print(f"Команда: {result}")
-        elif args.file:
-            # Batch классификация
-            with open(args.file, 'r', encoding='utf-8') as f:
-                texts = [line.strip() for line in f if line.strip()]
-            
-            print(f"Классификация {len(texts)} текстов...")
-            if args.show_confidence:
-                results, confidences = classifier.predict_batch(texts, return_confidence=True)
-                # Выводим результаты с уверенностью
-                for text, command, conf in zip(texts, results, confidences):
-                    print(f"{text} -> {command} (уверенность: {conf:.2%})")
-            else:
-                results = classifier.predict_batch(texts)
-                # Выводим результаты
-                for text, command in zip(texts, results):
-                    print(f"{text} -> {command}")
+        # Для reload нужно передавать строку импорта, а не объект
+        if args.reload:
+            uvicorn.run(
+                "commands_classifier.api.server:app",
+                host=args.host,
+                port=args.port,
+                reload=args.reload
+            )
         else:
-            print("Ошибка: необходимо указать --text или --file", file=sys.stderr)
-            sys.exit(1)
-            
+            # Без reload можно использовать объект напрямую
+            from commands_classifier.api.server import app
+            uvicorn.run(
+                app,
+                host=args.host,
+                port=args.port,
+                reload=False
+            )
+    except ImportError:
+        print("Ошибка: uvicorn не установлен. Установите его: pip install uvicorn", file=sys.stderr)
+        sys.exit(1)
     except Exception as e:
-        print(f"Ошибка при предсказании: {e}", file=sys.stderr)
+        print(f"Ошибка при запуске сервера: {e}", file=sys.stderr)
         sys.exit(1)
 
 
 def main():
-    """Главная функция CLI."""
+    """Главная функция CLI для запуска сервера."""
     parser = argparse.ArgumentParser(
-        description="SetFit классификатор команд для few-shot learning",
+        description="CVC API сервер - запуск сервера для классификации голосовых команд",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
-    subparsers = parser.add_subparsers(dest='command', help='Команды')
+    # Игнорируем команду "serve" если она передана (для обратной совместимости)
+    if len(sys.argv) > 1 and sys.argv[1] == 'serve':
+        sys.argv.pop(1)
     
-    # Команда train
-    train_parser = subparsers.add_parser('train', help='Обучить модель на датасете')
-    train_parser.add_argument(
-        '--dataset',
+    parser.add_argument(
+        '--host',
         type=str,
-        required=True,
-        help='Путь к файлу датасета (CSV или JSON)'
+        default='0.0.0.0',
+        help='Хост для сервера (по умолчанию: 0.0.0.0)'
     )
-    train_parser.add_argument(
-        '--output',
-        type=str,
-        required=True,
-        help='Путь для сохранения обученной модели'
-    )
-    train_parser.add_argument(
-        '--model-name',
-        type=str,
-        default='sentence-transformers/paraphrase-multilingual-mpnet-base-v2',
-        help='Имя предобученной модели (по умолчанию: multilingual mpnet)'
-    )
-    train_parser.add_argument(
-        '--iterations',
+    parser.add_argument(
+        '--port',
         type=int,
-        default=20,
-        help='Количество итераций контрастного обучения (по умолчанию: 20)'
+        default=8000,
+        help='Порт для сервера (по умолчанию: 8000)'
     )
-    train_parser.add_argument(
-        '--epochs',
-        type=int,
-        default=1,
-        help='Количество эпох fine-tuning (по умолчанию: 1)'
-    )
-    train_parser.add_argument(
-        '--batch-size',
-        type=int,
-        default=16,
-        help='Размер батча (по умолчанию: 16)'
-    )
-    train_parser.add_argument(
-        '--learning-rate',
-        type=float,
-        default=2e-5,
-        help='Скорость обучения (по умолчанию: 2e-5)'
-    )
-    
-    # Команда predict
-    predict_parser = subparsers.add_parser('predict', help='Классифицировать текст')
-    predict_parser.add_argument(
-        '--model',
+    parser.add_argument(
+        '--config',
         type=str,
-        required=True,
-        help='Путь к обученной модели'
+        default='config.yaml',
+        help='Путь к конфигурационному файлу (по умолчанию: config.yaml)'
     )
-    predict_group = predict_parser.add_mutually_exclusive_group(required=True)
-    predict_group.add_argument(
-        '--text',
-        type=str,
-        help='Текст для классификации'
-    )
-    predict_group.add_argument(
-        '--file',
-        type=str,
-        help='Файл с текстами (по одному на строку) для batch классификации'
-    )
-    predict_parser.add_argument(
-        '--confidence-threshold',
-        type=float,
-        default=0.5,
-        help='Порог уверенности для отбраковки (0.0-1.0). Если уверенность ниже, возвращается "unknown" (по умолчанию: 0.5)'
-    )
-    predict_parser.add_argument(
-        '--show-confidence',
+    parser.add_argument(
+        '--reload',
         action='store_true',
-        help='Показывать уверенность модели для каждого предсказания'
+        help='Включить автоматическую перезагрузку при изменении кода (для разработки)'
     )
     
     args = parser.parse_args()
-    
-    if not args.command:
-        parser.print_help()
-        sys.exit(1)
-    
-    if args.command == 'train':
-        train_command(args)
-    elif args.command == 'predict':
-        predict_command(args)
+    serve_command(args)
 
 
 if __name__ == '__main__':
     main()
-

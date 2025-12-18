@@ -1,13 +1,17 @@
-# Commands Classifier
+# CVC - Classification of Voice Commands
 
-Мини-сервис для классификации текста в команды с использованием SetFit (few-shot learning). Позволяет обучать модель на малом датасете (8-16 примеров на класс) и классифицировать текстовые команды.
+Мини-сервис для классификации голосовых команд с использованием SetFit (few-shot learning). Позволяет обучать модель на малом датасете (8-16 примеров на класс) и классифицировать текстовые команды.
 
 ## Особенности
 
 - **Few-shot learning**: Обучение на 5-50 примерах на класс
-- **Поддержка русского языка**: Использует multilingual модели
+- **Поддержка русского языка**: Использует multilingual модели (embeddinggemma-300M)
+- **Эффективное использование памяти**: Компактная модель (308M параметров) для работы на устройствах с ограниченными ресурсами
 - **Простой CLI интерфейс**: Легко использовать из командной строки
 - **Гибкий формат датасета**: Поддержка CSV и JSON
+- **REST API сервер**: FastAPI сервер с TEI-совместимыми эндпоинтами
+- **База данных**: SQLite для хранения обучающих данных
+- **Фоновое обучение**: Возможность дообучать модель через API без остановки сервера
 
 ## Установка
 
@@ -15,73 +19,125 @@
 pip install -r requirements.txt
 ```
 
+**Важно:** Модель `google/embeddinggemma-300M` требует авторизации в Hugging Face:
+
+1. Перейдите на [страницу модели](https://huggingface.co/google/embeddinggemma-300M) и примите условия использования
+2. Получите токен доступа в [настройках аккаунта](https://huggingface.co/settings/tokens)
+3. Авторизуйтесь в командной строке:
+
+```powershell
+huggingface-cli login
+```
+
+Введите ваш токен при запросе.
+
 ## Быстрый старт
 
-### 1. Подготовка датасета
-
-Создайте CSV файл с колонками `text` и `command`:
-
-```csv
-text,command
-равняйся,align
-стань прямо,align
-отставить,dismiss
-лежать,lie_down
-встать,stand_up
-шагом марш,march
-```
-
-Или JSON файл:
-
-```json
-[
-  {"text": "равняйся", "command": "align"},
-  {"text": "стань прямо", "command": "align"},
-  {"text": "отставить", "command": "dismiss"}
-]
-```
-
-Пример датасета находится в `data/commands_example.csv`.
-
-### 2. Обучение модели
+### 1. Запуск API сервера
 
 ```bash
-python -m commands_classifier.cli train \
-  --dataset data/commands_example.csv \
-  --output models/my_model
+python -m commands_classifier.cli serve
 ```
 
-Дополнительные параметры обучения:
+Или с кастомными параметрами:
 
 ```bash
-python -m commands_classifier.cli train \
-  --dataset data/commands_example.csv \
-  --output models/my_model \
-  --iterations 30 \
-  --epochs 2 \
-  --batch-size 16 \
-  --learning-rate 2e-5
+python -m commands_classifier.cli serve \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --config config.yaml
 ```
 
-### 3. Классификация текста
+Сервер автоматически создаст базу данных и выполнит миграцию данных из `data/commands_example.csv` (если указано в `config.yaml`).
 
-Классификация одного текста:
+### 2. Использование консольного клиента
 
+После запуска сервера используйте консольный клиент для работы с API:
+
+**Классификация текста:**
 ```bash
-python -m commands_classifier.cli predict \
-  --model models/my_model \
-  --text "равняйся"
+python -m commands_classifier.client predict --text "равняйся"
 ```
 
-Batch классификация (файл с текстами, по одному на строку):
-
+**Классификация с уверенностью:**
 ```bash
-python -m commands_classifier.cli predict \
-  --model models/my_model \
-  --file commands.txt
+python -m commands_classifier.client predict --text "равняйся" --show-confidence
 ```
 
-## Использование как библиотеки
+**Batch классификация:**
+```bash
+python -m commands_classifier.client predict --file commands.txt
+```
+
+**Запуск обучения модели:**
+```bash
+python -m commands_classifier.client train
+```
+
+**Запуск обучения с кастомными параметрами:**
+```bash
+python -m commands_classifier.client train --batch-size 32 --iterations 30
+```
+
+**Проверка статуса обучения:**
+```bash
+python -m commands_classifier.client train-status
+```
+
+**Работа с примерами:**
+```bash
+# Список всех примеров
+python -m commands_classifier.client examples list
+
+# Добавить пример
+python -m commands_classifier.client examples add --text "новая команда" --command "new_command"
+
+# Удалить пример
+python -m commands_classifier.client examples delete --id 1
+```
+
+**Проверка работоспособности:**
+```bash
+python -m commands_classifier.client health
+```
+
+## Использование Python клиента
+
+```python
+from commands_classifier.client import CVCApiClient
+
+# Создание клиента
+client = CVCApiClient("http://localhost:8000")
+
+# Классификация текста
+result = client.predict("равняйся", return_confidence=True)
+print(f"Команда: {result['command']}, Уверенность: {result['confidence']}")
+
+# Batch классификация
+results = client.predict_batch(["равняйся", "отставить"])
+print(results['commands'])
+
+# Получение эмбеддингов
+embeddings = client.embed(["равняйся", "отставить"])
+print(embeddings['embeddings'])
+
+# Запуск обучения
+train_result = client.train(num_iterations=30, num_epochs=2, batch_size=32)
+print(f"Обучение запущено: {train_result['training_id']}")
+
+# Проверка статуса обучения
+status = client.get_training_status()
+print(f"Статус: {status['status']}, Прогресс: {status['progress']}")
+
+# Работа с примерами
+examples = client.get_examples()
+new_example = client.add_example("новая команда", "new_command")
+client.delete_example(new_example['id'])
+```
+
+## Использование как библиотеки (для разработки)
+
+Если нужно работать с моделью напрямую без API:
 
 ```python
 from commands_classifier.model import CommandsClassifier
@@ -106,6 +162,153 @@ classifier2 = CommandsClassifier()
 classifier2.load("models/my_model")
 result = classifier2.predict("отставить")
 ```
+
+## API Сервер
+
+CVC включает REST API сервер на FastAPI для работы с моделью через HTTP запросы.
+
+### Запуск сервера
+
+```bash
+python -m commands_classifier.cli serve
+```
+
+Или с кастомными параметрами:
+
+```bash
+python -m commands_classifier.cli serve \
+  --host 0.0.0.0 \
+  --port 8000 \
+  --config config.yaml
+```
+
+После запуска сервер будет доступен по адресу `http://localhost:8000`. Документация API (Swagger UI) доступна по адресу `http://localhost:8000/docs`.
+
+### Конфигурация
+
+Настройки сервера хранятся в файле `config.yaml`:
+
+```yaml
+server:
+  host: "0.0.0.0"
+  port: 8000
+
+model:
+  path: "models/my_model"
+  name: "google/embeddinggemma-300M"
+  confidence_threshold: 0.5
+
+database:
+  path: "training_data.db"
+  csv_migration_path: "data/commands_example.csv"
+
+training:
+  iterations: 20
+  epochs: 1
+  batch_size: 32
+  learning_rate: 2e-5
+  device: null
+```
+
+### Эндпоинты API
+
+#### TEI-совместимые эндпоинты
+
+**POST /embed** - Получение эмбеддингов (TEI совместимый)
+```bash
+curl -X POST "http://localhost:8000/embed" \
+  -H "Content-Type: application/json" \
+  -d '{"inputs": ["равняйся", "отставить"]}'
+```
+
+**GET /health** - Проверка работоспособности
+```bash
+curl http://localhost:8000/health
+```
+
+**GET /metrics** - Метрики сервера
+```bash
+curl http://localhost:8000/metrics
+```
+
+#### Классификация команд
+
+**POST /predict** - Классификация одного текста
+```bash
+curl -X POST "http://localhost:8000/predict" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "равняйся", "return_confidence": true}'
+```
+
+**POST /predict/batch** - Batch классификация
+```bash
+curl -X POST "http://localhost:8000/predict/batch" \
+  -H "Content-Type: application/json" \
+  -d '{"texts": ["равняйся", "отставить"], "return_confidence": true}'
+```
+
+#### Управление обучением
+
+**POST /train** - Запуск обучения модели в фоновом режиме
+```bash
+curl -X POST "http://localhost:8000/train" \
+  -H "Content-Type: application/json" \
+  -d '{"num_iterations": 30, "num_epochs": 2, "batch_size": 32}'
+```
+
+**GET /train/status** - Статус обучения
+```bash
+curl http://localhost:8000/train/status
+```
+
+#### Управление обучающими данными
+
+**GET /examples** - Получить все примеры
+```bash
+curl http://localhost:8000/examples
+```
+
+**POST /examples** - Добавить пример
+```bash
+curl -X POST "http://localhost:8000/examples" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "новая команда", "command": "new_command"}'
+```
+
+**DELETE /examples/{id}** - Удалить пример
+```bash
+curl -X DELETE "http://localhost:8000/examples/1"
+```
+
+**GET /examples/{id}** - Получить пример по ID
+```bash
+curl http://localhost:8000/examples/1
+```
+
+### База данных
+
+Обучающие данные хранятся в SQLite базе данных (`training_data.db` по умолчанию). При первом запуске сервера, если база данных пустая, автоматически выполняется миграция данных из CSV файла (указанного в `config.yaml`).
+
+Вы можете управлять данными через API эндпоинты `/examples` или напрямую через SQLite.
+
+### Фоновое обучение
+
+Обучение модели выполняется в фоновом режиме, не блокируя работу API сервера. Одновременно может выполняться только одно обучение (блокировка предотвращает конфликты).
+
+Статус обучения можно отслеживать через эндпоинт `/train/status`:
+
+```json
+{
+  "training_id": "uuid",
+  "status": "running|completed|failed",
+  "progress": 0.75,
+  "error": null,
+  "started_at": "2025-01-15T10:30:00",
+  "completed_at": null
+}
+```
+
+После завершения обучения модель автоматически сохраняется и становится доступной для использования.
 
 ## Формат датасета
 
@@ -147,9 +350,26 @@ text,command
 
 - `--iterations` (по умолчанию: 20) - количество итераций контрастного обучения
 - `--epochs` (по умолчанию: 1) - количество эпох fine-tuning
-- `--batch-size` (по умолчанию: 16) - размер батча
+- `--batch-size` (по умолчанию: 32) - размер батча (больше = быстрее обучение, но требует больше памяти)
 - `--learning-rate` (по умолчанию: 2e-5) - скорость обучения
-- `--model-name` (по умолчанию: `sentence-transformers/paraphrase-multilingual-mpnet-base-v2`) - предобученная модель
+- `--device` (по умолчанию: автоопределение) - устройство для обучения (`cuda`, `cpu`, `mps`)
+
+**Примечание:** Для ускорения обучения увеличьте `batch_size` в `config.yaml` или через API. Больший batch_size ускорит процесс, но потребует больше оперативной памяти.
+
+**Примечание о модели:** По умолчанию используется `google/embeddinggemma-300M` - компактная модель эмбеддингов (300M параметров), оптимизированная для работы с ограниченными ресурсами памяти и поддерживающая более 100 языков, включая русский. 
+
+⚠️ **Эта модель требует авторизации в Hugging Face** (см. раздел "Установка" выше). Если вы не хотите авторизовываться, используйте альтернативу:
+
+```powershell
+python -m commands_classifier.cli train `
+  --dataset data/commands_example.csv `
+  --output models/my_model `
+  --model-name sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+```
+
+Другие альтернативы:
+- `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (легкая, без авторизации)
+- `sentence-transformers/paraphrase-multilingual-mpnet-base-v2` (более точная, но тяжелее, без авторизации)
 
 ## Рекомендации
 
@@ -161,25 +381,27 @@ text,command
 ## Структура проекта
 
 ```
-commands_transformer/
+CVC/
 ├── requirements.txt              # Зависимости
 ├── README.md                     # Документация
+├── config.yaml                   # Конфигурация сервера
 ├── commands_classifier/
 │   ├── __init__.py
 │   ├── model.py                 # Класс CommandsClassifier
 │   ├── dataset.py               # Утилиты для загрузки датасетов
-│   └── cli.py                   # CLI интерфейс
+│   ├── cli.py                   # CLI для запуска сервера
+│   ├── client.py                # Консольный клиент для API
+│   ├── db.py                    # Работа с SQLite базой данных
+│   └── api/
+│       ├── __init__.py
+│       ├── server.py            # FastAPI сервер
+│       └── training.py          # Менеджер фонового обучения
 ├── data/
 │   └── commands_example.csv     # Пример датасета
-└── models/                      # Сохраненные модели (создается автоматически)
+├── models/                      # Сохраненные модели (создается автоматически)
+└── training_data.db             # SQLite база данных (создается автоматически)
 ```
 
-## Зависимости
-
-- `setfit>=0.7.0` - few-shot learning фреймворк
-- `sentence-transformers>=2.2.0` - эмбеддинги для русского языка
-- `pandas>=1.5.0` - работа с CSV
-- `scikit-learn>=1.0.0` - метрики и утилиты
 
 ## Лицензия
 
