@@ -7,11 +7,13 @@
 - **Few-shot learning**: Обучение на 5-50 примерах на класс
 - **Поддержка русского языка**: Использует multilingual модели (embeddinggemma-300M)
 - **Эффективное использование памяти**: Компактная модель (308M параметров) для работы на устройствах с ограниченными ресурсами
+- **CPU-only версия**: Используется CPU-only версия PyTorch без CUDA зависимостей (экономия ~600MB)
 - **Простой CLI интерфейс**: Легко использовать из командной строки
 - **Гибкий формат датасета**: Поддержка CSV и JSON
 - **REST API сервер**: FastAPI сервер с TEI-совместимыми эндпоинтами
 - **База данных**: SQLite для хранения обучающих данных
 - **Фоновое обучение**: Возможность дообучать модель через API без остановки сервера
+- **Docker поддержка**: Готовая конфигурация для контейнеризации и развертывания
 
 ## Установка
 
@@ -31,9 +33,181 @@ huggingface-cli login
 
 Введите ваш токен при запросе.
 
+## Docker
+
+Проект можно запустить в Docker контейнере для изоляции и удобства развертывания.
+
+### Быстрый старт с Docker Compose
+
+**Важно:** Модель `google/embeddinggemma-300M` требует авторизации в Hugging Face. Перед запуском создайте файл `.env`:
+
+```bash
+# Скопируйте пример файла
+cp .env.example .env
+
+# Отредактируйте .env и добавьте ваш Hugging Face токен
+# HF_TOKEN=your_token_here
+```
+
+Получите токен на [https://huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
+
+Затем запустите контейнер:
+
+```bash
+# Сборка и запуск контейнера
+docker-compose up -d
+
+# Просмотр логов
+docker-compose logs -f
+
+# Остановка контейнера
+docker-compose down
+```
+
+Сервер будет доступен по адресу `http://localhost:8000`.
+
+### Использование Docker образа напрямую
+
+**Важно:** Не забудьте передать токен Hugging Face через переменную окружения `-e HF_TOKEN=your_token_here`.
+
+```bash
+# Сборка образа
+docker build -t cvc-api .
+
+# Запуск контейнера с токеном
+docker run -d \
+  --name cvc-api \
+  -p 8000:8000 \
+  -e HF_TOKEN=your_token_here \
+  -v $(pwd)/models:/app/models \
+  -v $(pwd)/checkpoints:/app/checkpoints \
+  -v $(pwd)/cache/huggingface:/app/.cache/huggingface \
+  -v $(pwd)/training_data.db:/app/training_data.db \
+  -v $(pwd)/config.yaml:/app/config.yaml:ro \
+  -v $(pwd)/data:/app/data:ro \
+  cvc-api
+```
+
+**Для Windows PowerShell:**
+```powershell
+# Сборка образа
+docker build -t cvc-api .
+
+# Запуск контейнера с токеном
+docker run -d `
+  --name cvc-api `
+  -p 8000:8000 `
+  -e HF_TOKEN=your_token_here `
+  -v ${PWD}/models:/app/models `
+  -v ${PWD}/checkpoints:/app/checkpoints `
+  -v ${PWD}/cache/huggingface:/app/.cache/huggingface `
+  -v ${PWD}/training_data.db:/app/training_data.db `
+  -v ${PWD}/config.yaml:/app/config.yaml:ro `
+  -v ${PWD}/data:/app/data:ro `
+  cvc-api
+```
+
+### Передача Hugging Face токена в Docker
+
+**Рекомендуемый способ:** Используйте файл `.env` (см. раздел "Быстрый старт" выше). Docker Compose автоматически загрузит переменные из `.env` файла.
+
+**Альтернативный способ:** Передача токена через переменную окружения при запуске:
+
+```bash
+# Для docker-compose
+HF_TOKEN=your_token_here docker-compose up -d
+
+# Для docker run напрямую
+docker run -d \
+  --name cvc-api \
+  -p 8000:8000 \
+  -e HF_TOKEN=your_token_here \
+  -v $(pwd)/models:/app/models \
+  -v $(pwd)/checkpoints:/app/checkpoints \
+  -v $(pwd)/cache/huggingface:/app/.cache/huggingface \
+  -v $(pwd)/training_data.db:/app/training_data.db \
+  -v $(pwd)/config.yaml:/app/config.yaml:ro \
+  -v $(pwd)/data:/app/data:ro \
+  cvc-api
+```
+
+**Для Windows PowerShell:**
+```powershell
+# Для docker-compose
+$env:HF_TOKEN="your_token_here"; docker-compose up -d
+
+# Для docker run
+docker run -d `
+  --name cvc-api `
+  -p 8000:8000 `
+  -e HF_TOKEN=your_token_here `
+  -v ${PWD}/models:/app/models `
+  -v ${PWD}/checkpoints:/app/checkpoints `
+  -v ${PWD}/cache/huggingface:/app/.cache/huggingface `
+  -v ${PWD}/training_data.db:/app/training_data.db `
+  -v ${PWD}/config.yaml:/app/config.yaml:ro `
+  -v ${PWD}/data:/app/data:ro `
+  cvc-api
+```
+
+### Volumes
+
+Важно: Следующие директории монтируются как volumes для сохранения данных между перезапусками:
+- `./models` - обученные модели (сохраняются после обучения)
+- `./checkpoints` - промежуточные чекпоинты обучения
+- `./cache/huggingface` - кэш Hugging Face (оригинальные модели, чтобы не скачивать их каждый раз)
+- `./training_data.db` - база данных с обучающими примерами
+
+**Примечание:** При первом запуске контейнера директория `./cache/huggingface` будет создана автоматически, и в неё будет загружена оригинальная модель `google/embeddinggemma-300M` (требуется токен Hugging Face в `.env` файле). При последующих перезапусках модель будет загружаться из кэша, что значительно ускорит запуск.
+
+### Использование клиента с Docker контейнером
+
+После запуска контейнера клиент можно использовать как обычно:
+
+```bash
+# Проверка работоспособности
+python -m commands_classifier.client health
+
+# Классификация
+python -m commands_classifier.client predict --text "равняйся"
+
+# Запуск обучения
+python -m commands_classifier.client train
+```
+
+Клиент автоматически подключится к серверу на `http://localhost:8000`.
+
+### Health Check
+
+Контейнер включает health check, который проверяет доступность API каждые 30 секунд. Статус можно проверить:
+
+```bash
+docker ps  # Проверка статуса контейнера
+docker-compose ps  # Или через compose
+```
+
+### Просмотр логов
+
+```bash
+# Все логи
+docker-compose logs
+
+# Следить за логами в реальном времени
+docker-compose logs -f
+
+# Логи конкретного сервиса
+docker-compose logs cvc-api
+```
+
 ## Быстрый старт
 
+Вы можете запустить CVC двумя способами:
+- **Локально** (требует установки зависимостей, см. раздел "Установка")
+- **В Docker** (рекомендуется, см. раздел "Docker" выше)
+
 ### 1. Запуск API сервера
+
+**Локальный запуск:**
 
 ```bash
 python -m commands_classifier.cli serve
@@ -207,7 +381,7 @@ training:
   epochs: 1
   batch_size: 32
   learning_rate: 2e-5
-  device: null
+  device: cpu  # CPU-only версия (CUDA не поддерживается)
 ```
 
 ### Эндпоинты API
@@ -352,9 +526,11 @@ text,command
 - `--epochs` (по умолчанию: 1) - количество эпох fine-tuning
 - `--batch-size` (по умолчанию: 32) - размер батча (больше = быстрее обучение, но требует больше памяти)
 - `--learning-rate` (по умолчанию: 2e-5) - скорость обучения
-- `--device` (по умолчанию: автоопределение) - устройство для обучения (`cuda`, `cpu`, `mps`)
+- `--device` (по умолчанию: `cpu`) - устройство для обучения (только `cpu`, CUDA не поддерживается в CPU-only версии)
 
 **Примечание:** Для ускорения обучения увеличьте `batch_size` в `config.yaml` или через API. Больший batch_size ускорит процесс, но потребует больше оперативной памяти.
+
+**Примечание о CPU-only версии:** Проект использует CPU-only версию PyTorch без CUDA зависимостей. Это экономит ~600MB места и ускоряет установку, но обучение будет выполняться только на CPU. Для GPU ускорения потребуется установить полную версию PyTorch с CUDA поддержкой.
 
 **Примечание о модели:** По умолчанию используется `google/embeddinggemma-300M` - компактная модель эмбеддингов (300M параметров), оптимизированная для работы с ограниченными ресурсами памяти и поддерживающая более 100 языков, включая русский. 
 

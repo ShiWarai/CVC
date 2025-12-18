@@ -27,8 +27,8 @@ training:
   epochs: 1
   batch_size: 32
   learning_rate: 2e-5
-  # Устройство для обучения (cuda, cpu, mps или null для автоопределения)
-  device: null
+  # Устройство для обучения (cpu - единственный вариант в CPU-only версии)
+  device: cpu
 
 
 

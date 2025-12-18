@@ -49,22 +49,21 @@ class CommandsClassifier:
             num_epochs: Количество эпох для fine-tuning head
             batch_size: Размер батча (больше = быстрее, но требует больше памяти)
             learning_rate: Скорость обучения
-            device: Устройство для обучения ('cuda', 'cpu', 'mps' или None для автоопределения)
+            device: Устройство для обучения ('cpu' или None, CUDA не поддерживается в CPU-only версии)
         """
         if len(texts) != len(labels):
             raise ValueError(
                 f"Количество текстов ({len(texts)}) не совпадает с количеством меток ({len(labels)})"
             )
         
-        # Определяем устройство
+        # Определяем устройство (CPU-only версия, CUDA не поддерживается)
         if device is None:
-            import torch
-            if torch.cuda.is_available():
-                device = "cuda"
-            elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
-                device = "mps"
-            else:
-                device = "cpu"
+            device = "cpu"
+        elif device == "cuda":
+            # Предупреждаем, что CUDA не поддерживается в CPU-only версии
+            import warnings
+            warnings.warn("CUDA не поддерживается в CPU-only версии. Используется CPU.", UserWarning)
+            device = "cpu"
         
         # Создаем модель
         self.model = SetFitModel.from_pretrained(self.model_name)
