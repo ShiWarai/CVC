@@ -16,44 +16,66 @@ def init_db(db_path: str, csv_path: Optional[str] = None) -> None:
         csv_path: Опциональный путь к CSV файлу для миграции
     """
     path = Path(db_path)
+    
+    # Проверяем, не является ли путь директорией (проблема Docker volume)
+    if path.exists() and path.is_dir():
+        # Если это директория, создаем файл внутри неё
+        db_path = str(path / "training_data.db")
+        path = Path(db_path)
+    
+    # Создаем родительскую директорию, если её нет
     path.parent.mkdir(parents=True, exist_ok=True)
     
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    
-    # Создаем таблицу examples
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS examples (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            text TEXT NOT NULL,
-            command TEXT NOT NULL
+    # Убеждаемся, что файл может быть создан (проверяем права доступа)
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path)
+        cursor = conn.cursor()
+        
+        # Создаем таблицу examples
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS examples (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                text TEXT NOT NULL,
+                command TEXT NOT NULL
+            )
+        """)
+        
+        conn.commit()
+        
+        # Проверяем, пустая ли БД
+        cursor.execute("SELECT COUNT(*) FROM examples")
+        count = cursor.fetchone()[0]
+        
+        # Если БД пустая и указан CSV, выполняем миграцию
+        if count == 0 and csv_path:
+            csv_file = Path(csv_path)
+            if csv_file.exists():
+                try:
+                    df = pd.read_csv(csv_path)
+                    if 'text' in df.columns and 'command' in df.columns:
+                        for _, row in df.iterrows():
+                            cursor.execute(
+                                "INSERT INTO examples (text, command) VALUES (?, ?)",
+                                (str(row['text']), str(row['command']))
+                            )
+                        conn.commit()
+                        print(f"Мигрировано {len(df)} примеров из {csv_path}")
+                except Exception as e:
+                    print(f"Ошибка при миграции CSV: {e}")
+    except sqlite3.OperationalError as e:
+        error_msg = (
+            f"Не удалось создать/открыть базу данных по пути: {db_path}\n"
+            f"Ошибка: {e}\n"
+            f"Возможные причины:\n"
+            f"  1. Нет прав на запись в директорию {path.parent}\n"
+            f"  2. Путь указывает на директорию вместо файла (проблема Docker volume)\n"
+            f"  3. Директория не существует и не может быть создана"
         )
-    """)
-    
-    conn.commit()
-    
-    # Проверяем, пустая ли БД
-    cursor.execute("SELECT COUNT(*) FROM examples")
-    count = cursor.fetchone()[0]
-    
-    # Если БД пустая и указан CSV, выполняем миграцию
-    if count == 0 and csv_path:
-        csv_file = Path(csv_path)
-        if csv_file.exists():
-            try:
-                df = pd.read_csv(csv_path)
-                if 'text' in df.columns and 'command' in df.columns:
-                    for _, row in df.iterrows():
-                        cursor.execute(
-                            "INSERT INTO examples (text, command) VALUES (?, ?)",
-                            (str(row['text']), str(row['command']))
-                        )
-                    conn.commit()
-                    print(f"Мигрировано {len(df)} примеров из {csv_path}")
-            except Exception as e:
-                print(f"Ошибка при миграции CSV: {e}")
-    
-    conn.close()
+        raise RuntimeError(error_msg) from e
+    finally:
+        if conn:
+            conn.close()
 
 
 def get_all_examples(db_path: str) -> List[Tuple[int, str, str]]:

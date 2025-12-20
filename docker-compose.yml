@@ -14,8 +14,8 @@ services:
       - ./checkpoints:/app/checkpoints
       # Монтируем кэш Hugging Face, чтобы не скачивать оригинальную модель каждый раз
       - ./cache/huggingface:/app/.cache/huggingface
-      # Монтируем базу данных
-      - ./training_data.db:/app/training_data.db
+      # Монтируем директорию для базы данных (монтирование файла может создать директорию вместо файла)
+      - ./db:/app/db
       # Монтируем конфигурацию (опционально, для изменения без пересборки)
       - ./config.yaml:/app/config.yaml:ro
       # Монтируем данные (опционально)

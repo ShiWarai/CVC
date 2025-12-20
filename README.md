@@ -82,7 +82,7 @@ docker run -d \
   -v $(pwd)/models:/app/models \
   -v $(pwd)/checkpoints:/app/checkpoints \
   -v $(pwd)/cache/huggingface:/app/.cache/huggingface \
-  -v $(pwd)/training_data.db:/app/training_data.db \
+  -v $(pwd)/db:/app/db \
   -v $(pwd)/config.yaml:/app/config.yaml:ro \
   -v $(pwd)/data:/app/data:ro \
   cvc-api
@@ -101,7 +101,7 @@ docker run -d `
   -v ${PWD}/models:/app/models `
   -v ${PWD}/checkpoints:/app/checkpoints `
   -v ${PWD}/cache/huggingface:/app/.cache/huggingface `
-  -v ${PWD}/training_data.db:/app/training_data.db `
+  -v ${PWD}/db:/app/db `
   -v ${PWD}/config.yaml:/app/config.yaml:ro `
   -v ${PWD}/data:/app/data:ro `
   cvc-api
@@ -125,7 +125,7 @@ docker run -d \
   -v $(pwd)/models:/app/models \
   -v $(pwd)/checkpoints:/app/checkpoints \
   -v $(pwd)/cache/huggingface:/app/.cache/huggingface \
-  -v $(pwd)/training_data.db:/app/training_data.db \
+  -v $(pwd)/db:/app/db \
   -v $(pwd)/config.yaml:/app/config.yaml:ro \
   -v $(pwd)/data:/app/data:ro \
   cvc-api
@@ -144,7 +144,7 @@ docker run -d `
   -v ${PWD}/models:/app/models `
   -v ${PWD}/checkpoints:/app/checkpoints `
   -v ${PWD}/cache/huggingface:/app/.cache/huggingface `
-  -v ${PWD}/training_data.db:/app/training_data.db `
+  -v ${PWD}/db:/app/db `
   -v ${PWD}/config.yaml:/app/config.yaml:ro `
   -v ${PWD}/data:/app/data:ro `
   cvc-api
@@ -156,9 +156,11 @@ docker run -d `
 - `./models` - обученные модели (сохраняются после обучения)
 - `./checkpoints` - промежуточные чекпоинты обучения
 - `./cache/huggingface` - кэш Hugging Face (оригинальные модели, чтобы не скачивать их каждый раз)
-- `./training_data.db` - база данных с обучающими примерами
+- `./db` - директория с базой данных SQLite (файл `training_data.db` создается автоматически)
 
 **Примечание:** При первом запуске контейнера директория `./cache/huggingface` будет создана автоматически, и в неё будет загружена оригинальная модель `google/embeddinggemma-300M` (требуется токен Hugging Face в `.env` файле). При последующих перезапусках модель будет загружаться из кэша, что значительно ускорит запуск.
+
+**Примечание о базе данных:** База данных монтируется как директория (`./db`), а не как файл, чтобы избежать проблемы Docker, когда несуществующий файл при монтировании создается как директория. Файл `training_data.db` будет автоматически создан внутри директории `./db` при первом запуске.
 
 ### Использование клиента с Docker контейнером
 
@@ -373,7 +375,9 @@ model:
   confidence_threshold: 0.5
 
 database:
-  path: "training_data.db"
+  # Путь к базе данных. Для Docker используйте "db/training_data.db"
+  # Для локального запуска можно использовать просто "training_data.db"
+  path: "db/training_data.db"
   csv_migration_path: "data/commands_example.csv"
 
 training:
@@ -461,7 +465,7 @@ curl http://localhost:8000/examples/1
 
 ### База данных
 
-Обучающие данные хранятся в SQLite базе данных (`training_data.db` по умолчанию). При первом запуске сервера, если база данных пустая, автоматически выполняется миграция данных из CSV файла (указанного в `config.yaml`).
+Обучающие данные хранятся в SQLite базе данных (`db/training_data.db` по умолчанию в Docker, `training_data.db` для локального запуска). При первом запуске сервера, если база данных пустая, автоматически выполняется миграция данных из CSV файла (указанного в `config.yaml`).
 
 Вы можете управлять данными через API эндпоинты `/examples` или напрямую через SQLite.
 
@@ -575,7 +579,8 @@ CVC/
 ├── data/
 │   └── commands_example.csv     # Пример датасета
 ├── models/                      # Сохраненные модели (создается автоматически)
-└── training_data.db             # SQLite база данных (создается автоматически)
+└── db/
+    └── training_data.db         # SQLite база данных (создается автоматически)
 ```
 
 
