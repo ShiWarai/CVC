@@ -6,6 +6,37 @@ from typing import List, Tuple, Optional
 import pandas as pd
 
 
+def _normalize_db_path(db_path: str) -> str:
+    """
+    Нормализует путь к базе данных.
+    Если путь указывает на директорию, пытается исправить это.
+    
+    Args:
+        db_path: Путь к файлу базы данных
+        
+    Returns:
+        Нормализованный путь к файлу базы данных
+    """
+    path = Path(db_path)
+    
+    # Если путь указывает на директорию
+    if path.exists() and path.is_dir():
+        # Пытаемся удалить директорию, если она пустая
+        try:
+            if not any(path.iterdir()):
+                path.rmdir()
+                # После удаления директории, путь свободен для создания файла
+                return db_path
+            else:
+                # Если директория не пустая, создаем файл внутри неё
+                return str(path / "training_data.db")
+        except OSError:
+            # Если не удалось удалить, создаем файл внутри
+            return str(path / "training_data.db")
+    
+    return db_path
+
+
 def init_db(db_path: str, csv_path: Optional[str] = None) -> None:
     """
     Инициализирует базу данных и создает таблицу examples.
@@ -15,13 +46,9 @@ def init_db(db_path: str, csv_path: Optional[str] = None) -> None:
         db_path: Путь к файлу базы данных SQLite
         csv_path: Опциональный путь к CSV файлу для миграции
     """
+    # Нормализуем путь к базе данных
+    db_path = _normalize_db_path(db_path)
     path = Path(db_path)
-    
-    # Проверяем, не является ли путь директорией (проблема Docker volume)
-    if path.exists() and path.is_dir():
-        # Если это директория, создаем файл внутри неё
-        db_path = str(path / "training_data.db")
-        path = Path(db_path)
     
     # Создаем родительскую директорию, если её нет
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -88,6 +115,7 @@ def get_all_examples(db_path: str) -> List[Tuple[int, str, str]]:
     Returns:
         Список кортежей (id, text, command)
     """
+    db_path = _normalize_db_path(db_path)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT id, text, command FROM examples ORDER BY id")
@@ -124,6 +152,7 @@ def add_example(db_path: str, text: str, command: str) -> int:
     Returns:
         ID добавленного примера
     """
+    db_path = _normalize_db_path(db_path)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute(
@@ -147,6 +176,7 @@ def delete_example(db_path: str, example_id: int) -> bool:
     Returns:
         True если пример был удален, False если не найден
     """
+    db_path = _normalize_db_path(db_path)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("DELETE FROM examples WHERE id = ?", (example_id,))
@@ -166,6 +196,7 @@ def count_examples(db_path: str) -> int:
     Returns:
         Количество примеров
     """
+    db_path = _normalize_db_path(db_path)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT COUNT(*) FROM examples")
@@ -185,6 +216,7 @@ def get_example_by_id(db_path: str, example_id: int) -> Optional[Tuple[int, str,
     Returns:
         Кортеж (id, text, command) или None если не найден
     """
+    db_path = _normalize_db_path(db_path)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute("SELECT id, text, command FROM examples WHERE id = ?", (example_id,))

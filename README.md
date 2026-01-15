@@ -7,7 +7,7 @@
 - **Few-shot learning**: Обучение на 5-50 примерах на класс
 - **Поддержка русского языка**: Использует multilingual модели (embeddinggemma-300M)
 - **Эффективное использование памяти**: Компактная модель (308M параметров) для работы на устройствах с ограниченными ресурсами
-- **CPU-only версия**: Используется CPU-only версия PyTorch без CUDA зависимостей (экономия ~600MB)
+- **Поддержка CPU и CUDA**: Можно выбрать CPU-only версию (экономия ~600MB) или CUDA версию для GPU ускорения
 - **Простой CLI интерфейс**: Легко использовать из командной строки
 - **Гибкий формат датасета**: Поддержка CSV и JSON
 - **REST API сервер**: FastAPI сервер с TEI-совместимыми эндпоинтами
@@ -66,13 +66,119 @@ docker-compose down
 
 Сервер будет доступен по адресу `http://localhost:8000`.
 
+### Выбор версии: CPU или CUDA
+
+Проект поддерживает сборку как с CPU-only версией PyTorch (по умолчанию), так и с CUDA версией для GPU ускорения.
+
+#### CPU версия (по умолчанию)
+
+```bash
+# Сборка и запуск CPU версии
+docker-compose up -d --build
+
+# Или явно указать версию через переменную окружения
+PYTORCH_VERSION=cpu docker-compose up -d --build
+```
+
+#### CUDA версия (для GPU)
+
+**Требования:**
+- NVIDIA GPU с поддержкой CUDA
+- Установленный [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
+
+**Способ 1: Использование отдельного docker-compose файла (рекомендуется)**
+
+```bash
+# Сборка и запуск CUDA версии
+docker-compose -f docker-compose.cuda.yml up -d --build
+
+# Просмотр логов
+docker-compose -f docker-compose.cuda.yml logs -f
+
+# Остановка
+docker-compose -f docker-compose.cuda.yml down
+```
+
+**Способ 2: Использование переменной окружения**
+
+```bash
+# Установите переменную окружения перед сборкой
+export PYTORCH_VERSION=cuda  # Linux/Mac
+# или
+$env:PYTORCH_VERSION="cuda"  # Windows PowerShell
+
+# Сборка и запуск
+docker-compose up -d --build
+
+# Для запуска с GPU требуется добавить runtime: nvidia в docker-compose.yml
+# или использовать docker-compose.cuda.yml
+```
+
+**Способ 3: Прямая сборка Docker образа с CUDA**
+
+```bash
+# Сборка образа с CUDA
+docker build --build-arg PYTORCH_VERSION=cuda -t cvc-api:cuda .
+
+# Запуск с GPU поддержкой
+docker run -d \
+  --name cvc-api \
+  --gpus all \
+  -p 8000:8000 \
+  -e HF_TOKEN=your_token_here \
+  -v $(pwd)/models:/app/models \
+  -v $(pwd)/checkpoints:/app/checkpoints \
+  -v $(pwd)/cache/huggingface:/app/.cache/huggingface \
+  -v $(pwd)/db:/app/db \
+  -v $(pwd)/config.yaml:/app/config.yaml:ro \
+  -v $(pwd)/data:/app/data:ro \
+  cvc-api:cuda
+```
+
+**Для Windows PowerShell:**
+```powershell
+# Сборка образа с CUDA
+docker build --build-arg PYTORCH_VERSION=cuda -t cvc-api:cuda .
+
+# Запуск с GPU поддержкой
+docker run -d `
+  --name cvc-api `
+  --gpus all `
+  -p 8000:8000 `
+  -e HF_TOKEN=your_token_here `
+  -v ${PWD}/models:/app/models `
+  -v ${PWD}/checkpoints:/app/checkpoints `
+  -v ${PWD}/cache/huggingface:/app/.cache/huggingface `
+  -v ${PWD}/db:/app/db `
+  -v ${PWD}/config.yaml:/app/config.yaml:ro `
+  -v ${PWD}/data:/app/data:ro `
+  cvc-api:cuda
+```
+
+**Проверка использования GPU:**
+
+После запуска контейнера с CUDA версией, при обучении модели укажите устройство `cuda`:
+
+```bash
+# Через API
+curl -X POST "http://localhost:8000/train" \
+  -H "Content-Type: application/json" \
+  -d '{"device": "cuda"}'
+
+# Через CLI клиент
+python -m commands_classifier.client train --device cuda
+```
+
 ### Использование Docker образа напрямую
 
 **Важно:** Не забудьте передать токен Hugging Face через переменную окружения `-e HF_TOKEN=your_token_here`.
 
 ```bash
-# Сборка образа
+# Сборка образа (CPU версия по умолчанию)
 docker build -t cvc-api .
+
+# Сборка образа с CUDA
+docker build --build-arg PYTORCH_VERSION=cuda -t cvc-api:cuda .
 
 # Запуск контейнера с токеном
 docker run -d \
@@ -385,7 +491,7 @@ training:
   epochs: 1
   batch_size: 32
   learning_rate: 2e-5
-  device: cpu  # CPU-only версия (CUDA не поддерживается)
+  device: cpu  # Устройство для обучения: cpu или cuda (если используется CUDA версия)
 ```
 
 ### Эндпоинты API
@@ -530,11 +636,14 @@ text,command
 - `--epochs` (по умолчанию: 1) - количество эпох fine-tuning
 - `--batch-size` (по умолчанию: 32) - размер батча (больше = быстрее обучение, но требует больше памяти)
 - `--learning-rate` (по умолчанию: 2e-5) - скорость обучения
-- `--device` (по умолчанию: `cpu`) - устройство для обучения (только `cpu`, CUDA не поддерживается в CPU-only версии)
+- `--device` (по умолчанию: `cpu`) - устройство для обучения (`cpu` или `cuda`). CUDA доступна только при использовании CUDA версии Docker образа.
 
 **Примечание:** Для ускорения обучения увеличьте `batch_size` в `config.yaml` или через API. Больший batch_size ускорит процесс, но потребует больше оперативной памяти.
 
-**Примечание о CPU-only версии:** Проект использует CPU-only версию PyTorch без CUDA зависимостей. Это экономит ~600MB места и ускоряет установку, но обучение будет выполняться только на CPU. Для GPU ускорения потребуется установить полную версию PyTorch с CUDA поддержкой.
+**Примечание о версиях PyTorch:** 
+- По умолчанию используется CPU-only версия PyTorch (экономия ~600MB места, быстрая установка)
+- Для GPU ускорения используйте CUDA версию при сборке Docker образа (см. раздел "Выбор версии: CPU или CUDA")
+- При использовании CUDA версии убедитесь, что у вас установлен NVIDIA Container Toolkit и доступен GPU
 
 **Примечание о модели:** По умолчанию используется `google/embeddinggemma-300M` - компактная модель эмбеддингов (300M параметров), оптимизированная для работы с ограниченными ресурсами памяти и поддерживающая более 100 языков, включая русский. 
 

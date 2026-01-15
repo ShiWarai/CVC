@@ -1,31 +1,24 @@
 text,command
-вставай,stand_up
-встань,stand_up
-встать,stand_up
-поднимись,stand_up
-подняться,stand_up
-встань на ноги,stand_up
-робот вставай,stand_up
-вставай робот,stand_up
-робот встань,stand_up
-вставай быстро,stand_up
-встань сейчас,stand_up
-поднимись вверх,stand_up
-равняйсь,align
-равняйся,align
-выровняйся,align
-стань прямо,align
-выпрямись,align
-ровняйся,align
-равнение,align
-робот равняйсь,align
-равняйсь рядом со мной,align
-равняйся ко мне,align
-выровняйся по линии,align
-стань прямо передо мной,align
-выпрямись сейчас,align
-ровняйся по команде,align
+лапу,give_paw
+дай лапу,give_paw
+покажи лапу,give_paw
+подними лапу,give_paw
+лапу дай,give_paw
+робот лапу,give_paw
+дай лапу сейчас,give_paw
+покажи лапу мне,give_paw
+подними лапу вверх,give_paw
+равняйсь,stand_at_attention
+равняйся,stand_at_attention
+стань в стойку,stand_at_attention
+стойка смирно,stand_at_attention
+встань в стойку,stand_at_attention
+равняйсь робот,stand_at_attention
+равняйся сейчас,stand_at_attention
+стань в стойку смирно,stand_at_attention
+стойка смирно робот,stand_at_attention
 отставить,dismiss
+вставай,dismiss
 отбой,dismiss
 прекратить,dismiss
 остановись,dismiss
@@ -34,6 +27,7 @@ text,command
 закончи,dismiss
 отставить все,dismiss
 робот отставить,dismiss
+вставай робот,dismiss
 отставить выполнение,dismiss
 прекрати выполнение,dismiss
 остановись сейчас,dismiss
@@ -48,45 +42,49 @@ text,command
 прими положение лежа,lie_down
 ляг на землю,lie_down
 упади на пол,lie_down
-кувырок,somersault
-сделай кувырок,somersault
-перекувырнись,somersault
-кувыркайся,somersault
-кувырок вперед,somersault
-кувырок назад,somersault
-робот кувырок,somersault
-сделай кувырок сейчас,somersault
-перекувырнись вперед,somersault
-выполни кувырок,somersault
+кувырок,rotate
+вращайся,rotate
+сделай кувырок,rotate
+перекувырнись,rotate
+кувыркайся,rotate
+кувырок вперед,rotate
+кувырок назад,rotate
+робот кувырок,rotate
+вращайся робот,rotate
+сделай кувырок сейчас,rotate
+перекувырнись вперед,rotate
+выполни кувырок,rotate
 бегать,run
+пошли,run
 беги,run
 побеги,run
 бегай,run
 беги быстро,run
 побеги вперед,run
 робот бегать,run
+пошли робот,run
 беги ко мне,run
 побеги туда,run
 бегай по кругу,run
-давай поговорим,talk
-поговорим,talk
-давай поговорить,talk
-поговори со мной,talk
-давай общаться,talk
-поболтаем,talk
-робот давай поговорим,talk
-давай поговорим о погоде,talk
-поговорим о чем-нибудь,talk
-давай обсудим что-то,talk
-держи джойстик,hold_joystick
-возьми джойстик,hold_joystick
-держи контроллер,hold_joystick
-возьми контроллер,hold_joystick
-держи геймпад,hold_joystick
-возьми геймпад,hold_joystick
-робот держи джойстик,hold_joystick
-держи джойстик в руке,hold_joystick
-возьми джойстик сейчас,hold_joystick
+смирно,stop_running
+остановись бег,stop_running
+прекрати бегать,stop_running
+стоп бег,stop_running
+хватит бегать,stop_running
+перестань бегать,stop_running
+смирно робот,stop_running
+остановись бег сейчас,stop_running
+прекрати бегать сейчас,stop_running
+держи джойстик,reconnect_joystick
+возьми джойстик,reconnect_joystick
+подключись к джойстику,reconnect_joystick
+подключи джойстик,reconnect_joystick
+подключи контроллер,reconnect_joystick
+возьми контроллер,reconnect_joystick
+робот держи джойстик,reconnect_joystick
+держи джойстик в руке,reconnect_joystick
+возьми джойстик сейчас,reconnect_joystick
+подключись к джойстику сейчас,reconnect_joystick
 привет,unknown
 как дела,unknown
 что происходит,unknown

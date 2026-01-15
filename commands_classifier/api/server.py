@@ -105,7 +105,7 @@ def load_config(config_path: str = "config.yaml"):
                 "confidence_threshold": 0.5
             },
             "database": {
-                "path": "training_data.db",
+                "path": "db/training_data.db",
                 "csv_migration_path": "data/commands_example.csv"
             },
             "training": {

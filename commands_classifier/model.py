@@ -56,14 +56,21 @@ class CommandsClassifier:
                 f"Количество текстов ({len(texts)}) не совпадает с количеством меток ({len(labels)})"
             )
         
-        # Определяем устройство (CPU-only версия, CUDA не поддерживается)
+        # Определяем устройство
         if device is None:
             device = "cpu"
         elif device == "cuda":
-            # Предупреждаем, что CUDA не поддерживается в CPU-only версии
-            import warnings
-            warnings.warn("CUDA не поддерживается в CPU-only версии. Используется CPU.", UserWarning)
-            device = "cpu"
+            # Проверяем доступность CUDA
+            try:
+                import torch
+                if not torch.cuda.is_available():
+                    import warnings
+                    warnings.warn("CUDA запрошена, но недоступна. Используется CPU.", UserWarning)
+                    device = "cpu"
+            except ImportError:
+                import warnings
+                warnings.warn("PyTorch не установлен или CUDA недоступна. Используется CPU.", UserWarning)
+                device = "cpu"
         
         # Создаем модель
         self.model = SetFitModel.from_pretrained(self.model_name)

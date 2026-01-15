@@ -1,15 +1,24 @@
 version: '3.8'
 
+# Docker Compose файл для CUDA версии
+# Использование: docker-compose -f docker-compose.cuda.yml up --build
+
 services:
   cvc-api:
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        # Выберите версию: cpu (по умолчанию) или cuda
-        # Для CUDA версии установите: PYTORCH_VERSION=cuda
-        PYTORCH_VERSION: ${PYTORCH_VERSION:-cpu}
+        PYTORCH_VERSION: cuda
     container_name: cvc-api
+    # Для CUDA требуется runtime: nvidia
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
     ports:
       - "8000:8000"
     volumes:
@@ -31,6 +40,8 @@ services:
       - HF_TOKEN=${HF_TOKEN}
       # Альтернативное имя переменной (на случай если используется другое)
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+      # Переменная для CUDA
+      - CUDA_VISIBLE_DEVICES=${CUDA_VISIBLE_DEVICES:-0}
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5).raise_for_status()"]
@@ -38,4 +49,3 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-
