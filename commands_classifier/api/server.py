@@ -60,7 +60,6 @@ class TrainRequest(BaseModel):
     num_epochs: Optional[int] = None
     batch_size: Optional[int] = None
     learning_rate: Optional[float] = None
-    device: Optional[str] = None
 
 
 class TrainResponse(BaseModel):
@@ -86,6 +85,8 @@ class ExampleResponse(BaseModel):
 classifier: Optional[CommandsClassifier] = None
 training_manager: Optional[TrainingManager] = None
 config: Dict[str, Any] = {}
+# Автоматически определённое устройство для обучения (определяется при старте)
+default_device: str = "cpu"
 
 
 def load_config(config_path: str = "config.yaml"):
@@ -98,7 +99,7 @@ def load_config(config_path: str = "config.yaml"):
     else:
         # Конфигурация по умолчанию
         config = {
-            "server": {"host": "0.0.0.0", "port": 8000},
+            "server": {"host": "0.0.0.0", "port": 20001},
             "model": {
                 "path": "models/my_model",
                 "name": "google/embeddinggemma-300M",
@@ -112,8 +113,7 @@ def load_config(config_path: str = "config.yaml"):
                 "iterations": 20,
                 "epochs": 1,
                 "batch_size": 16,
-                "learning_rate": 2e-5,
-                "device": None
+                "learning_rate": 2e-5
             }
         }
 
@@ -158,6 +158,28 @@ def init_app():
     
     load_config()
     
+    # Автоматически определяем устройство для обучения на основе доступности CUDA
+    global default_device
+    try:
+        import torch
+        if torch.cuda.is_available():
+            default_device = "cuda"
+            print(f"✓ CUDA доступна. Обучение будет выполняться на GPU: {torch.cuda.get_device_name(0)}")
+            print(f"✓ Количество GPU: {torch.cuda.device_count()}")
+            print(f"✓ CUDA версия: {torch.version.cuda}")
+            print(f"✓ Память GPU: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+        else:
+            default_device = "cpu"
+            print("ℹ CUDA недоступна. Обучение будет выполняться на CPU.")
+    except ImportError:
+        default_device = "cpu"
+        print("ℹ PyTorch не установлен или CUDA недоступна. Обучение будет выполняться на CPU.")
+    except Exception as e:
+        default_device = "cpu"
+        print(f"ℹ Ошибка при проверке CUDA: {e}. Обучение будет выполняться на CPU.")
+    
+    print(f"ℹ Устройство для обучения установлено автоматически: {default_device}")
+    
     # Инициализируем базу данных
     db_path = config["database"]["path"]
     csv_path = config["database"].get("csv_migration_path")
@@ -172,7 +194,8 @@ def init_app():
         model_path, 
         model_name, 
         confidence_threshold,
-        on_training_complete=load_model  # Передаем callback для перезагрузки
+        on_training_complete=load_model,  # Передаем callback для перезагрузки
+        default_device=default_device  # Передаем автоматически определённое устройство
     )
     
     # Пытаемся загрузить модель
@@ -275,6 +298,9 @@ async def train(request: TrainRequest):
     
     Args:
         request: Параметры обучения (опционально, используются значения по умолчанию из config)
+        Примечание: Устройство (CPU/CUDA) определяется автоматически при старте приложения
+        на основе доступности CUDA. Если образ собран с CUDA версией PyTorch и GPU доступен,
+        обучение будет выполняться на GPU. Иначе - на CPU.
         
     Returns:
         ID задачи обучения
@@ -286,12 +312,12 @@ async def train(request: TrainRequest):
         raise HTTPException(status_code=409, detail="Обучение уже запущено")
     
     # Используем параметры из запроса или из конфига
+    # Устройство определяется автоматически при старте приложения (на основе доступности CUDA)
     training_config = config["training"]
     num_iterations = request.num_iterations or training_config["iterations"]
     num_epochs = request.num_epochs or training_config["epochs"]
     batch_size = request.batch_size or training_config["batch_size"]
     learning_rate = request.learning_rate or training_config["learning_rate"]
-    device = request.device if request.device is not None else training_config.get("device")
     
     # Убеждаемся, что все числовые параметры имеют правильный тип
     num_iterations = int(num_iterations)
@@ -304,8 +330,7 @@ async def train(request: TrainRequest):
             num_iterations=num_iterations,
             num_epochs=num_epochs,
             batch_size=batch_size,
-            learning_rate=learning_rate,
-            device=device
+            learning_rate=learning_rate
         )
         return TrainResponse(
             training_id=training_id,
@@ -339,10 +364,28 @@ async def health():
     Returns:
         Статус сервера
     """
+    # Проверяем доступность CUDA
+    cuda_available = False
+    cuda_info = None
+    try:
+        import torch
+        if torch.cuda.is_available():
+            cuda_available = True
+            cuda_info = {
+                "device_name": torch.cuda.get_device_name(0),
+                "device_count": torch.cuda.device_count(),
+                "cuda_version": torch.version.cuda,
+                "memory_gb": round(torch.cuda.get_device_properties(0).total_memory / 1024**3, 2)
+            }
+    except:
+        pass
+    
     return {
         "status": "healthy",
         "model_loaded": classifier is not None,
-        "training_active": training_manager.is_training() if training_manager else False
+        "training_active": training_manager.is_training() if training_manager else False,
+        "cuda_available": cuda_available,
+        "cuda_info": cuda_info
     }
 
 

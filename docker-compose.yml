@@ -11,7 +11,7 @@ services:
         PYTORCH_VERSION: ${PYTORCH_VERSION:-cpu}
     container_name: cvc-api
     ports:
-      - "8000:8000"
+      - "20001:20001"
     volumes:
       # Монтируем модели, чтобы они сохранялись между перезапусками
       - ./models:/app/models
@@ -33,7 +33,7 @@ services:
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5).raise_for_status()"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:20001/health', timeout=5).raise_for_status()"]
       interval: 30s
       timeout: 10s
       retries: 3

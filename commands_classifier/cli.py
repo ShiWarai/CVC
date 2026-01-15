@@ -58,8 +58,8 @@ def main():
     parser.add_argument(
         '--port',
         type=int,
-        default=8000,
-        help='Порт для сервера (по умолчанию: 8000)'
+        default=20001,
+        help='Порт для сервера (по умолчанию: 20001)'
     )
     parser.add_argument(
         '--config',

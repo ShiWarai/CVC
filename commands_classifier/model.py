@@ -63,14 +63,23 @@ class CommandsClassifier:
             # Проверяем доступность CUDA
             try:
                 import torch
-                if not torch.cuda.is_available():
+                if torch.cuda.is_available():
+                    device = "cuda"
+                    print(f"✓ CUDA доступна. Используется GPU: {torch.cuda.get_device_name(0)}")
+                    print(f"✓ Количество GPU: {torch.cuda.device_count()}")
+                    print(f"✓ CUDA версия: {torch.version.cuda}")
+                else:
                     import warnings
                     warnings.warn("CUDA запрошена, но недоступна. Используется CPU.", UserWarning)
                     device = "cpu"
+                    print("⚠ CUDA недоступна, используется CPU")
             except ImportError:
                 import warnings
                 warnings.warn("PyTorch не установлен или CUDA недоступна. Используется CPU.", UserWarning)
                 device = "cpu"
+                print("⚠ PyTorch не установлен, используется CPU")
+        else:
+            print(f"Используется устройство: {device}")
         
         # Создаем модель
         self.model = SetFitModel.from_pretrained(self.model_name)
@@ -78,6 +87,12 @@ class CommandsClassifier:
         # Перемещаем модель на устройство, если это поддерживается
         if hasattr(self.model, 'to'):
             self.model = self.model.to(device)
+            if device == "cuda":
+                try:
+                    import torch
+                    print(f"✓ Модель перемещена на GPU: {torch.cuda.get_device_name(0)}")
+                except:
+                    pass
         
         # Создаем датасет из текстов и меток
         train_dataset = Dataset.from_dict({"text": texts, "label": labels})

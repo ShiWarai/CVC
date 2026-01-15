@@ -10,12 +10,12 @@ from typing import Optional
 class CVCApiClient:
     """Клиент для работы с CVC API сервером."""
     
-    def __init__(self, base_url: str = "http://127.0.0.1:8000", use_proxy: bool = False):
+    def __init__(self, base_url: str = "http://127.0.0.1:20001", use_proxy: bool = False):
         """
         Инициализирует клиент.
         
         Args:
-            base_url: Базовый URL API сервера (по умолчанию: http://127.0.0.1:8000)
+            base_url: Базовый URL API сервера (по умолчанию: http://127.0.0.1:20001)
             use_proxy: Использовать ли системный прокси (по умолчанию: False)
         """
         self.base_url = base_url.rstrip('/')
@@ -88,8 +88,7 @@ class CVCApiClient:
         num_iterations: Optional[int] = None,
         num_epochs: Optional[int] = None,
         batch_size: Optional[int] = None,
-        learning_rate: Optional[float] = None,
-        device: Optional[str] = None
+        learning_rate: Optional[float] = None
     ) -> dict:
         """
         Запускает обучение модели.
@@ -99,7 +98,7 @@ class CVCApiClient:
             num_epochs: Количество эпох
             batch_size: Размер батча
             learning_rate: Скорость обучения
-            device: Устройство
+            Примечание: Устройство (CPU/CUDA) определяется автоматически при старте приложения
             
         Returns:
             Результат запуска обучения
@@ -113,8 +112,6 @@ class CVCApiClient:
             payload["batch_size"] = batch_size
         if learning_rate is not None:
             payload["learning_rate"] = learning_rate
-        if device is not None:
-            payload["device"] = device
         
         response = self.session.post(f"{self.base_url}/train", json=payload)
         response.raise_for_status()
@@ -241,8 +238,7 @@ def train_command(args):
             num_iterations=args.iterations,
             num_epochs=args.epochs,
             batch_size=args.batch_size,
-            learning_rate=args.learning_rate,
-            device=args.device
+            learning_rate=args.learning_rate
         )
         
         print(f"Обучение запущено. ID задачи: {result['training_id']}")
@@ -317,8 +313,8 @@ def main():
     parser.add_argument(
         '--url',
         type=str,
-        default='http://127.0.0.1:8000',
-        help='URL API сервера (по умолчанию: http://127.0.0.1:8000)'
+        default='http://127.0.0.1:20001',
+        help='URL API сервера (по умолчанию: http://127.0.0.1:20001)'
     )
     
     subparsers = parser.add_subparsers(dest='command', help='Команды')
@@ -336,7 +332,6 @@ def main():
     train_parser.add_argument('--epochs', type=int, help='Количество эпох')
     train_parser.add_argument('--batch-size', type=int, help='Размер батча (больше = быстрее, но требует больше памяти)')
     train_parser.add_argument('--learning-rate', type=float, help='Скорость обучения')
-    train_parser.add_argument('--device', type=str, help='Устройство (cuda, cpu, mps)')
     
     # Команда train-status
     subparsers.add_parser('train-status', help='Проверить статус обучения')

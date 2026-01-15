@@ -1,43 +1,38 @@
 FROM python:3.11-slim
 
-# Build argument для выбора версии (cpu или cuda)
-ARG PYTORCH_VERSION=cpu
+ENV PIP_NO_CACHE_DIR=1
+ENV PYTHONDONTWRITEBYTECODE=1
 
-# Обновляем список пакетов (build-essential и git не нужны для большинства современных Python пакетов)
 RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/*
 
-# Создаем рабочую директорию
 WORKDIR /app
 
-# Копируем соответствующий requirements файл и устанавливаем зависимости
-COPY requirements*.txt .
+COPY requirements-base.txt .
+COPY requirements.txt requirements-cuda.txt ./
 
-# Обновляем pip и устанавливаем базовые пакеты
 RUN pip install --upgrade pip && \
-    pip install --no-cache-dir setuptools wheel
+    pip install setuptools wheel
 
-# Устанавливаем зависимости в зависимости от выбранной версии
+RUN pip install -r requirements-base.txt
+
+ARG PYTORCH_VERSION
+
 RUN if [ "$PYTORCH_VERSION" = "cuda" ]; then \
-        pip install --no-cache-dir -r requirements-cuda.txt; \
+        pip install -r requirements-cuda.txt; \
     else \
-        pip install --no-cache-dir -r requirements.txt; \
+        pip install -r requirements.txt; \
     fi
 
-# Копируем код приложения
 COPY commands_classifier/ ./commands_classifier/
 COPY config.yaml .
 COPY data/ ./data/
 
-# Создаем директории для моделей и базы данных
 RUN mkdir -p models checkpoints
 
-# Устанавливаем переменные окружения
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Открываем порт
-EXPOSE 8000
+EXPOSE 20001
 
-# Команда по умолчанию - запуск сервера
-CMD ["python", "-m", "commands_classifier.cli", "serve", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["python", "-m", "commands_classifier.cli", "serve", "--host", "0.0.0.0", "--port", "20001"]
 

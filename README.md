@@ -64,7 +64,7 @@ docker-compose logs -f
 docker-compose down
 ```
 
-Сервер будет доступен по адресу `http://localhost:8000`.
+Сервер будет доступен по адресу `http://localhost:20001`.
 
 ### Выбор версии: CPU или CUDA
 
@@ -124,7 +124,7 @@ docker build --build-arg PYTORCH_VERSION=cuda -t cvc-api:cuda .
 docker run -d \
   --name cvc-api \
   --gpus all \
-  -p 8000:8000 \
+  -p 20001:20001 \
   -e HF_TOKEN=your_token_here \
   -v $(pwd)/models:/app/models \
   -v $(pwd)/checkpoints:/app/checkpoints \
@@ -144,7 +144,7 @@ docker build --build-arg PYTORCH_VERSION=cuda -t cvc-api:cuda .
 docker run -d `
   --name cvc-api `
   --gpus all `
-  -p 8000:8000 `
+  -p 20001:20001 `
   -e HF_TOKEN=your_token_here `
   -v ${PWD}/models:/app/models `
   -v ${PWD}/checkpoints:/app/checkpoints `
@@ -161,7 +161,7 @@ docker run -d `
 
 ```bash
 # Через API
-curl -X POST "http://localhost:8000/train" \
+curl -X POST "http://localhost:20001/train" \
   -H "Content-Type: application/json" \
   -d '{"device": "cuda"}'
 
@@ -183,7 +183,7 @@ docker build --build-arg PYTORCH_VERSION=cuda -t cvc-api:cuda .
 # Запуск контейнера с токеном
 docker run -d \
   --name cvc-api \
-  -p 8000:8000 \
+  -p 20001:20001 \
   -e HF_TOKEN=your_token_here \
   -v $(pwd)/models:/app/models \
   -v $(pwd)/checkpoints:/app/checkpoints \
@@ -202,7 +202,7 @@ docker build -t cvc-api .
 # Запуск контейнера с токеном
 docker run -d `
   --name cvc-api `
-  -p 8000:8000 `
+  -p 20001:20001 `
   -e HF_TOKEN=your_token_here `
   -v ${PWD}/models:/app/models `
   -v ${PWD}/checkpoints:/app/checkpoints `
@@ -226,7 +226,7 @@ HF_TOKEN=your_token_here docker-compose up -d
 # Для docker run напрямую
 docker run -d \
   --name cvc-api \
-  -p 8000:8000 \
+  -p 20001:20001 \
   -e HF_TOKEN=your_token_here \
   -v $(pwd)/models:/app/models \
   -v $(pwd)/checkpoints:/app/checkpoints \
@@ -245,7 +245,7 @@ $env:HF_TOKEN="your_token_here"; docker-compose up -d
 # Для docker run
 docker run -d `
   --name cvc-api `
-  -p 8000:8000 `
+  -p 20001:20001 `
   -e HF_TOKEN=your_token_here `
   -v ${PWD}/models:/app/models `
   -v ${PWD}/checkpoints:/app/checkpoints `
@@ -283,7 +283,7 @@ python -m commands_classifier.client predict --text "равняйся"
 python -m commands_classifier.client train
 ```
 
-Клиент автоматически подключится к серверу на `http://localhost:8000`.
+Клиент автоматически подключится к серверу на `http://localhost:20001`.
 
 ### Health Check
 
@@ -326,7 +326,7 @@ python -m commands_classifier.cli serve
 ```bash
 python -m commands_classifier.cli serve \
   --host 0.0.0.0 \
-  --port 8000 \
+  --port 20001 \
   --config config.yaml
 ```
 
@@ -389,7 +389,7 @@ python -m commands_classifier.client health
 from commands_classifier.client import CVCApiClient
 
 # Создание клиента
-client = CVCApiClient("http://localhost:8000")
+client = CVCApiClient("http://localhost:20001")
 
 # Классификация текста
 result = client.predict("равняйся", return_confidence=True)
@@ -460,11 +460,11 @@ python -m commands_classifier.cli serve
 ```bash
 python -m commands_classifier.cli serve \
   --host 0.0.0.0 \
-  --port 8000 \
+  --port 20001 \
   --config config.yaml
 ```
 
-После запуска сервер будет доступен по адресу `http://localhost:8000`. Документация API (Swagger UI) доступна по адресу `http://localhost:8000/docs`.
+После запуска сервер будет доступен по адресу `http://localhost:20001`. Документация API (Swagger UI) доступна по адресу `http://localhost:20001/docs`.
 
 ### Конфигурация
 
@@ -473,7 +473,7 @@ python -m commands_classifier.cli serve \
 ```yaml
 server:
   host: "0.0.0.0"
-  port: 8000
+  port: 20001
 
 model:
   path: "models/my_model"
@@ -500,33 +500,33 @@ training:
 
 **POST /embed** - Получение эмбеддингов (TEI совместимый)
 ```bash
-curl -X POST "http://localhost:8000/embed" \
+curl -X POST "http://localhost:20001/embed" \
   -H "Content-Type: application/json" \
   -d '{"inputs": ["равняйся", "отставить"]}'
 ```
 
 **GET /health** - Проверка работоспособности
 ```bash
-curl http://localhost:8000/health
+curl http://localhost:20001/health
 ```
 
 **GET /metrics** - Метрики сервера
 ```bash
-curl http://localhost:8000/metrics
+curl http://localhost:20001/metrics
 ```
 
 #### Классификация команд
 
 **POST /predict** - Классификация одного текста
 ```bash
-curl -X POST "http://localhost:8000/predict" \
+curl -X POST "http://localhost:20001/predict" \
   -H "Content-Type: application/json" \
   -d '{"text": "равняйся", "return_confidence": true}'
 ```
 
 **POST /predict/batch** - Batch классификация
 ```bash
-curl -X POST "http://localhost:8000/predict/batch" \
+curl -X POST "http://localhost:20001/predict/batch" \
   -H "Content-Type: application/json" \
   -d '{"texts": ["равняйся", "отставить"], "return_confidence": true}'
 ```
@@ -535,38 +535,38 @@ curl -X POST "http://localhost:8000/predict/batch" \
 
 **POST /train** - Запуск обучения модели в фоновом режиме
 ```bash
-curl -X POST "http://localhost:8000/train" \
+curl -X POST "http://localhost:20001/train" \
   -H "Content-Type: application/json" \
   -d '{"num_iterations": 30, "num_epochs": 2, "batch_size": 32}'
 ```
 
 **GET /train/status** - Статус обучения
 ```bash
-curl http://localhost:8000/train/status
+curl http://localhost:20001/train/status
 ```
 
 #### Управление обучающими данными
 
 **GET /examples** - Получить все примеры
 ```bash
-curl http://localhost:8000/examples
+curl http://localhost:20001/examples
 ```
 
 **POST /examples** - Добавить пример
 ```bash
-curl -X POST "http://localhost:8000/examples" \
+curl -X POST "http://localhost:20001/examples" \
   -H "Content-Type: application/json" \
   -d '{"text": "новая команда", "command": "new_command"}'
 ```
 
 **DELETE /examples/{id}** - Удалить пример
 ```bash
-curl -X DELETE "http://localhost:8000/examples/1"
+curl -X DELETE "http://localhost:20001/examples/1"
 ```
 
 **GET /examples/{id}** - Получить пример по ID
 ```bash
-curl http://localhost:8000/examples/1
+curl http://localhost:20001/examples/1
 ```
 
 ### База данных

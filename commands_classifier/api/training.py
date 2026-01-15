@@ -42,7 +42,8 @@ class TrainingManager:
         model_path: str, 
         model_name: str = "google/embeddinggemma-300M",
         confidence_threshold: float = 0.5,
-        on_training_complete: Optional[Callable[[], None]] = None
+        on_training_complete: Optional[Callable[[], None]] = None,
+        default_device: str = "cpu"
     ):
         """
         Инициализирует менеджер обучения.
@@ -53,12 +54,14 @@ class TrainingManager:
             model_name: Имя базовой модели для обучения
             confidence_threshold: Порог уверенности для классификации
             on_training_complete: Callback функция, вызываемая после успешного обучения
+            default_device: Устройство для обучения (определяется автоматически при старте)
         """
         self.db_path = db_path
         self.model_path = model_path
         self.model_name = model_name
         self.confidence_threshold = float(confidence_threshold)  # Убеждаемся, что это float
         self.on_training_complete = on_training_complete
+        self.default_device = default_device  # Устройство определяется автоматически при старте
         self.lock = threading.Lock()
         self.training_thread: Optional[threading.Thread] = None
         
@@ -75,8 +78,7 @@ class TrainingManager:
         num_iterations: int = 20,
         num_epochs: int = 1,
         batch_size: int = 16,
-        learning_rate: float = 2e-5,
-        device: Optional[str] = None
+        learning_rate: float = 2e-5
     ) -> str:
         """
         Запускает обучение в фоновом режиме.
@@ -86,7 +88,7 @@ class TrainingManager:
             num_epochs: Количество эпох fine-tuning
             batch_size: Размер батча
             learning_rate: Скорость обучения
-            device: Устройство для обучения
+            Примечание: Устройство (CPU/CUDA) определяется автоматически при старте приложения
             
         Returns:
             ID задачи обучения
@@ -109,7 +111,7 @@ class TrainingManager:
             # Запускаем обучение в отдельном потоке
             self.training_thread = threading.Thread(
                 target=self._train_in_background,
-                args=(num_iterations, num_epochs, batch_size, learning_rate, device),
+                args=(num_iterations, num_epochs, batch_size, learning_rate),
                 daemon=True
             )
             self.training_thread.start()
@@ -121,8 +123,7 @@ class TrainingManager:
         num_iterations: int,
         num_epochs: int,
         batch_size: int,
-        learning_rate: float,
-        device: Optional[str]
+        learning_rate: float
     ):
         """Выполняет обучение в фоновом потоке."""
         try:
@@ -197,6 +198,28 @@ class TrainingManager:
             num_epochs_int = int(num_epochs)
             batch_size_int = int(batch_size)
             learning_rate_float = float(learning_rate)  # Критично: learning_rate должен быть float
+            
+            # Используем автоматически определённое устройство
+            device = self.default_device
+            
+            # Логируем информацию о выбранном устройстве
+            if device == "cuda":
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        _log_training(f"[Обучение {self.training_id}] ✓ Обучение на GPU: {torch.cuda.get_device_name(0)}")
+                        _log_training(f"[Обучение {self.training_id}] ✓ Количество GPU: {torch.cuda.device_count()}")
+                        _log_training(f"[Обучение {self.training_id}] ✓ CUDA версия: {torch.version.cuda}")
+                        _log_training(f"[Обучение {self.training_id}] ✓ Память GPU: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+                    else:
+                        _log_training(f"[Обучение {self.training_id}] ⚠ CUDA была выбрана, но недоступна. Переключаемся на CPU.", "warning")
+                        device = "cpu"
+                except Exception as e:
+                    _log_training(f"[Обучение {self.training_id}] ⚠ Ошибка при проверке CUDA: {e}. Используется CPU.", "warning")
+                    device = "cpu"
+            
+            if device == "cpu":
+                _log_training(f"[Обучение {self.training_id}] ℹ Обучение на CPU")
             
             _log_training(f"[Обучение {self.training_id}] Начало обучения (iterations={num_iterations_int}, epochs={num_epochs_int}, batch_size={batch_size_int}, lr={learning_rate_float}, device={device})...")
             _log_training(f"[Обучение {self.training_id}] Типы параметров: iterations={type(num_iterations_int)}, epochs={type(num_epochs_int)}, batch_size={type(batch_size_int)}, lr={type(learning_rate_float)}")
