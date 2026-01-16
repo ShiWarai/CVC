@@ -3,6 +3,8 @@
 import threading
 import uuid
 import logging
+import shutil
+from pathlib import Path
 from datetime import datetime
 from typing import Optional, Dict, Any, Callable
 from enum import Enum
@@ -128,6 +130,8 @@ class TrainingManager:
         learning_rate: float
     ):
         """Выполняет обучение в фоновом потоке."""
+        model_path_obj = Path(self.model_path)
+        
         try:
             _log_training(f"[Обучение {self.training_id}] Начало обучения...")
             
@@ -135,19 +139,19 @@ class TrainingManager:
             self.progress = 0.1
             _log_training(f"[Обучение {self.training_id}] Загрузка данных из БД...")
             
-            # Загружаем данные из БД
-            texts, labels = db.get_examples_for_training(self.db_path)
+            # Загружаем данные из БД (только необученные)
+            texts, labels, example_ids = db.get_examples_for_training(self.db_path)
             
             if len(texts) == 0:
-                raise ValueError("Нет данных для обучения в базе данных")
+                raise ValueError("Нет необученных данных для обучения в базе данных")
             
-            _log_training(f"[Обучение {self.training_id}] Загружено {len(texts)} примеров")
+            _log_training(f"[Обучение {self.training_id}] Загружено {len(texts)} необученных примеров")
             
             # Проверяем минимальные требования для SetFit
             unique_labels = set(labels)
             label_counts = {label: labels.count(label) for label in unique_labels}
             
-            _log_training(f"[Обучение {self.training_id}] Классы: {label_counts}")
+            _log_training(f"[Обучение {self.training_id}] Классы (необученные): {label_counts}")
             
             # SetFit требует минимум 2 класса для создания отрицательных пар
             if len(unique_labels) < 2:
@@ -159,13 +163,56 @@ class TrainingManager:
             # Проверяем, что в каждом классе достаточно примеров
             # SetFit создает пары примеров, поэтому нужно минимум 2 примера в каждом классе
             min_examples_per_class = min(label_counts.values())
-            if min_examples_per_class < 2:
-                classes_with_one_example = [label for label, count in label_counts.items() if count < 2]
-                raise ValueError(
-                    f"Недостаточно примеров в некоторых классах. "
-                    f"Классы с менее чем 2 примерами: {classes_with_one_example}. "
-                    f"Добавьте больше примеров для этих классов."
+            classes_with_insufficient_examples = [label for label, count in label_counts.items() if count < 2]
+            
+            # Если в некоторых классах недостаточно примеров, дополняем их обученными примерами
+            if classes_with_insufficient_examples:
+                _log_training(
+                    f"[Обучение {self.training_id}] Обнаружены классы с недостаточным количеством примеров: {classes_with_insufficient_examples}",
+                    "warning"
                 )
+                
+                # Для каждого класса с недостаточным количеством примеров дополняем обученными
+                for label in classes_with_insufficient_examples:
+                    needed = 2 - label_counts[label]  # Сколько нужно добавить до минимума
+                    _log_training(
+                        f"[Обучение {self.training_id}] Дополняем класс '{label}': нужно {needed} примеров (сейчас {label_counts[label]})"
+                    )
+                    
+                    # Получаем обученные примеры из этого класса
+                    trained_texts, trained_labels, trained_ids = db.get_trained_examples_by_labels(
+                        self.db_path, [label], needed
+                    )
+                    
+                    if len(trained_texts) > 0:
+                        # Добавляем обученные примеры к основному набору
+                        texts.extend(trained_texts)
+                        labels.extend(trained_labels)
+                        # Важно: не добавляем trained_ids в example_ids, так как эти примеры уже обучены
+                        # и не должны быть отмечены как is_trained = 1 после обучения
+                        _log_training(
+                            f"[Обучение {self.training_id}] Добавлено {len(trained_texts)} обученных примеров из класса '{label}'"
+                        )
+                    else:
+                        _log_training(
+                            f"[Обучение {self.training_id}] Предупреждение: не найдено обученных примеров для класса '{label}'",
+                            "warning"
+                        )
+                
+                # Пересчитываем статистику после дополнения
+                unique_labels = set(labels)
+                label_counts = {label: labels.count(label) for label in unique_labels}
+                _log_training(f"[Обучение {self.training_id}] Классы после дополнения: {label_counts}")
+                
+                # Проверяем еще раз после дополнения
+                min_examples_per_class = min(label_counts.values())
+                if min_examples_per_class < 2:
+                    classes_still_insufficient = [label for label, count in label_counts.items() if count < 2]
+                    raise ValueError(
+                        f"Недостаточно примеров в некоторых классах даже после дополнения обученными примерами. "
+                        f"Классы с менее чем 2 примерами: {classes_still_insufficient}. "
+                        f"Добавьте больше примеров для этих классов."
+                    )
             
             # Рекомендуем минимум 4 примера на класс для стабильного обучения
             if min_examples_per_class < 4:
@@ -174,6 +221,29 @@ class TrainingManager:
                     f"Рекомендуется минимум 4 примера на класс для лучших результатов.",
                     "warning"
                 )
+            
+            # Проверяем, существует ли уже модель (переобучение отключено)
+            model_exists = model_path_obj.exists()
+            
+            if model_exists:
+                raise ValueError(
+                    f"Модель уже существует в {self.model_path}. "
+                    f"Переобучение отключено для защиты от потери старых знаний. "
+                    f"Удалите существующую модель вручную, если хотите обучить заново."
+                )
+            
+            _log_training(f"[Обучение {self.training_id}] Модель не найдена. Первичное обучение...")
+            
+            # ЛОГИКА ПЕРЕОБУЧЕНИЯ ОТКЛЮЧЕНА (закомментировано)
+            # if model_exists:
+            #     _log_training(f"[Обучение {self.training_id}] Обнаружена существующая модель. Начинается переобучение...")
+            #     # Создаем backup старой модели для восстановления в случае ошибки
+            #     backup_path_obj = Path(f"{self.model_path}_backup")
+            #     if backup_path_obj.exists():
+            #         shutil.rmtree(backup_path_obj)
+            #     shutil.copytree(self.model_path, backup_path_obj)
+            #     backup_path = str(backup_path_obj)  # Сохраняем как строку для использования в except
+            #     _log_training(f"[Обучение {self.training_id}] Старая модель скопирована в backup: {backup_path}")
             
             # Обновляем прогресс: инициализация модели
             self.progress = 0.2
@@ -231,9 +301,23 @@ class TrainingManager:
             self.progress = 0.9
             _log_training(f"[Обучение {self.training_id}] Сохранение модели в {self.model_path}...")
             
-            # Сохраняем модель
+            # Сохраняем модель (метод save() сам обработает удаление старой модели)
             classifier.save(self.model_path)
             _log_training(f"[Обучение {self.training_id}] Модель успешно сохранена")
+            
+            # ЛОГИКА УДАЛЕНИЯ BACKUP ОТКЛЮЧЕНА (закомментировано)
+            # # Удаляем backup после успешного сохранения
+            # if backup_path:
+            #     backup_path_obj = Path(backup_path)
+            #     if backup_path_obj.exists():
+            #         shutil.rmtree(backup_path_obj)
+            #         _log_training(f"[Обучение {self.training_id}] Backup удален")
+            
+            # Отмечаем использованные строки как обученные
+            if example_ids:
+                _log_training(f"[Обучение {self.training_id}] Отмечаем {len(example_ids)} примеров как обученные...")
+                db.mark_examples_as_trained(self.db_path, example_ids)
+                _log_training(f"[Обучение {self.training_id}] Примеры успешно отмечены как обученные")
             
             # Обучение завершено успешно
             with self.lock:
@@ -264,6 +348,22 @@ class TrainingManager:
             error_traceback = traceback.format_exc()
             _log_training(f"[Обучение {self.training_id}] ОШИБКА: {e}", "error")
             _log_training(f"[Обучение {self.training_id}] Трассировка:\n{error_traceback}", "error")
+            
+            # ЛОГИКА ВОССТАНОВЛЕНИЯ ИЗ BACKUP ОТКЛЮЧЕНА (закомментировано)
+            # # В случае ошибки восстанавливаем старую модель из backup, если она была
+            # if backup_path is not None:
+            #     try:
+            #         backup_path_obj = Path(backup_path)
+            #         if backup_path_obj.exists():
+            #             # Удаляем поврежденную модель, если она есть
+            #             if model_path_obj.exists():
+            #                 shutil.rmtree(model_path_obj)
+            #             # Восстанавливаем из backup
+            #             shutil.move(str(backup_path_obj), str(model_path_obj))
+            #             _log_training(f"[Обучение {self.training_id}] Старая модель восстановлена из backup", "warning")
+            #     except Exception as restore_error:
+            #         _log_training(f"[Обучение {self.training_id}] Не удалось восстановить модель из backup: {restore_error}", "error")
+            
             with self.lock:
                 self.status = TrainingStatus.FAILED
                 self.error = str(e)

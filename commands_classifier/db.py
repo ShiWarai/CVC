@@ -56,15 +56,35 @@ def _normalize_db_path(db_path: str) -> str:
     return db_path
 
 
+def _example_exists(cursor: sqlite3.Cursor, text: str, command: str) -> bool:
+    """
+    Проверяет, существует ли пример с указанным text и command в БД.
+    
+    Args:
+        cursor: Курсор базы данных
+        text: Текст команды
+        command: Метка команды
+        
+    Returns:
+        True если пример существует, False иначе
+    """
+    cursor.execute(
+        "SELECT COUNT(*) FROM examples WHERE text = ? AND command = ?",
+        (text, command)
+    )
+    return cursor.fetchone()[0] > 0
+
+
 def init_db(db_path: str, csv_path: Optional[str] = None) -> None:
     """
     Инициализирует базу данных и создает таблицу examples.
-    Если БД пустая и указан csv_path, выполняет миграцию данных из CSV.
+    При каждом запуске проверяет CSV файлы и добавляет отсутствующие строки в БД.
     
     Args:
         db_path: Путь к файлу базы данных SQLite
         csv_path: Опциональный путь к CSV файлу или директории с CSV файлами для миграции.
                   Если указана директория, загружаются все CSV файлы из неё.
+                  При каждом запуске проверяются все CSV файлы и добавляются только новые строки.
     """
     # Нормализуем путь к базе данных
     db_path = _normalize_db_path(db_path)
@@ -84,18 +104,24 @@ def init_db(db_path: str, csv_path: Optional[str] = None) -> None:
             CREATE TABLE IF NOT EXISTS examples (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 text TEXT NOT NULL,
-                command TEXT NOT NULL
+                command TEXT NOT NULL,
+                is_trained INTEGER DEFAULT 0
             )
         """)
         
+        # Миграция: добавляем поле is_trained если его нет в существующей таблице
+        cursor.execute("PRAGMA table_info(examples)")
+        columns = [column[1] for column in cursor.fetchall()]
+        if 'is_trained' not in columns:
+            cursor.execute("ALTER TABLE examples ADD COLUMN is_trained INTEGER DEFAULT 0")
+            # Устанавливаем is_trained = 0 для всех существующих записей
+            cursor.execute("UPDATE examples SET is_trained = 0 WHERE is_trained IS NULL")
+            print("Добавлено поле is_trained в таблицу examples")
+        
         conn.commit()
         
-        # Проверяем, пустая ли БД
-        cursor.execute("SELECT COUNT(*) FROM examples")
-        count = cursor.fetchone()[0]
-        
-        # Если БД пустая и указан CSV путь, выполняем миграцию
-        if count == 0 and csv_path:
+        # Если указан CSV путь, выполняем синхронизацию (проверяем при каждом запуске)
+        if csv_path:
             csv_path_obj = Path(csv_path)
             if csv_path_obj.exists():
                 csv_files = []
@@ -111,30 +137,44 @@ def init_db(db_path: str, csv_path: Optional[str] = None) -> None:
                 else:
                     print(f"Путь {csv_path} не является директорией или CSV файлом")
                 
-                # Загружаем данные из всех найденных CSV файлов
-                total_migrated = 0
+                # Синхронизируем данные из всех найденных CSV файлов
+                total_added = 0
+                total_skipped = 0
                 for csv_file in csv_files:
                     try:
                         df = pd.read_csv(csv_file)
                         if 'text' in df.columns and 'command' in df.columns:
+                            added_count = 0
+                            skipped_count = 0
                             for _, row in df.iterrows():
                                 # Очищаем знаки препинания из текста перед сохранением
                                 cleaned_text = remove_punctuation(str(row['text']))
-                                cursor.execute(
-                                    "INSERT INTO examples (text, command) VALUES (?, ?)",
-                                    (cleaned_text, str(row['command']))
-                                )
+                                command = str(row['command'])
+                                
+                                # Проверяем, существует ли уже такая строка
+                                if not _example_exists(cursor, cleaned_text, command):
+                                    cursor.execute(
+                                        "INSERT INTO examples (text, command, is_trained) VALUES (?, ?, 0)",
+                                        (cleaned_text, command)
+                                    )
+                                    added_count += 1
+                                else:
+                                    skipped_count += 1
+                            
                             conn.commit()
-                            migrated_count = len(df)
-                            total_migrated += migrated_count
-                            print(f"Мигрировано {migrated_count} примеров из {csv_file.name}")
+                            total_added += added_count
+                            total_skipped += skipped_count
+                            if added_count > 0:
+                                print(f"Добавлено {added_count} новых примеров из {csv_file.name} (пропущено {skipped_count} существующих)")
+                            elif skipped_count > 0:
+                                print(f"Все примеры из {csv_file.name} уже есть в БД (пропущено {skipped_count})")
                         else:
                             print(f"Пропущен {csv_file.name}: отсутствуют колонки 'text' или 'command'")
                     except Exception as e:
-                        print(f"Ошибка при миграции {csv_file.name}: {e}")
+                        print(f"Ошибка при синхронизации {csv_file.name}: {e}")
                 
-                if total_migrated > 0:
-                    print(f"Всего мигрировано {total_migrated} примеров из {len(csv_files)} файл(ов)")
+                if total_added > 0 or total_skipped > 0:
+                    print(f"Синхронизация завершена: добавлено {total_added} новых примеров, пропущено {total_skipped} существующих из {len(csv_files)} файл(ов)")
     except sqlite3.OperationalError as e:
         error_msg = (
             f"Не удалось создать/открыть базу данных по пути: {db_path}\n"
@@ -169,20 +209,68 @@ def get_all_examples(db_path: str) -> List[Tuple[int, str, str]]:
     return results
 
 
-def get_examples_for_training(db_path: str) -> Tuple[List[str], List[str]]:
+def get_examples_for_training(db_path: str) -> Tuple[List[str], List[str], List[int]]:
     """
-    Получает примеры в формате для обучения (только text и command).
+    Получает необученные примеры в формате для обучения (только text и command).
     
     Args:
         db_path: Путь к файлу базы данных
         
     Returns:
-        Кортеж (texts, labels) - списки текстов и команд
+        Кортеж (texts, labels, ids) - списки текстов, команд и ID строк
     """
-    examples = get_all_examples(db_path)
+    db_path = _normalize_db_path(db_path)
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    # Получаем только необученные примеры (is_trained = 0)
+    cursor.execute("SELECT id, text, command FROM examples WHERE is_trained = 0 ORDER BY id")
+    examples = cursor.fetchall()
+    conn.close()
+    
     texts = [ex[1] for ex in examples]
     labels = [ex[2] for ex in examples]
-    return texts, labels
+    ids = [ex[0] for ex in examples]
+    return texts, labels, ids
+
+
+def get_trained_examples_by_labels(db_path: str, labels: List[str], limit_per_label: int) -> Tuple[List[str], List[str], List[int]]:
+    """
+    Получает обученные примеры из указанных классов для дополнения недостающих примеров.
+    
+    Args:
+        db_path: Путь к файлу базы данных
+        labels: Список меток классов, для которых нужно получить примеры
+        limit_per_label: Максимальное количество примеров на класс
+        
+    Returns:
+        Кортеж (texts, labels, ids) - списки текстов, команд и ID строк
+    """
+    if not labels:
+        return [], [], []
+    
+    db_path = _normalize_db_path(db_path)
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    texts = []
+    result_labels = []
+    ids = []
+    
+    for label in labels:
+        # Получаем обученные примеры из этого класса (is_trained = 1)
+        cursor.execute(
+            "SELECT id, text, command FROM examples WHERE command = ? AND is_trained = 1 ORDER BY id LIMIT ?",
+            (label, limit_per_label)
+        )
+        examples = cursor.fetchall()
+        
+        for ex in examples:
+            ids.append(ex[0])
+            texts.append(ex[1])
+            result_labels.append(ex[2])
+    
+    conn.close()
+    return texts, result_labels, ids
 
 
 def add_example(db_path: str, text: str, command: str) -> int:
@@ -201,7 +289,7 @@ def add_example(db_path: str, text: str, command: str) -> int:
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO examples (text, command) VALUES (?, ?)",
+        "INSERT INTO examples (text, command, is_trained) VALUES (?, ?, 0)",
         (text, command)
     )
     example_id = cursor.lastrowid
@@ -268,6 +356,64 @@ def get_example_by_id(db_path: str, example_id: int) -> Optional[Tuple[int, str,
     result = cursor.fetchone()
     conn.close()
     return result
+
+
+def mark_examples_as_trained(db_path: str, example_ids: List[int]) -> None:
+    """
+    Отмечает примеры как обученные (устанавливает is_trained = 1).
+    
+    Args:
+        db_path: Путь к файлу базы данных
+        example_ids: Список ID примеров для отметки
+    """
+    if not example_ids:
+        return
+    
+    db_path = _normalize_db_path(db_path)
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    # Используем параметризованный запрос для безопасности
+    placeholders = ','.join('?' * len(example_ids))
+    cursor.execute(
+        f"UPDATE examples SET is_trained = 1 WHERE id IN ({placeholders})",
+        example_ids
+    )
+    
+    conn.commit()
+    conn.close()
+
+
+def get_training_stats(db_path: str) -> dict:
+    """
+    Получает статистику по обученным и необученным примерам.
+    
+    Args:
+        db_path: Путь к файлу базы данных
+        
+    Returns:
+        Словарь со статистикой: total, trained, untrained
+    """
+    db_path = _normalize_db_path(db_path)
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute("SELECT COUNT(*) FROM examples")
+    total = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM examples WHERE is_trained = 1")
+    trained = cursor.fetchone()[0]
+    
+    cursor.execute("SELECT COUNT(*) FROM examples WHERE is_trained = 0")
+    untrained = cursor.fetchone()[0]
+    
+    conn.close()
+    
+    return {
+        "total": total,
+        "trained": trained,
+        "untrained": untrained
+    }
 
 
 

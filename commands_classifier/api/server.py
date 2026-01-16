@@ -419,9 +419,12 @@ async def metrics():
     """
     db_path = config["database"]["path"]
     example_count = db.count_examples(db_path)
+    training_stats = db.get_training_stats(db_path)
     
     return {
         "total_examples": example_count,
+        "trained_examples": training_stats["trained"],
+        "untrained_examples": training_stats["untrained"],
         "model_loaded": classifier is not None,
         "training_status": training_manager.get_status() if training_manager else None
     }
