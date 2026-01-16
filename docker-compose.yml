@@ -28,6 +28,8 @@ services:
       # Альтернативное имя переменной (на случай если используется другое)
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
     restart: unless-stopped
+    networks:
+      - robot-services-network
     healthcheck:
       test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:20001/health', timeout=5).raise_for_status()"]
       interval: 30s
@@ -35,3 +37,6 @@ services:
       retries: 3
       start_period: 40s
 
+networks:
+  robot-services-network:
+    external: true
