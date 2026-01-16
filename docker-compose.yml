@@ -5,10 +5,6 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        # Выберите версию: cpu (по умолчанию) или cuda
-        # Для CUDA версии установите: PYTORCH_VERSION=cuda
-        PYTORCH_VERSION: ${PYTORCH_VERSION:-cpu}
     container_name: cvc-api
     ports:
       - "20001:20001"

@@ -137,8 +137,10 @@ def load_model():
                 gc.collect()
             
             # Загружаем новую модель
+            cache_dir = config["model"].get("cache_dir")
             classifier = CommandsClassifier(
-                confidence_threshold=confidence_threshold
+                confidence_threshold=confidence_threshold,
+                cache_dir=cache_dir
             )
             classifier.load(model_path, confidence_threshold=confidence_threshold)
             print(f"Модель успешно загружена из {model_path}")
@@ -158,27 +160,28 @@ def init_app():
     
     load_config()
     
-    # Автоматически определяем устройство для обучения на основе доступности CUDA
+    # Автоматически определяем устройство для обучения
     global default_device
     try:
         import torch
-        if torch.cuda.is_available():
+        cuda_available = torch.cuda.is_available()
+        torch_version = str(torch.__version__)
+        if cuda_available:
             default_device = "cuda"
             print(f"✓ CUDA доступна. Обучение будет выполняться на GPU: {torch.cuda.get_device_name(0)}")
-            print(f"✓ Количество GPU: {torch.cuda.device_count()}")
-            print(f"✓ CUDA версия: {torch.version.cuda}")
-            print(f"✓ Память GPU: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
         else:
             default_device = "cpu"
-            print("ℹ CUDA недоступна. Обучение будет выполняться на CPU.")
+            # Проверяем, не CPU-only ли версия PyTorch
+            if "+cpu" in torch_version.lower():
+                print("⚠ Обнаружена CPU-only версия PyTorch. Для использования CUDA установите зависимости из requirements-cuda.txt:")
+                print("   pip install -r requirements-cuda.txt")
+            print("ℹ CUDA недоступна. Обучение будет выполняться на CPU")
     except ImportError:
         default_device = "cpu"
-        print("ℹ PyTorch не установлен или CUDA недоступна. Обучение будет выполняться на CPU.")
+        print("ℹ PyTorch не установлен. Обучение будет выполняться на CPU")
     except Exception as e:
         default_device = "cpu"
-        print(f"ℹ Ошибка при проверке CUDA: {e}. Обучение будет выполняться на CPU.")
-    
-    print(f"ℹ Устройство для обучения установлено автоматически: {default_device}")
+        print(f"ℹ Ошибка при проверке CUDA: {e}. Обучение будет выполняться на CPU")
     
     # Инициализируем базу данных
     db_path = config["database"]["path"]
@@ -189,13 +192,15 @@ def init_app():
     model_path = config["model"]["path"]
     model_name = config["model"]["name"]
     confidence_threshold = float(config["model"].get("confidence_threshold", 0.5))
+    cache_dir = config["model"].get("cache_dir")  # Путь для кэширования базовой модели
     training_manager = TrainingManager(
         db_path, 
         model_path, 
         model_name, 
         confidence_threshold,
         on_training_complete=load_model,  # Передаем callback для перезагрузки
-        default_device=default_device  # Передаем автоматически определённое устройство
+        default_device=default_device,  # Передаем автоматически определённое устройство
+        cache_dir=cache_dir  # Передаем путь для кэширования
     )
     
     # Пытаемся загрузить модель
@@ -233,7 +238,11 @@ async def embed(request: EmbedRequest):
     """
     if classifier is None:
         # Если модель не загружена, создаем базовую модель для эмбеддингов
-        temp_classifier = CommandsClassifier(model_name=config["model"]["name"])
+        cache_dir = config["model"].get("cache_dir")
+        temp_classifier = CommandsClassifier(
+            model_name=config["model"]["name"],
+            cache_dir=cache_dir
+        )
         embeddings = temp_classifier.get_embeddings(request.inputs)
     else:
         embeddings = classifier.get_embeddings(request.inputs)
@@ -298,9 +307,10 @@ async def train(request: TrainRequest):
     
     Args:
         request: Параметры обучения (опционально, используются значения по умолчанию из config)
-        Примечание: Устройство (CPU/CUDA) определяется автоматически при старте приложения
-        на основе доступности CUDA. Если образ собран с CUDA версией PyTorch и GPU доступен,
-        обучение будет выполняться на GPU. Иначе - на CPU.
+        - num_iterations: Количество итераций (по умолчанию из config.yaml)
+        - num_epochs: Количество эпох (по умолчанию из config.yaml)
+        - batch_size: Размер батча (по умолчанию из config.yaml)
+        - learning_rate: Скорость обучения (по умолчанию из config.yaml)
         
     Returns:
         ID задачи обучения
@@ -312,7 +322,6 @@ async def train(request: TrainRequest):
         raise HTTPException(status_code=409, detail="Обучение уже запущено")
     
     # Используем параметры из запроса или из конфига
-    # Устройство определяется автоматически при старте приложения (на основе доступности CUDA)
     training_config = config["training"]
     num_iterations = request.num_iterations or training_config["iterations"]
     num_epochs = request.num_epochs or training_config["epochs"]
@@ -364,28 +373,10 @@ async def health():
     Returns:
         Статус сервера
     """
-    # Проверяем доступность CUDA
-    cuda_available = False
-    cuda_info = None
-    try:
-        import torch
-        if torch.cuda.is_available():
-            cuda_available = True
-            cuda_info = {
-                "device_name": torch.cuda.get_device_name(0),
-                "device_count": torch.cuda.device_count(),
-                "cuda_version": torch.version.cuda,
-                "memory_gb": round(torch.cuda.get_device_properties(0).total_memory / 1024**3, 2)
-            }
-    except:
-        pass
-    
     return {
         "status": "healthy",
         "model_loaded": classifier is not None,
-        "training_active": training_manager.is_training() if training_manager else False,
-        "cuda_available": cuda_available,
-        "cuda_info": cuda_info
+        "training_active": training_manager.is_training() if training_manager else False
     }
 
 

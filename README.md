@@ -7,7 +7,7 @@
 - **Few-shot learning**: Обучение на 5-50 примерах на класс
 - **Поддержка русского языка**: Использует multilingual модели (embeddinggemma-300M)
 - **Эффективное использование памяти**: Компактная модель (308M параметров) для работы на устройствах с ограниченными ресурсами
-- **Поддержка CPU и CUDA**: Можно выбрать CPU-only версию (экономия ~600MB) или CUDA версию для GPU ускорения
+- **CPU-only в Docker**: Оптимизированная версия для контейнеров
 - **Простой CLI интерфейс**: Легко использовать из командной строки
 - **Гибкий формат датасета**: Поддержка CSV и JSON
 - **REST API сервер**: FastAPI сервер с TEI-совместимыми эндпоинтами
@@ -25,17 +25,19 @@ pip install -r requirements.txt
 
 1. Перейдите на [страницу модели](https://huggingface.co/google/embeddinggemma-300M) и примите условия использования
 2. Получите токен доступа в [настройках аккаунта](https://huggingface.co/settings/tokens)
-3. Авторизуйтесь в командной строке:
+3. Создайте файл `.env` в корне проекта и добавьте токен:
 
-```powershell
-huggingface-cli login
+```bash
+HF_TOKEN=your_token_here
 ```
 
-Введите ваш токен при запросе.
+Токен будет автоматически загружен при запуске приложения (через `python-dotenv`).
 
 ## Docker
 
 Проект можно запустить в Docker контейнере для изоляции и удобства развертывания.
+
+**Важно:** Docker контейнер использует CPU-only версию PyTorch. Для использования GPU (CUDA) запускайте приложение локально с установленным PyTorch CUDA (см. раздел "Локальное обучение с CUDA").
 
 ### Быстрый старт с Docker Compose
 
@@ -66,119 +68,15 @@ docker-compose down
 
 Сервер будет доступен по адресу `http://localhost:20001`.
 
-### Выбор версии: CPU или CUDA
-
-Проект поддерживает сборку как с CPU-only версией PyTorch (по умолчанию), так и с CUDA версией для GPU ускорения.
-
-#### CPU версия (по умолчанию)
-
-```bash
-# Сборка и запуск CPU версии
-docker-compose up -d --build
-
-# Или явно указать версию через переменную окружения
-PYTORCH_VERSION=cpu docker-compose up -d --build
-```
-
-#### CUDA версия (для GPU)
-
-**Требования:**
-- NVIDIA GPU с поддержкой CUDA
-- Установленный [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
-
-**Способ 1: Использование отдельного docker-compose файла (рекомендуется)**
-
-```bash
-# Сборка и запуск CUDA версии
-docker-compose -f docker-compose.cuda.yml up -d --build
-
-# Просмотр логов
-docker-compose -f docker-compose.cuda.yml logs -f
-
-# Остановка
-docker-compose -f docker-compose.cuda.yml down
-```
-
-**Способ 2: Использование переменной окружения**
-
-```bash
-# Установите переменную окружения перед сборкой
-export PYTORCH_VERSION=cuda  # Linux/Mac
-# или
-$env:PYTORCH_VERSION="cuda"  # Windows PowerShell
-
-# Сборка и запуск
-docker-compose up -d --build
-
-# Для запуска с GPU требуется добавить runtime: nvidia в docker-compose.yml
-# или использовать docker-compose.cuda.yml
-```
-
-**Способ 3: Прямая сборка Docker образа с CUDA**
-
-```bash
-# Сборка образа с CUDA
-docker build --build-arg PYTORCH_VERSION=cuda -t cvc-api:cuda .
-
-# Запуск с GPU поддержкой
-docker run -d \
-  --name cvc-api \
-  --gpus all \
-  -p 20001:20001 \
-  -e HF_TOKEN=your_token_here \
-  -v $(pwd)/models:/app/models \
-  -v $(pwd)/checkpoints:/app/checkpoints \
-  -v $(pwd)/cache/huggingface:/app/.cache/huggingface \
-  -v $(pwd)/db:/app/db \
-  -v $(pwd)/config.yaml:/app/config.yaml:ro \
-  -v $(pwd)/data:/app/data:ro \
-  cvc-api:cuda
-```
-
-**Для Windows PowerShell:**
-```powershell
-# Сборка образа с CUDA
-docker build --build-arg PYTORCH_VERSION=cuda -t cvc-api:cuda .
-
-# Запуск с GPU поддержкой
-docker run -d `
-  --name cvc-api `
-  --gpus all `
-  -p 20001:20001 `
-  -e HF_TOKEN=your_token_here `
-  -v ${PWD}/models:/app/models `
-  -v ${PWD}/checkpoints:/app/checkpoints `
-  -v ${PWD}/cache/huggingface:/app/.cache/huggingface `
-  -v ${PWD}/db:/app/db `
-  -v ${PWD}/config.yaml:/app/config.yaml:ro `
-  -v ${PWD}/data:/app/data:ro `
-  cvc-api:cuda
-```
-
-**Проверка использования GPU:**
-
-После запуска контейнера с CUDA версией, при обучении модели укажите устройство `cuda`:
-
-```bash
-# Через API
-curl -X POST "http://localhost:20001/train" \
-  -H "Content-Type: application/json" \
-  -d '{"device": "cuda"}'
-
-# Через CLI клиент
-python -m commands_classifier.client train --device cuda
-```
+**Примечание:** В Docker контейнере устройство для обучения всегда определяется как CPU (контейнер не содержит CUDA). Устройство определяется автоматически при запуске сервера.
 
 ### Использование Docker образа напрямую
 
 **Важно:** Не забудьте передать токен Hugging Face через переменную окружения `-e HF_TOKEN=your_token_here`.
 
 ```bash
-# Сборка образа (CPU версия по умолчанию)
+# Сборка образа (CPU-only версия)
 docker build -t cvc-api .
-
-# Сборка образа с CUDA
-docker build --build-arg PYTORCH_VERSION=cuda -t cvc-api:cuda .
 
 # Запуск контейнера с токеном
 docker run -d \
@@ -265,6 +163,8 @@ docker run -d `
 - `./db` - директория с базой данных SQLite (файл `training_data.db` создается автоматически)
 
 **Примечание:** При первом запуске контейнера директория `./cache/huggingface` будет создана автоматически, и в неё будет загружена оригинальная модель `google/embeddinggemma-300M` (требуется токен Hugging Face в `.env` файле). При последующих перезапусках модель будет загружаться из кэша, что значительно ускорит запуск.
+
+**Примечание о кэшировании базовой модели:** Для локального использования можно настроить кэширование базовой модели в папку `models/.cache` через параметр `model.cache_dir` в `config.yaml`. Это позволит хранить базовую модель вместе с обученными моделями.
 
 **Примечание о базе данных:** База данных монтируется как директория (`./db`), а не как файл, чтобы избежать проблемы Docker, когда несуществующий файл при монтировании создается как директория. Файл `training_data.db` будет автоматически создан внутри директории `./db` при первом запуске.
 
@@ -464,7 +364,60 @@ python -m commands_classifier.cli serve \
   --config config.yaml
 ```
 
+**Примечание:** Устройство для обучения определяется автоматически:
+- Если установлен PyTorch с CUDA поддержкой и CUDA доступна → используется GPU
+- Иначе → используется CPU
+
 После запуска сервер будет доступен по адресу `http://localhost:20001`. Документация API (Swagger UI) доступна по адресу `http://localhost:20001/docs`.
+
+### Локальное обучение с CUDA
+
+Для использования CUDA при локальном запуске (не в Docker):
+
+1. Создайте виртуальное окружение:
+```bash
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+# или
+source .venv/bin/activate  # Linux/Mac
+```
+
+2. Установите torch с CUDA поддержкой (принудительно, чтобы избежать кэша CPU версии):
+```bash
+# Сначала удалите CPU версию, если установлена
+pip uninstall torch -y
+
+# Очистите кэш pip (важно!)
+pip cache purge
+
+# Установите torch с CUDA версии 2.6+ (без кэша, чтобы гарантировать CUDA версию)
+# Используем CUDA 12.4, так как torch 2.6 доступен для cu124, но не для cu121
+pip install "torch>=2.6.0" --index-url https://download.pytorch.org/whl/cu124 --no-cache-dir
+
+# Проверьте установку
+python -c "import torch; print('Version:', torch.__version__); print('CUDA available:', torch.cuda.is_available())"
+# Должно показать версию БЕЗ "+cpu" (например, "2.6.0+cu124") и CUDA available: True
+# ВАЖНО: Модель google/embeddinggemma-300M требует torch>=2.6
+```
+
+3. Установите остальные зависимости:
+```bash
+pip install -r requirements-cuda.txt
+```
+
+**Примечание:** `requirements-cuda.txt` использует CUDA 12.4 (cu124), так как torch 2.6+ доступен только для cu124, cu118 или cu126, но не для cu121. RTX 2070 и другие современные GPU поддерживают CUDA 12.4.
+
+4. Запустите сервер:
+```bash
+python -m commands_classifier.cli serve
+```
+
+Сервер автоматически определит доступность CUDA и будет использовать GPU, если он доступен.
+
+**Примечание:** 
+- В Docker контейнере всегда используется CPU (контейнер не содержит CUDA).
+- CUDA доступна только при локальном запуске с установленным PyTorch CUDA.
+- Устройство определяется автоматически при запуске сервера.
 
 ### Конфигурация
 
@@ -479,6 +432,7 @@ model:
   path: "models/my_model"
   name: "google/embeddinggemma-300M"
   confidence_threshold: 0.5
+  cache_dir: "models/.cache"  # Путь для кэширования базовой модели (опционально)
 
 database:
   # Путь к базе данных. Для Docker используйте "db/training_data.db"
@@ -491,7 +445,6 @@ training:
   epochs: 1
   batch_size: 32
   learning_rate: 2e-5
-  device: cpu  # Устройство для обучения: cpu или cuda (если используется CUDA версия)
 ```
 
 ### Эндпоинты API
@@ -636,18 +589,19 @@ text,command
 - `--epochs` (по умолчанию: 1) - количество эпох fine-tuning
 - `--batch-size` (по умолчанию: 32) - размер батча (больше = быстрее обучение, но требует больше памяти)
 - `--learning-rate` (по умолчанию: 2e-5) - скорость обучения
-- `--device` (по умолчанию: `cpu`) - устройство для обучения (`cpu` или `cuda`). CUDA доступна только при использовании CUDA версии Docker образа.
-
 **Примечание:** Для ускорения обучения увеличьте `batch_size` в `config.yaml` или через API. Больший batch_size ускорит процесс, но потребует больше оперативной памяти.
 
-**Примечание о версиях PyTorch:** 
-- По умолчанию используется CPU-only версия PyTorch (экономия ~600MB места, быстрая установка)
-- Для GPU ускорения используйте CUDA версию при сборке Docker образа (см. раздел "Выбор версии: CPU или CUDA")
-- При использовании CUDA версии убедитесь, что у вас установлен NVIDIA Container Toolkit и доступен GPU
+**Примечание о версиях PyTorch и устройстве:** 
+- Docker контейнер использует CPU-only версию PyTorch (экономия ~600MB места, быстрая установка). Устройство определяется автоматически как CPU.
+- Для локального использования CUDA см. раздел "Локальное обучение с CUDA" ниже. При локальном запуске устройство определяется автоматически: если установлен PyTorch с CUDA и CUDA доступна → используется GPU, иначе → CPU.
 
 **Примечание о модели:** По умолчанию используется `google/embeddinggemma-300M` - компактная модель эмбеддингов (300M параметров), оптимизированная для работы с ограниченными ресурсами памяти и поддерживающая более 100 языков, включая русский. 
 
-⚠️ **Эта модель требует авторизации в Hugging Face** (см. раздел "Установка" выше). Если вы не хотите авторизовываться, используйте альтернативу:
+⚠️ **Эта модель требует авторизации в Hugging Face** (см. раздел "Установка" выше).
+
+⚠️ **ВАЖНО:** Модель `google/embeddinggemma-300M` требует `torch>=2.6`. Используйте CUDA 12.4 (cu124) вместо 12.1 (cu121), так как torch 2.6+ доступен только для cu124, cu118 или cu126. Если вы получили ошибку "torch>=2.6", убедитесь, что используете правильную версию CUDA или используйте альтернативную модель:
+
+Если вы не хотите авторизовываться или столкнулись с проблемой torch>=2.6, используйте альтернативу:
 
 ```powershell
 python -m commands_classifier.cli train `

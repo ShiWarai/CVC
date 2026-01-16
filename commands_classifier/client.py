@@ -10,12 +10,12 @@ from typing import Optional
 class CVCApiClient:
     """Клиент для работы с CVC API сервером."""
     
-    def __init__(self, base_url: str = "http://127.0.0.1:20001", use_proxy: bool = False):
+    def __init__(self, base_url: str = "http://localhost:20001", use_proxy: bool = False):
         """
         Инициализирует клиент.
         
         Args:
-            base_url: Базовый URL API сервера (по умолчанию: http://127.0.0.1:20001)
+            base_url: Базовый URL API сервера (по умолчанию: http://localhost:20001)
             use_proxy: Использовать ли системный прокси (по умолчанию: False)
         """
         self.base_url = base_url.rstrip('/')
@@ -313,8 +313,8 @@ def main():
     parser.add_argument(
         '--url',
         type=str,
-        default='http://127.0.0.1:20001',
-        help='URL API сервера (по умолчанию: http://127.0.0.1:20001)'
+        default='http://localhost:20001',
+        help='URL API сервера (по умолчанию: http://localhost:20001)'
     )
     
     subparsers = parser.add_subparsers(dest='command', help='Команды')

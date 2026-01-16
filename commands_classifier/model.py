@@ -13,7 +13,8 @@ class CommandsClassifier:
     def __init__(
         self,
         model_name: str = "google/embeddinggemma-300M",
-        confidence_threshold: float = 0.5
+        confidence_threshold: float = 0.5,
+        cache_dir: Optional[str] = None
     ):
         """
         Инициализирует классификатор.
@@ -22,12 +23,14 @@ class CommandsClassifier:
             model_name: Имя предобученной модели (по умолчанию: google/embeddinggemma-300M)
             confidence_threshold: Порог уверенности для отбраковки (0.0-1.0). 
                                   Если уверенность ниже порога, возвращается "unknown"
+            cache_dir: Путь для кэширования базовой модели (опционально)
         """
         self.model_name = model_name
         self.model: Optional[SetFitModel] = None
         self.is_trained = False
         # Убеждаемся, что confidence_threshold всегда float
         self.confidence_threshold = float(confidence_threshold)
+        self.cache_dir = cache_dir
     
     def train(
         self,
@@ -49,55 +52,95 @@ class CommandsClassifier:
             num_epochs: Количество эпох для fine-tuning head
             batch_size: Размер батча (больше = быстрее, но требует больше памяти)
             learning_rate: Скорость обучения
-            device: Устройство для обучения ('cpu' или None, CUDA не поддерживается в CPU-only версии)
+            device: Устройство для обучения ('cpu', 'cuda' или None - определяется автоматически)
         """
         if len(texts) != len(labels):
             raise ValueError(
                 f"Количество текстов ({len(texts)}) не совпадает с количеством меток ({len(labels)})"
             )
         
+        
         # Определяем устройство
         if device is None:
-            device = "cpu"
-        elif device == "cuda":
-            # Проверяем доступность CUDA
+            # Проверяем доступность CUDA, если не указано явно
+            try:
+                import torch
+                cuda_available = torch.cuda.is_available()
+                if cuda_available:
+                    device = "cuda"
+                    print(f"✓ CUDA доступна. Используется GPU: {torch.cuda.get_device_name(0)}")
+                else:
+                    device = "cpu"
+                    print("ℹ CUDA недоступна. Используется CPU.")
+            except ImportError:
+                device = "cpu"
+                print("ℹ PyTorch не установлен. Используется CPU.")
+        
+        # Создаем модель с кэшированием в указанную директорию
+        cache_dir_path = None
+        if self.cache_dir:
+            cache_dir_path = Path(self.cache_dir)
+            cache_dir_path.mkdir(parents=True, exist_ok=True)
+            cache_dir_path = str(cache_dir_path)
+        
+        # Создаем модель и сразу перемещаем на нужное устройство
+        # Используем use_safetensors=True для обхода требования torch>=2.6
+        try:
+            self.model = SetFitModel.from_pretrained(
+                self.model_name,
+                cache_dir=cache_dir_path,
+                use_safetensors=True
+            )
+        except Exception as e:
+            # Если safetensors не доступны, пробуем без них
+            # Это может вызвать ошибку если transformers>=4.48 и torch<2.6
+            try:
+                self.model = SetFitModel.from_pretrained(
+                    self.model_name,
+                    cache_dir=cache_dir_path
+                )
+            except ValueError as ve:
+                if "torch>=2.6" in str(ve).lower() or "torch >= 2.6" in str(ve).lower():
+                    raise ValueError(
+                        f"Модель {self.model_name} требует torch>=2.6, но установлена {__import__('torch').__version__}. "
+                        f"Используйте альтернативную модель, например: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
+                    ) from ve
+                raise
+        
+        # Перемещаем модель на устройство
+        if device == "cuda":
             try:
                 import torch
                 if torch.cuda.is_available():
-                    device = "cuda"
-                    print(f"✓ CUDA доступна. Используется GPU: {torch.cuda.get_device_name(0)}")
-                    print(f"✓ Количество GPU: {torch.cuda.device_count()}")
-                    print(f"✓ CUDA версия: {torch.version.cuda}")
-                else:
-                    import warnings
-                    warnings.warn("CUDA запрошена, но недоступна. Используется CPU.", UserWarning)
-                    device = "cpu"
-                    print("⚠ CUDA недоступна, используется CPU")
-            except ImportError:
-                import warnings
-                warnings.warn("PyTorch не установлен или CUDA недоступна. Используется CPU.", UserWarning)
-                device = "cpu"
-                print("⚠ PyTorch не установлен, используется CPU")
-        else:
-            print(f"Используется устройство: {device}")
-        
-        # Создаем модель
-        self.model = SetFitModel.from_pretrained(self.model_name)
-        
-        # Перемещаем модель на устройство, если это поддерживается
-        if hasattr(self.model, 'to'):
-            self.model = self.model.to(device)
-            if device == "cuda":
-                try:
-                    import torch
+                    # Перемещаем модель на GPU
+                    self.model = self.model.to(device)
+                    # Проверяем, что модель действительно на GPU
+                    # SetFitModel содержит SentenceTransformer, который нужно проверить отдельно
+                    if hasattr(self.model, 'model_body') and hasattr(self.model.model_body, 'to'):
+                        self.model.model_body = self.model.model_body.to(device)
                     print(f"✓ Модель перемещена на GPU: {torch.cuda.get_device_name(0)}")
-                except:
-                    pass
+                    print(f"✓ CUDA версия: {torch.version.cuda}")
+                    print(f"✓ Память GPU: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
+                else:
+                    device = "cpu"
+                    print("⚠ CUDA была запрошена, но недоступна. Используется CPU.")
+                    if hasattr(self.model, 'to'):
+                        self.model = self.model.to(device)
+            except Exception as e:
+                device = "cpu"
+                print(f"⚠ Ошибка при использовании CUDA: {e}. Используется CPU.")
+                if hasattr(self.model, 'to'):
+                    self.model = self.model.to(device)
+        else:
+            if hasattr(self.model, 'to'):
+                self.model = self.model.to(device)
+            print(f"ℹ Обучение на {device.upper()}")
         
         # Создаем датасет из текстов и меток
         train_dataset = Dataset.from_dict({"text": texts, "label": labels})
         
         # Создаем тренер с параметрами напрямую
+        # Модель уже перемещена на нужное устройство выше
         trainer = SetFitTrainer(
             model=self.model,
             train_dataset=train_dataset,
@@ -280,7 +323,11 @@ class CommandsClassifier:
         # Подавляем предупреждение о токенизаторе Mistral (если модель была обучена на Mistral)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message=".*mistral.*regex.*", category=UserWarning)
-            self.model = SetFitModel.from_pretrained(str(path))
+            # Пытаемся загрузить с safetensors, если доступно
+            try:
+                self.model = SetFitModel.from_pretrained(str(path), use_safetensors=True)
+            except:
+                self.model = SetFitModel.from_pretrained(str(path))
         
         self.is_trained = True
         
@@ -304,7 +351,11 @@ class CommandsClassifier:
         """
         # Если модель не загружена, загружаем базовую модель
         if self.model is None:
-            self.model = SetFitModel.from_pretrained(self.model_name)
+            # Пытаемся загрузить с safetensors, если доступно
+            try:
+                self.model = SetFitModel.from_pretrained(self.model_name, use_safetensors=True)
+            except:
+                self.model = SetFitModel.from_pretrained(self.model_name)
         
         # Получаем базовую модель эмбеддингов (sentence-transformers)
         # SetFitModel имеет атрибут model_body для доступа к базовой модели

@@ -8,30 +8,29 @@ server:
 # Настройки модели
 model:
   # Путь к сохраненной обученной модели
-  path: "models/my_model"
+  path: "models/panda_commands"
   # Базовая модель для обучения (если модель не найдена)
   name: "google/embeddinggemma-300M"
   # Порог уверенности для классификации
   confidence_threshold: 0.5
+  # Путь для кэширования базовой модели (опционально, по умолчанию используется системный кэш)
+  cache_dir: "models/.cache"
 
 # Настройки базы данных
 database:
   # Путь к SQLite базе данных
-  # В Docker используется db/training_data.db (монтируется как директория)
-  # Для локального запуска можно использовать просто training_data.db
+  # В Docker используется db/training_data.db
   path: "db/training_data.db"
   # Путь к CSV файлу для автоматической миграции (опционально)
   csv_migration_path: "data/commands_example.csv"
 
 # Параметры обучения по умолчанию
+# Можно переопределить через HTTP API /train endpoint
 training:
   iterations: 20
   epochs: 1
-  batch_size: 32
+  batch_size: 128
   learning_rate: 2e-5
-  # Устройство для обучения определяется автоматически при старте приложения
-  # на основе доступности CUDA. Если образ собран с CUDA и GPU доступен - используется GPU,
-  # иначе - CPU. Не требует настройки.
 
 
 

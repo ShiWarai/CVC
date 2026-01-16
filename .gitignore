@@ -28,6 +28,7 @@ ENV/
 
 # Models
 models/
+!models/.gitkeep
 checkpoints/
 *.pkl
 *.pt

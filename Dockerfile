@@ -7,21 +7,12 @@ RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY requirements-base.txt .
-COPY requirements.txt requirements-cuda.txt ./
-
 RUN pip install --upgrade pip && \
     pip install setuptools wheel
 
-RUN pip install -r requirements-base.txt
+COPY requirements.txt .
 
-ARG PYTORCH_VERSION
-
-RUN if [ "$PYTORCH_VERSION" = "cuda" ]; then \
-        pip install -r requirements-cuda.txt; \
-    else \
-        pip install -r requirements.txt; \
-    fi
+RUN pip install -r requirements.txt
 
 COPY commands_classifier/ ./commands_classifier/
 COPY config.yaml .
