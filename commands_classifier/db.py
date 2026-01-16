@@ -1,9 +1,28 @@
 """Утилиты для работы с базой данных SQLite для хранения обучающих данных."""
 
 import sqlite3
+import re
 from pathlib import Path
 from typing import List, Tuple, Optional
 import pandas as pd
+
+
+def remove_punctuation(text: str) -> str:
+    """
+    Удаляет все знаки препинания из текста.
+    
+    Args:
+        text: Исходный текст
+        
+    Returns:
+        Текст без знаков препинания
+    """
+    # Удаляем все знаки препинания, оставляя только буквы, цифры и пробелы
+    # Используем регулярное выражение для удаления всех знаков препинания
+    text = re.sub(r'[^\w\s]', '', text)
+    # Удаляем множественные пробелы и обрезаем
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 
 def _normalize_db_path(db_path: str) -> str:
@@ -44,7 +63,8 @@ def init_db(db_path: str, csv_path: Optional[str] = None) -> None:
     
     Args:
         db_path: Путь к файлу базы данных SQLite
-        csv_path: Опциональный путь к CSV файлу для миграции
+        csv_path: Опциональный путь к CSV файлу или директории с CSV файлами для миграции.
+                  Если указана директория, загружаются все CSV файлы из неё.
     """
     # Нормализуем путь к базе данных
     db_path = _normalize_db_path(db_path)
@@ -74,22 +94,47 @@ def init_db(db_path: str, csv_path: Optional[str] = None) -> None:
         cursor.execute("SELECT COUNT(*) FROM examples")
         count = cursor.fetchone()[0]
         
-        # Если БД пустая и указан CSV, выполняем миграцию
+        # Если БД пустая и указан CSV путь, выполняем миграцию
         if count == 0 and csv_path:
-            csv_file = Path(csv_path)
-            if csv_file.exists():
-                try:
-                    df = pd.read_csv(csv_path)
-                    if 'text' in df.columns and 'command' in df.columns:
-                        for _, row in df.iterrows():
-                            cursor.execute(
-                                "INSERT INTO examples (text, command) VALUES (?, ?)",
-                                (str(row['text']), str(row['command']))
-                            )
-                        conn.commit()
-                        print(f"Мигрировано {len(df)} примеров из {csv_path}")
-                except Exception as e:
-                    print(f"Ошибка при миграции CSV: {e}")
+            csv_path_obj = Path(csv_path)
+            if csv_path_obj.exists():
+                csv_files = []
+                
+                # Если это директория, находим все CSV файлы в ней
+                if csv_path_obj.is_dir():
+                    csv_files = list(csv_path_obj.glob("*.csv"))
+                    if not csv_files:
+                        print(f"В директории {csv_path} не найдено CSV файлов")
+                # Если это файл, используем его
+                elif csv_path_obj.is_file() and csv_path_obj.suffix.lower() == '.csv':
+                    csv_files = [csv_path_obj]
+                else:
+                    print(f"Путь {csv_path} не является директорией или CSV файлом")
+                
+                # Загружаем данные из всех найденных CSV файлов
+                total_migrated = 0
+                for csv_file in csv_files:
+                    try:
+                        df = pd.read_csv(csv_file)
+                        if 'text' in df.columns and 'command' in df.columns:
+                            for _, row in df.iterrows():
+                                # Очищаем знаки препинания из текста перед сохранением
+                                cleaned_text = remove_punctuation(str(row['text']))
+                                cursor.execute(
+                                    "INSERT INTO examples (text, command) VALUES (?, ?)",
+                                    (cleaned_text, str(row['command']))
+                                )
+                            conn.commit()
+                            migrated_count = len(df)
+                            total_migrated += migrated_count
+                            print(f"Мигрировано {migrated_count} примеров из {csv_file.name}")
+                        else:
+                            print(f"Пропущен {csv_file.name}: отсутствуют колонки 'text' или 'command'")
+                    except Exception as e:
+                        print(f"Ошибка при миграции {csv_file.name}: {e}")
+                
+                if total_migrated > 0:
+                    print(f"Всего мигрировано {total_migrated} примеров из {len(csv_files)} файл(ов)")
     except sqlite3.OperationalError as e:
         error_msg = (
             f"Не удалось создать/открыть базу данных по пути: {db_path}\n"

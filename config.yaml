@@ -21,8 +21,9 @@ database:
   # Путь к SQLite базе данных
   # В Docker используется db/training_data.db
   path: "db/training_data.db"
-  # Путь к CSV файлу для автоматической миграции (опционально)
-  csv_migration_path: "data/commands_example.csv"
+  # Путь к CSV файлу или директории с CSV файлами для автоматической миграции (опционально)
+  # Если указана директория, загружаются все CSV файлы из неё
+  csv_migration_path: "data"
 
 # Параметры обучения по умолчанию
 # Можно переопределить через HTTP API /train endpoint

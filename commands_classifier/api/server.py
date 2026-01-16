@@ -2,6 +2,7 @@
 
 import yaml
 import logging
+import re
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from contextlib import asynccontextmanager
@@ -17,6 +18,24 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     datefmt='%Y-%m-%d %H:%M:%S'
 )
+
+
+def remove_punctuation(text: str) -> str:
+    """
+    Удаляет все знаки препинания из текста.
+    
+    Args:
+        text: Исходный текст
+        
+    Returns:
+        Текст без знаков препинания
+    """
+    # Удаляем все знаки препинания, оставляя только буквы, цифры и пробелы
+    # Используем регулярное выражение для удаления всех знаков препинания
+    text = re.sub(r'[^\w\s]', '', text)
+    # Удаляем множественные пробелы и обрезаем
+    text = re.sub(r'\s+', ' ', text).strip()
+    return text
 
 
 # Модели запросов/ответов
@@ -107,7 +126,7 @@ def load_config(config_path: str = "config.yaml"):
             },
             "database": {
                 "path": "db/training_data.db",
-                "csv_migration_path": "data/commands_example.csv"
+                "csv_migration_path": "data"
             },
             "training": {
                 "iterations": 20,
@@ -243,9 +262,13 @@ async def embed(request: EmbedRequest):
             model_name=config["model"]["name"],
             cache_dir=cache_dir
         )
-        embeddings = temp_classifier.get_embeddings(request.inputs)
+        # Очищаем знаки препинания из всех текстов
+        cleaned_inputs = [remove_punctuation(text) for text in request.inputs]
+        embeddings = temp_classifier.get_embeddings(cleaned_inputs)
     else:
-        embeddings = classifier.get_embeddings(request.inputs)
+        # Очищаем знаки препинания из всех текстов
+        cleaned_inputs = [remove_punctuation(text) for text in request.inputs]
+        embeddings = classifier.get_embeddings(cleaned_inputs)
     
     return EmbedResponse(embeddings=embeddings)
 
@@ -265,11 +288,14 @@ async def predict(request: PredictRequest):
         raise HTTPException(status_code=503, detail="Модель не загружена. Сначала обучите модель.")
     
     try:
+        # Очищаем знаки препинания из текста
+        cleaned_text = remove_punctuation(request.text)
+        
         if request.return_confidence:
-            command, confidence = classifier.predict(request.text, return_confidence=True)
+            command, confidence = classifier.predict(cleaned_text, return_confidence=True)
             return PredictResponse(command=command, confidence=confidence)
         else:
-            command = classifier.predict(request.text)
+            command = classifier.predict(cleaned_text)
             return PredictResponse(command=command)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при предсказании: {str(e)}")
@@ -290,11 +316,14 @@ async def predict_batch(request: PredictBatchRequest):
         raise HTTPException(status_code=503, detail="Модель не загружена. Сначала обучите модель.")
     
     try:
+        # Очищаем знаки препинания из всех текстов
+        cleaned_texts = [remove_punctuation(text) for text in request.texts]
+        
         if request.return_confidence:
-            commands, confidences = classifier.predict_batch(request.texts, return_confidence=True)
+            commands, confidences = classifier.predict_batch(cleaned_texts, return_confidence=True)
             return PredictBatchResponse(commands=commands, confidences=confidences)
         else:
-            commands = classifier.predict_batch(request.texts)
+            commands = classifier.predict_batch(cleaned_texts)
             return PredictBatchResponse(commands=commands)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при предсказании: {str(e)}")
@@ -424,8 +453,10 @@ async def add_example(request: ExampleRequest):
     """
     db_path = config["database"]["path"]
     try:
-        example_id = db.add_example(db_path, request.text, request.command)
-        return ExampleResponse(id=example_id, text=request.text, command=request.command)
+        # Очищаем знаки препинания из текста перед сохранением
+        cleaned_text = remove_punctuation(request.text)
+        example_id = db.add_example(db_path, cleaned_text, request.command)
+        return ExampleResponse(id=example_id, text=cleaned_text, command=request.command)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при добавлении примера: {str(e)}")
 
