@@ -2,12 +2,10 @@ text,command
 лапу,give_paw
 дай лапу,give_paw
 покажи лапу,give_paw
-подними лапу,give_paw
 лапу дай,give_paw
 робот лапу,give_paw
 дай лапу сейчас,give_paw
 покажи лапу мне,give_paw
-подними лапу вверх,give_paw
 панда лапу,give_paw
 панда дай лапу,give_paw
 робот покажи лапу,give_paw
@@ -21,7 +19,6 @@ text,command
 эй лапу,give_paw
 лапу покажи,give_paw
 ты дай лапу,give_paw
-ты лапу подними,give_paw
 быстро лапу,give_paw
 панда давай лапу,give_paw
 робот пожалуйста лапу,give_paw
@@ -33,7 +30,6 @@ text,command
 нужно дать лапу,give_paw
 дайте лапу,give_paw
 покажите лапу,give_paw
-поднимите лапу,give_paw
 дал бы лапу,give_paw
 лапу дашь,give_paw
 покажешь лапу,give_paw
@@ -151,6 +147,31 @@ text,command
 надо прекратить,dismiss
 нужно остановиться,dismiss
 пора заканчивать,dismiss
+подними,dismiss
+поднимись,dismiss
+подними робота,dismiss
+подними панду,dismiss
+поднимись робот,dismiss
+поднимись панда,dismiss
+панда подними,dismiss
+робот поднимись,dismiss
+панда поднимись,dismiss
+робот подними,dismiss
+подними себя,dismiss
+поднимись сам,dismiss
+пожалуйста поднимись,dismiss
+поднимись пожалуйста,dismiss
+давай поднимись,dismiss
+ну-ка поднимись,dismiss
+а ну подними,dismiss
+эй поднимись,dismiss
+ты поднимись,dismiss
+быстро поднимись,dismiss
+панда давай поднимись,dismiss
+робот пожалуйста поднимись,dismiss
+надо подняться,dismiss
+нужно подняться,dismiss
+пора подняться,dismiss
 лежать,lie_down
 ложись,lie_down
 принять положение лежа,lie_down

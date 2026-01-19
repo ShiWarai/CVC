@@ -3,6 +3,7 @@
 import yaml
 import logging
 import re
+import shutil
 from pathlib import Path
 from typing import List, Optional, Dict, Any
 from contextlib import asynccontextmanager
@@ -98,6 +99,13 @@ class ExampleResponse(BaseModel):
     id: int
     text: str
     command: str
+
+
+class ResetResponse(BaseModel):
+    """Ответ на сброс обучения."""
+    message: str
+    reset_examples: int
+    model_deleted: bool
 
 
 # Глобальные переменные
@@ -528,4 +536,79 @@ async def get_example(example_id: int):
     if example is None:
         raise HTTPException(status_code=404, detail=f"Пример с ID {example_id} не найден")
     return ExampleResponse(id=example[0], text=example[1], command=example[2])
+
+
+@app.post("/reset", response_model=ResetResponse)
+async def reset_training():
+    """
+    Полностью сбрасывает обучение:
+    - Помечает все примеры в БД как необученные (is_trained = 0)
+    - Удаляет директорию с обученной моделью
+    - Выгружает модель из памяти
+    
+    Returns:
+        Информация о сбросе: количество сброшенных примеров и статус удаления модели
+    """
+    global classifier
+    
+    if training_manager is not None and training_manager.is_training():
+        raise HTTPException(status_code=409, detail="Невозможно сбросить обучение во время активного обучения")
+    
+    db_path = config["database"]["path"]
+    model_path = config["model"]["path"]
+    
+    # 1. Сбрасываем статус обучения в БД
+    reset_count = db.reset_training_status(db_path)
+    
+    # 2. Удаляем модель из памяти
+    model_deleted = False
+    if classifier is not None:
+        try:
+            import torch
+            import gc
+            
+            # Перемещаем модель на CPU перед удалением
+            if classifier.model is not None:
+                if hasattr(classifier.model, 'to'):
+                    try:
+                        classifier.model = classifier.model.to('cpu')
+                    except:
+                        pass
+                if hasattr(classifier.model, 'model_body') and hasattr(classifier.model.model_body, 'to'):
+                    try:
+                        classifier.model.model_body = classifier.model.model_body.to('cpu')
+                    except:
+                        pass
+            
+            del classifier
+            classifier = None
+            gc.collect()
+            
+            # Очищаем кэш CUDA
+            try:
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    torch.cuda.synchronize()
+            except:
+                pass
+        except Exception:
+            classifier = None
+    
+    # 3. Удаляем директорию с моделью
+    model_path_obj = Path(model_path)
+    if model_path_obj.exists():
+        try:
+            shutil.rmtree(model_path_obj)
+            model_deleted = True
+        except Exception as e:
+            raise HTTPException(
+                status_code=500, 
+                detail=f"Не удалось удалить директорию модели: {str(e)}"
+            )
+    
+    return ResetResponse(
+        message="Обучение успешно сброшено",
+        reset_examples=reset_count,
+        model_deleted=model_deleted
+    )
 

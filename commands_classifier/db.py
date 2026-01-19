@@ -409,6 +409,29 @@ def get_training_stats(db_path: str) -> dict:
     }
 
 
+def reset_training_status(db_path: str) -> int:
+    """
+    Сбрасывает статус обучения для всех примеров (устанавливает is_trained = 0).
+    
+    Args:
+        db_path: Путь к файлу базы данных
+        
+    Returns:
+        Количество сброшенных записей
+    """
+    db_path = _normalize_db_path(db_path)
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+    
+    cursor.execute("UPDATE examples SET is_trained = 0 WHERE is_trained = 1")
+    reset_count = cursor.rowcount
+    
+    conn.commit()
+    conn.close()
+    
+    return reset_count
+
+
 
 
 

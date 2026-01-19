@@ -186,6 +186,19 @@ class CVCApiClient:
         response = self.session.get(f"{self.base_url}/metrics")
         response.raise_for_status()
         return response.json()
+    
+    def reset(self) -> dict:
+        """
+        Сбрасывает обучение модели:
+        - Помечает все примеры в БД как необученные
+        - Удаляет обученную модель
+        
+        Returns:
+            Результат сброса (reset_examples, model_deleted)
+        """
+        response = self.session.post(f"{self.base_url}/reset")
+        response.raise_for_status()
+        return response.json()
 
 
 def predict_command(args):
@@ -383,6 +396,9 @@ def main():
     # Команда metrics
     subparsers.add_parser('metrics', help='Получить метрики сервера')
     
+    # Команда reset
+    subparsers.add_parser('reset', help='Сбросить обучение (удалить модель, пометить все примеры как необученные)')
+    
     args = parser.parse_args()
     
     if not args.command:
@@ -410,6 +426,22 @@ def main():
             client = CVCApiClient(args.url)
             result = client.metrics()
             print(json.dumps(result, indent=2, ensure_ascii=False))
+        except Exception as e:
+            print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif args.command == 'reset':
+        try:
+            client = CVCApiClient(args.url)
+            result = client.reset()
+            print(f"✓ {result['message']}")
+            print(f"  Сброшено примеров: {result['reset_examples']}")
+            print(f"  Модель удалена: {'да' if result['model_deleted'] else 'нет (не существовала)'}")
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 409:
+                print(f"Ошибка: {e.response.json().get('detail', 'Невозможно сбросить во время обучения')}", file=sys.stderr)
+            else:
+                print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
         except Exception as e:
             print(f"Ошибка: {e}", file=sys.stderr)
             sys.exit(1)
