@@ -99,13 +99,11 @@ class CommandsClassifier:
                 texts, eval_texts, labels, eval_labels = train_test_split(
                     texts, labels, test_size=eval_split, random_state=42, stratify=labels
                 )
-                print(f"ℹ Данные автоматически разделены: {len(texts)} train, {len(eval_texts)} eval")
             except ValueError:
                 # Если stratify не работает (недостаточно примеров в классах), используем без stratify
                 texts, eval_texts, labels, eval_labels = train_test_split(
                     texts, labels, test_size=eval_split, random_state=42
                 )
-                print(f"ℹ Данные автоматически разделены (без stratify): {len(texts)} train, {len(eval_texts)} eval")
         else:
             if eval_labels is None or len(eval_texts) != len(eval_labels):
                 raise ValueError(
@@ -144,7 +142,6 @@ class CommandsClassifier:
         
         # Перемещаем модель на устройство (SetFitModel автоматически обрабатывает это)
         self.model = self.model.to(device)
-        print(f"ℹ Обучение на {device.upper()}")
         
         # Создаем датасеты
         train_dataset = Dataset.from_dict({"text": texts, "label": labels})
@@ -171,11 +168,8 @@ class CommandsClassifier:
         try:
             eval_results = trainer.evaluate()
             eval_metrics = eval_results
-            print(f"✓ Метрики на валидации:")
-            for metric, value in eval_results.items():
-                print(f"  {metric}: {value:.4f}")
-        except Exception as e:
-            print(f"⚠ Не удалось вычислить метрики: {e}")
+        except Exception:
+            pass
         
         self.is_trained = True
         

@@ -1,0 +1,808 @@
+text,command
+лапу,give_paw
+дай лапу,give_paw
+дать лапу,give_paw
+давать лапу,give_paw
+дайте лапу,give_paw
+давайте лапу,give_paw
+даешь лапу,give_paw
+дашь лапу,give_paw
+дадите лапу,give_paw
+дал бы лапу,give_paw
+дала бы лапу,give_paw
+дали бы лапу,give_paw
+а ну быстро дал лапу,give_paw
+а ну дал лапу,give_paw
+покажи лапу,give_paw
+показать лапу,give_paw
+показывать лапу,give_paw
+покажите лапу,give_paw
+показываете лапу,give_paw
+покажешь лапу,give_paw
+показал бы лапу,give_paw
+показала бы лапу,give_paw
+подними лапу,give_paw
+поднять лапу,give_paw
+поднимать лапу,give_paw
+поднимите лапу,give_paw
+поднимаете лапу,give_paw
+поднимешь лапу,give_paw
+поднял бы лапу,give_paw
+подняла бы лапу,give_paw
+надо дать лапу,give_paw
+нужно дать лапу,give_paw
+пора дать лапу,give_paw
+можно дать лапу,give_paw
+давай дай лапу,give_paw
+надо показать лапу,give_paw
+нужно показать лапу,give_paw
+пора показать лапу,give_paw
+можно показать лапу,give_paw
+надо поднять лапу,give_paw
+нужно поднять лапу,give_paw
+попроси робота дать лапу,give_paw
+попроси панду дать лапу,give_paw
+скажи роботу дать лапу,give_paw
+скажи панде дать лапу,give_paw
+пусть робот даст лапу,give_paw
+пусть панда даст лапу,give_paw
+пусть робот покажет лапу,give_paw
+пусть панда покажет лапу,give_paw
+пусть робот поднимет лапу,give_paw
+пусть панда поднимет лапу,give_paw
+хочу чтобы робот дал лапу,give_paw
+хочу чтобы панда дала лапу,give_paw
+хотел бы чтобы робот дал лапу,give_paw
+хотела бы чтобы панда дала лапу,give_paw
+может дашь лапу,give_paw
+может покажешь лапу,give_paw
+не хочешь дать лапу,give_paw
+дай-ка лапу,give_paw
+покажи-ка лапу,give_paw
+подними-ка лапу,give_paw
+ну-ка дай лапу,give_paw
+ну-ка покажи лапу,give_paw
+а ну дай лапу,give_paw
+эй дай лапу,give_paw
+ты дай лапу,give_paw
+робот дай лапу,give_paw
+панда дай лапу,give_paw
+робот покажи лапу,give_paw
+панда покажи лапу,give_paw
+дай лапу робот,give_paw
+дай лапу панда,give_paw
+покажи лапу робот,give_paw
+покажи лапу панда,give_paw
+пожалуйста дай лапу,give_paw
+дай лапу пожалуйста,give_paw
+быстро дай лапу,give_paw
+дай лапу быстро,give_paw
+сейчас дай лапу,give_paw
+дай лапу сейчас,give_paw
+лапу дай,give_paw
+лапу покажи,give_paw
+лапу подними,give_paw
+робот лапу,give_paw
+панда лапу,give_paw
+лапу робот,give_paw
+лапу панда,give_paw
+давай лапу,give_paw
+ну лапу дай,give_paw
+а теперь дай лапу,give_paw
+можно лапу,give_paw
+робот пожалуйста дай лапу,give_paw
+панда пожалуйста дай лапу,give_paw
+попроси дать лапу,give_paw
+вели дать лапу,give_paw
+прикажи дать лапу,give_paw
+равняйсь,stand_at_attention
+равняйся,stand_at_attention
+равняться,stand_at_attention
+равняйтесь,stand_at_attention
+равняешься,stand_at_attention
+равняетесь,stand_at_attention
+равнялся бы,stand_at_attention
+равнялась бы,stand_at_attention
+равнялись бы,stand_at_attention
+а ну быстро равняйся,stand_at_attention
+а ну равнялся,stand_at_attention
+выравняйся,stand_at_attention
+выравняться,stand_at_attention
+выравняйтесь,stand_at_attention
+выравняешься,stand_at_attention
+выравняетесь,stand_at_attention
+выравнялся бы,stand_at_attention
+выравнялась бы,stand_at_attention
+выравнялись бы,stand_at_attention
+выровняйся,stand_at_attention
+выровняться,stand_at_attention
+выровняйтесь,stand_at_attention
+выровняешься,stand_at_attention
+выровнялся бы,stand_at_attention
+выровнялась бы,stand_at_attention
+надо равняться,stand_at_attention
+нужно равняться,stand_at_attention
+пора равняться,stand_at_attention
+можно равняться,stand_at_attention
+давай равняйся,stand_at_attention
+надо выравняться,stand_at_attention
+нужно выравняться,stand_at_attention
+пора выравняться,stand_at_attention
+можно выравняться,stand_at_attention
+надо выровняться,stand_at_attention
+нужно выровняться,stand_at_attention
+пора выровняться,stand_at_attention
+попроси робота равняться,stand_at_attention
+попроси панду равняться,stand_at_attention
+скажи роботу равняться,stand_at_attention
+скажи панде равняться,stand_at_attention
+пусть робот равняется,stand_at_attention
+пусть панда равняется,stand_at_attention
+пусть робот выравняется,stand_at_attention
+пусть панда выравняется,stand_at_attention
+пусть робот выровняется,stand_at_attention
+пусть панда выровняется,stand_at_attention
+хочу чтобы робот равнялся,stand_at_attention
+хочу чтобы панда равнялась,stand_at_attention
+хотел бы чтобы робот выравнялся,stand_at_attention
+хотела бы чтобы панда выравнялась,stand_at_attention
+может равняешься,stand_at_attention
+может выравняешься,stand_at_attention
+не хочешь равняться,stand_at_attention
+равняйся-ка,stand_at_attention
+выравняйся-ка,stand_at_attention
+ну-ка равняйся,stand_at_attention
+ну-ка выравняйся,stand_at_attention
+а ну равняйся,stand_at_attention
+а ну выравняйся,stand_at_attention
+эй равняйся,stand_at_attention
+ты равняйся,stand_at_attention
+робот равняйся,stand_at_attention
+панда равняйся,stand_at_attention
+робот выравняйся,stand_at_attention
+панда выравняйся,stand_at_attention
+равняйся робот,stand_at_attention
+равняйся панда,stand_at_attention
+выравняйся робот,stand_at_attention
+выравняйся панда,stand_at_attention
+пожалуйста равняйся,stand_at_attention
+равняйся пожалуйста,stand_at_attention
+быстро равняйся,stand_at_attention
+равняйся быстро,stand_at_attention
+сейчас равняйся,stand_at_attention
+равняйся сейчас,stand_at_attention
+ну равняйся,stand_at_attention
+робот пожалуйста равняйся,stand_at_attention
+панда пожалуйста равняйся,stand_at_attention
+попроси равняться,stand_at_attention
+вели равняться,stand_at_attention
+прикажи равняться,stand_at_attention
+отставить,dismiss
+отставь,dismiss
+встать,dismiss
+вставать,dismiss
+встань,dismiss
+вставай,dismiss
+встаньте,dismiss
+вставайте,dismiss
+встаешь,dismiss
+встанешь,dismiss
+встанете,dismiss
+встал бы,dismiss
+встала бы,dismiss
+встали бы,dismiss
+а ну быстро встал,dismiss
+а ну встал,dismiss
+прекратить,dismiss
+прекрати,dismiss
+прекращать,dismiss
+прекращай,dismiss
+прекратите,dismiss
+прекращайте,dismiss
+прекращаешь,dismiss
+прекратишь,dismiss
+прекратил бы,dismiss
+прекратила бы,dismiss
+остановиться,dismiss
+остановись,dismiss
+останавливаться,dismiss
+останавливайся,dismiss
+остановитесь,dismiss
+останавливайтесь,dismiss
+остановишься,dismiss
+остановился бы,dismiss
+остановилась бы,dismiss
+надо встать,dismiss
+нужно встать,dismiss
+пора встать,dismiss
+можно встать,dismiss
+давай вставай,dismiss
+надо вставать,dismiss
+нужно вставать,dismiss
+пора вставать,dismiss
+надо прекратить,dismiss
+нужно прекратить,dismiss
+пора прекратить,dismiss
+надо остановиться,dismiss
+нужно остановиться,dismiss
+пора остановиться,dismiss
+попроси робота встать,dismiss
+попроси панду встать,dismiss
+скажи роботу встать,dismiss
+скажи панде встать,dismiss
+пусть робот встанет,dismiss
+пусть панда встанет,dismiss
+пусть робот прекратит,dismiss
+пусть панда прекратит,dismiss
+пусть робот остановится,dismiss
+пусть панда остановится,dismiss
+хочу чтобы робот встал,dismiss
+хочу чтобы панда встала,dismiss
+хотел бы чтобы робот прекратил,dismiss
+хотела бы чтобы панда остановилась,dismiss
+может встанешь,dismiss
+может прекратишь,dismiss
+не хочешь встать,dismiss
+встань-ка,dismiss
+вставай-ка,dismiss
+прекрати-ка,dismiss
+остановись-ка,dismiss
+ну-ка встань,dismiss
+ну-ка вставай,dismiss
+ну-ка прекрати,dismiss
+а ну встань,dismiss
+а ну вставай,dismiss
+а ну прекрати,dismiss
+эй встань,dismiss
+эй вставай,dismiss
+ты встань,dismiss
+ты вставай,dismiss
+робот встань,dismiss
+панда встань,dismiss
+робот вставай,dismiss
+панда вставай,dismiss
+встань робот,dismiss
+встань панда,dismiss
+вставай робот,dismiss
+вставай панда,dismiss
+пожалуйста встань,dismiss
+встань пожалуйста,dismiss
+быстро встань,dismiss
+встань быстро,dismiss
+сейчас встань,dismiss
+встань сейчас,dismiss
+ну встань,dismiss
+ну вставай,dismiss
+стоп,dismiss
+хватит,dismiss
+закончи,dismiss
+закончить,dismiss
+заканчивай,dismiss
+заканчивайте,dismiss
+отбой,dismiss
+стоять,dismiss
+робот пожалуйста встань,dismiss
+панда пожалуйста встань,dismiss
+попроси встать,dismiss
+вели встать,dismiss
+прикажи встать,dismiss
+лежать,lie_down
+лечь,lie_down
+ложиться,lie_down
+ложись,lie_down
+ляг,lie_down
+лягте,lie_down
+ложитесь,lie_down
+ляжешь,lie_down
+ложишься,lie_down
+лег бы,lie_down
+легла бы,lie_down
+легли бы,lie_down
+а ну быстро лег,lie_down
+а ну лег,lie_down
+упасть,lie_down
+упади,lie_down
+падать,lie_down
+падай,lie_down
+упадите,lie_down
+падайте,lie_down
+упадешь,lie_down
+падаешь,lie_down
+упал бы,lie_down
+упала бы,lie_down
+надо лечь,lie_down
+нужно лечь,lie_down
+пора лечь,lie_down
+можно лечь,lie_down
+давай ложись,lie_down
+надо ложиться,lie_down
+нужно ложиться,lie_down
+пора ложиться,lie_down
+надо упасть,lie_down
+нужно упасть,lie_down
+пора падать,lie_down
+попроси робота лечь,lie_down
+попроси панду лечь,lie_down
+скажи роботу лечь,lie_down
+скажи панде лечь,lie_down
+пусть робот ляжет,lie_down
+пусть панда ляжет,lie_down
+пусть робот упадет,lie_down
+пусть панда упадет,lie_down
+пусть робот ложится,lie_down
+пусть панда ложится,lie_down
+хочу чтобы робот лег,lie_down
+хочу чтобы панда легла,lie_down
+хотел бы чтобы робот лег,lie_down
+хотела бы чтобы панда легла,lie_down
+может ляжешь,lie_down
+может упадешь,lie_down
+не хочешь лечь,lie_down
+ложись-ка,lie_down
+ляг-ка,lie_down
+упади-ка,lie_down
+ну-ка ложись,lie_down
+ну-ка ляг,lie_down
+ну-ка упади,lie_down
+а ну ложись,lie_down
+а ну ляг,lie_down
+а ну упади,lie_down
+эй ложись,lie_down
+эй ляг,lie_down
+ты ложись,lie_down
+ты ляг,lie_down
+робот ложись,lie_down
+панда ложись,lie_down
+робот ляг,lie_down
+панда ляг,lie_down
+ложись робот,lie_down
+ложись панда,lie_down
+ляг робот,lie_down
+ляг панда,lie_down
+пожалуйста ложись,lie_down
+ложись пожалуйста,lie_down
+быстро ложись,lie_down
+ложись быстро,lie_down
+сейчас ложись,lie_down
+ложись сейчас,lie_down
+ну ложись,lie_down
+ну ляг,lie_down
+лежать робот,lie_down
+лежать панда,lie_down
+принять положение лежа,lie_down
+прими положение лежа,lie_down
+примите положение лежа,lie_down
+ляг на пол,lie_down
+ложись на пол,lie_down
+упади на пол,lie_down
+ляг на землю,lie_down
+полежи,lie_down
+повались,lie_down
+робот пожалуйста ляг,lie_down
+панда пожалуйста ляг,lie_down
+попроси лечь,lie_down
+вели лечь,lie_down
+прикажи лечь,lie_down
+кувыркнуться,rotate
+кувыркнись,rotate
+кувыркаться,rotate
+кувыркайся,rotate
+кувыркнитесь,rotate
+кувыркайтесь,rotate
+кувыркнешься,rotate
+кувыркаешься,rotate
+кувыркнулся бы,rotate
+кувыркнулась бы,rotate
+кувыркнулись бы,rotate
+а ну быстро кувыркнулся,rotate
+а ну кувыркнулся,rotate
+перевернуться,rotate
+перевернись,rotate
+переворачиваться,rotate
+переворачивайся,rotate
+перевернитесь,rotate
+переворачивайтесь,rotate
+перевернешься,rotate
+переворачиваешься,rotate
+перевернулся бы,rotate
+перевернулась бы,rotate
+вращаться,rotate
+вращайся,rotate
+вращайтесь,rotate
+вращаешься,rotate
+вращался бы,rotate
+вращалась бы,rotate
+крутиться,rotate
+крутись,rotate
+крутитесь,rotate
+крутишься,rotate
+крутился бы,rotate
+крутилась бы,rotate
+покрутиться,rotate
+покрутись,rotate
+покрутитесь,rotate
+покрутишься,rotate
+покрутился бы,rotate
+покрутилась бы,rotate
+надо кувыркнуться,rotate
+нужно кувыркнуться,rotate
+пора кувыркнуться,rotate
+можно кувыркнуться,rotate
+давай кувыркайся,rotate
+надо перевернуться,rotate
+нужно перевернуться,rotate
+пора перевернуться,rotate
+надо вращаться,rotate
+нужно крутиться,rotate
+пора покрутиться,rotate
+попроси робота кувыркнуться,rotate
+попроси панду кувыркнуться,rotate
+скажи роботу кувыркнуться,rotate
+скажи панде кувыркнуться,rotate
+пусть робот кувыркнется,rotate
+пусть панда кувыркнется,rotate
+пусть робот перевернется,rotate
+пусть панда перевернется,rotate
+пусть робот покрутится,rotate
+пусть панда покрутится,rotate
+хочу чтобы робот кувыркнулся,rotate
+хочу чтобы панда кувыркнулась,rotate
+хотел бы чтобы робот перевернулся,rotate
+хотела бы чтобы панда перевернулась,rotate
+может кувыркнешься,rotate
+может перевернешься,rotate
+не хочешь кувыркнуться,rotate
+кувыркнись-ка,rotate
+перевернись-ка,rotate
+покрутись-ка,rotate
+ну-ка кувыркнись,rotate
+ну-ка перевернись,rotate
+ну-ка покрутись,rotate
+а ну кувыркнись,rotate
+а ну перевернись,rotate
+а ну покрутись,rotate
+эй кувыркнись,rotate
+эй перевернись,rotate
+ты кувыркнись,rotate
+ты перевернись,rotate
+робот кувыркнись,rotate
+панда кувыркнись,rotate
+робот перевернись,rotate
+панда перевернись,rotate
+кувыркнись робот,rotate
+кувыркнись панда,rotate
+перевернись робот,rotate
+перевернись панда,rotate
+пожалуйста кувыркнись,rotate
+кувыркнись пожалуйста,rotate
+быстро кувыркнись,rotate
+кувыркнись быстро,rotate
+сейчас кувыркнись,rotate
+кувыркнись сейчас,rotate
+ну кувыркнись,rotate
+ну перевернись,rotate
+кувырок,rotate
+сделай кувырок,rotate
+выполни кувырок,rotate
+кувырок вперед,rotate
+кувырок назад,rotate
+робот кувырок,rotate
+панда кувырок,rotate
+давай кувырок,rotate
+ну-ка кувырок,rotate
+робот пожалуйста кувыркнись,rotate
+панда пожалуйста перевернись,rotate
+попроси кувыркнуться,rotate
+вели кувыркнуться,rotate
+прикажи перевернуться,rotate
+бежать,run
+беги,run
+бегать,run
+бегай,run
+бегите,run
+бегайте,run
+побежать,run
+побеги,run
+побегите,run
+бежишь,run
+побежишь,run
+бегаешь,run
+побежал бы,run
+побежала бы,run
+побежали бы,run
+бежал бы,run
+бегал бы,run
+а ну быстро побежал,run
+а ну побежал,run
+надо бежать,run
+нужно бежать,run
+пора бежать,run
+можно бежать,run
+давай беги,run
+надо бегать,run
+нужно бегать,run
+пора бегать,run
+надо побежать,run
+нужно побежать,run
+пора побежать,run
+попроси робота бежать,run
+попроси панду бежать,run
+скажи роботу бежать,run
+скажи панде бежать,run
+пусть робот бежит,run
+пусть панда бежит,run
+пусть робот побежит,run
+пусть панда побежит,run
+пусть робот бегает,run
+пусть панда бегает,run
+хочу чтобы робот побежал,run
+хочу чтобы панда побежала,run
+хотел бы чтобы робот бежал,run
+хотела бы чтобы панда бежала,run
+может побежишь,run
+может бежишь,run
+не хочешь побежать,run
+беги-ка,run
+побеги-ка,run
+бегай-ка,run
+ну-ка беги,run
+ну-ка побеги,run
+ну-ка бегай,run
+а ну беги,run
+а ну побеги,run
+а ну бегай,run
+эй беги,run
+эй побеги,run
+ты беги,run
+ты побеги,run
+робот беги,run
+панда беги,run
+робот побеги,run
+панда побеги,run
+беги робот,run
+беги панда,run
+побеги робот,run
+побеги панда,run
+пожалуйста беги,run
+беги пожалуйста,run
+быстро беги,run
+беги быстро,run
+сейчас беги,run
+беги сейчас,run
+ну беги,run
+ну побеги,run
+бегом,run
+пошли,run
+побегай,run
+побегайте,run
+беги вперед,run
+побеги вперед,run
+беги ко мне,run
+побеги туда,run
+бегай по кругу,run
+давай бегай,run
+робот пожалуйста беги,run
+панда пожалуйста беги,run
+попроси бежать,run
+вели бежать,run
+прикажи бежать,run
+попроси робота бегать,run
+скажи панде побежать,run
+остановиться,stop_running
+остановись,stop_running
+останавливаться,stop_running
+останавливайся,stop_running
+остановитесь,stop_running
+останавливайтесь,stop_running
+остановишься,stop_running
+останавливаешься,stop_running
+остановился бы,stop_running
+остановилась бы,stop_running
+остановились бы,stop_running
+а ну быстро остановился,stop_running
+а ну остановился,stop_running
+прекратить бегать,stop_running
+прекрати бегать,stop_running
+прекращать бегать,stop_running
+прекращай бегать,stop_running
+прекратите бегать,stop_running
+прекращайте бегать,stop_running
+прекратишь бегать,stop_running
+прекратил бы бегать,stop_running
+перестать бегать,stop_running
+перестань бегать,stop_running
+переставать бегать,stop_running
+переставай бегать,stop_running
+перестаньте бегать,stop_running
+переставайте бегать,stop_running
+перестанешь бегать,stop_running
+перестал бы бегать,stop_running
+хватит бегать,stop_running
+хватит бежать,stop_running
+стоп бег,stop_running
+стой,stop_running
+смирно,stop_running
+надо остановиться,stop_running
+нужно остановиться,stop_running
+пора остановиться,stop_running
+можно остановиться,stop_running
+давай остановись,stop_running
+надо прекратить бегать,stop_running
+нужно прекратить бегать,stop_running
+пора прекратить бегать,stop_running
+надо перестать бегать,stop_running
+нужно перестать бегать,stop_running
+пора перестать бегать,stop_running
+попроси робота остановиться,stop_running
+попроси панду остановиться,stop_running
+скажи роботу остановиться,stop_running
+скажи панде остановиться,stop_running
+пусть робот остановится,stop_running
+пусть панда остановится,stop_running
+пусть робот перестанет бегать,stop_running
+пусть панда перестанет бегать,stop_running
+пусть робот прекратит бегать,stop_running
+пусть панда прекратит бегать,stop_running
+хочу чтобы робот остановился,stop_running
+хочу чтобы панда остановилась,stop_running
+хотел бы чтобы робот перестал бегать,stop_running
+хотела бы чтобы панда перестала бегать,stop_running
+может остановишься,stop_running
+может перестанешь бегать,stop_running
+не хочешь остановиться,stop_running
+остановись-ка,stop_running
+прекрати-ка бегать,stop_running
+перестань-ка бегать,stop_running
+ну-ка остановись,stop_running
+ну-ка прекрати бегать,stop_running
+ну-ка перестань бегать,stop_running
+а ну остановись,stop_running
+а ну прекрати бегать,stop_running
+а ну перестань бегать,stop_running
+эй остановись,stop_running
+эй прекрати бегать,stop_running
+ты остановись,stop_running
+ты прекрати бегать,stop_running
+робот остановись,stop_running
+панда остановись,stop_running
+робот прекрати бегать,stop_running
+панда прекрати бегать,stop_running
+остановись робот,stop_running
+остановись панда,stop_running
+прекрати бегать робот,stop_running
+прекрати бегать панда,stop_running
+пожалуйста остановись,stop_running
+остановись пожалуйста,stop_running
+быстро остановись,stop_running
+остановись быстро,stop_running
+сейчас остановись,stop_running
+остановись сейчас,stop_running
+ну остановись,stop_running
+ну прекрати бегать,stop_running
+стой не бегай,stop_running
+не бегай,stop_running
+не бегать,stop_running
+не беги,stop_running
+робот пожалуйста остановись,stop_running
+панда пожалуйста остановись,stop_running
+попроси остановиться,stop_running
+вели остановиться,stop_running
+прикажи остановиться,stop_running
+попроси робота прекратить бегать,stop_running
+скажи панде перестать бегать,stop_running
+остановись бег,stop_running
+прекрати бег,stop_running
+подключить,reconnect_joystick
+подключи,reconnect_joystick
+подключать,reconnect_joystick
+подключай,reconnect_joystick
+подключите,reconnect_joystick
+подключайте,reconnect_joystick
+подключишь,reconnect_joystick
+подключаешь,reconnect_joystick
+подключил бы,reconnect_joystick
+подключила бы,reconnect_joystick
+подключили бы,reconnect_joystick
+а ну быстро подключил,reconnect_joystick
+а ну подключил,reconnect_joystick
+подключиться,reconnect_joystick
+подключись,reconnect_joystick
+подключаться,reconnect_joystick
+подключайся,reconnect_joystick
+подключитесь,reconnect_joystick
+подключайтесь,reconnect_joystick
+подключишься,reconnect_joystick
+подключился бы,reconnect_joystick
+подключилась бы,reconnect_joystick
+взять,reconnect_joystick
+возьми,reconnect_joystick
+брать,reconnect_joystick
+бери,reconnect_joystick
+возьмите,reconnect_joystick
+берите,reconnect_joystick
+возьмешь,reconnect_joystick
+берешь,reconnect_joystick
+взял бы,reconnect_joystick
+взяла бы,reconnect_joystick
+держать,reconnect_joystick
+держи,reconnect_joystick
+держите,reconnect_joystick
+держишь,reconnect_joystick
+держал бы,reconnect_joystick
+держала бы,reconnect_joystick
+надо подключить,reconnect_joystick
+нужно подключить,reconnect_joystick
+пора подключить,reconnect_joystick
+можно подключить,reconnect_joystick
+давай подключи,reconnect_joystick
+надо подключиться,reconnect_joystick
+нужно подключиться,reconnect_joystick
+пора подключиться,reconnect_joystick
+надо взять,reconnect_joystick
+нужно взять,reconnect_joystick
+пора взять,reconnect_joystick
+попроси робота подключить джойстик,reconnect_joystick
+попроси панду подключить джойстик,reconnect_joystick
+скажи роботу подключить джойстик,reconnect_joystick
+скажи панде подключить джойстик,reconnect_joystick
+пусть робот подключит джойстик,reconnect_joystick
+пусть панда подключит джойстик,reconnect_joystick
+пусть робот подключится к джойстику,reconnect_joystick
+пусть панда подключится к джойстику,reconnect_joystick
+пусть робот возьмет джойстик,reconnect_joystick
+пусть панда возьмет джойстик,reconnect_joystick
+хочу чтобы робот подключил джойстик,reconnect_joystick
+хочу чтобы панда подключила джойстик,reconnect_joystick
+хотел бы чтобы робот подключился к джойстику,reconnect_joystick
+хотела бы чтобы панда подключилась к джойстику,reconnect_joystick
+может подключишь джойстик,reconnect_joystick
+может возьмешь джойстик,reconnect_joystick
+не хочешь подключить джойстик,reconnect_joystick
+подключи-ка джойстик,reconnect_joystick
+возьми-ка джойстик,reconnect_joystick
+держи-ка джойстик,reconnect_joystick
+ну-ка подключи джойстик,reconnect_joystick
+ну-ка возьми джойстик,reconnect_joystick
+ну-ка держи джойстик,reconnect_joystick
+а ну подключи джойстик,reconnect_joystick
+а ну возьми джойстик,reconnect_joystick
+а ну держи джойстик,reconnect_joystick
+эй подключи джойстик,reconnect_joystick
+эй возьми джойстик,reconnect_joystick
+ты подключи джойстик,reconnect_joystick
+ты возьми джойстик,reconnect_joystick
+робот подключи джойстик,reconnect_joystick
+панда подключи джойстик,reconnect_joystick
+робот возьми джойстик,reconnect_joystick
+панда возьми джойстик,reconnect_joystick
+подключи джойстик робот,reconnect_joystick
+подключи джойстик панда,reconnect_joystick
+возьми джойстик робот,reconnect_joystick
+возьми джойстик панда,reconnect_joystick
+пожалуйста подключи джойстик,reconnect_joystick
+подключи джойстик пожалуйста,reconnect_joystick
+быстро подключи джойстик,reconnect_joystick
+подключи джойстик быстро,reconnect_joystick
+сейчас подключи джойстик,reconnect_joystick
+подключи джойстик сейчас,reconnect_joystick
+ну подключи джойстик,reconnect_joystick
+ну возьми джойстик,reconnect_joystick
+джойстик,reconnect_joystick
+контроллер,reconnect_joystick
+подключи контроллер,reconnect_joystick
+возьми контроллер,reconnect_joystick
+держи контроллер,reconnect_joystick
+подключись к джойстику,reconnect_joystick
+подключись к контроллеру,reconnect_joystick
+робот пожалуйста подключи джойстик,reconnect_joystick
+панда пожалуйста подключи джойстик,reconnect_joystick
+попроси подключить джойстик,reconnect_joystick
+вели подключить джойстик,reconnect_joystick
+прикажи подключить джойстик,reconnect_joystick
+попроси робота взять джойстик,reconnect_joystick
+скажи панде взять контроллер,reconnect_joystick
+надо подключить джойстик,reconnect_joystick
+нужно подключить джойстик,reconnect_joystick
+пора подключить джойстик,reconnect_joystick
+надо взять джойстик,reconnect_joystick
+нужно взять джойстик,reconnect_joystick

@@ -151,9 +151,35 @@ def load_model():
             
             # Выгружаем старую модель из памяти
             if classifier is not None:
+                try:
+                    import torch
+                    # Перемещаем модель на CPU перед удалением, если она на GPU
+                    if classifier.model is not None:
+                        if hasattr(classifier.model, 'to'):
+                            try:
+                                classifier.model = classifier.model.to('cpu')
+                            except:
+                                pass
+                        if hasattr(classifier.model, 'model_body') and hasattr(classifier.model.model_body, 'to'):
+                            try:
+                                classifier.model.model_body = classifier.model.model_body.to('cpu')
+                            except:
+                                pass
+                except:
+                    pass
+                
                 del classifier
                 import gc
                 gc.collect()
+                
+                # Очищаем кэш CUDA после удаления модели
+                try:
+                    import torch
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                        torch.cuda.synchronize()
+                except:
+                    pass
             
             # Загружаем новую модель
             cache_dir = config["model"].get("cache_dir")
@@ -162,7 +188,6 @@ def load_model():
                 cache_dir=cache_dir
             )
             classifier.load(model_path, confidence_threshold=confidence_threshold)
-            print(f"Модель успешно загружена из {model_path}")
             return True
         except Exception as e:
             print(f"Предупреждение: не удалось загрузить модель: {e}")
@@ -200,28 +225,12 @@ def init_app():
         torch_version = str(torch.__version__)
         if cuda_available:
             default_device = "cuda"
-            device_name = torch.cuda.get_device_name(0)
-            # Проверяем, является ли это AMD GPU через ROCm
-            if "rocm" in torch_version.lower() or "+rocmsdk" in torch_version.lower():
-                print(f"✓ AMD ROCm доступен. Обучение будет выполняться на AMD GPU: {device_name}")
-            else:
-                print(f"✓ CUDA доступна. Обучение будет выполняться на GPU: {device_name}")
         else:
             default_device = "cpu"
-            # Проверяем, не CPU-only ли версия PyTorch
-            if "+cpu" in torch_version.lower():
-                print("⚠ Обнаружена CPU-only версия PyTorch.")
-                print("   Для использования NVIDIA CUDA установите зависимости из requirements-cuda.txt:")
-                print("   pip install -r requirements-cuda.txt")
-                print("   Для использования AMD ROCm установите зависимости из requirements-rocm.txt:")
-                print("   pip install -r requirements-rocm.txt")
-            print("ℹ GPU недоступен. Обучение будет выполняться на CPU")
     except ImportError:
         default_device = "cpu"
-        print("ℹ PyTorch не установлен. Обучение будет выполняться на CPU")
-    except Exception as e:
+    except Exception:
         default_device = "cpu"
-        print(f"ℹ Ошибка при проверке GPU: {e}. Обучение будет выполняться на CPU")
     
     # Инициализируем базу данных
     db_path = config["database"]["path"]

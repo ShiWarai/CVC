@@ -27,34 +27,57 @@ text,command
 робот пожалуйста лапу,give_paw
 дай лапу быстро,give_paw
 ну лапу дай,give_paw
+а теперь дай лапу,give_paw
+дать лапу,give_paw
+надо дать лапу,give_paw
+нужно дать лапу,give_paw
+дайте лапу,give_paw
+покажите лапу,give_paw
+поднимите лапу,give_paw
+дал бы лапу,give_paw
+лапу дашь,give_paw
+покажешь лапу,give_paw
+пора дать лапу,give_paw
+можно лапу,give_paw
 равняйсь,stand_at_attention
 равняйся,stand_at_attention
-стань в стойку,stand_at_attention
-стойка смирно,stand_at_attention
-встань в стойку,stand_at_attention
+равняйтесь,stand_at_attention
+равняться,stand_at_attention
+выравняйся,stand_at_attention
+выравняйтесь,stand_at_attention
+выравняться,stand_at_attention
+выровняйся,stand_at_attention
+выровняйтесь,stand_at_attention
+выровняться,stand_at_attention
 равняйсь робот,stand_at_attention
 равняйся сейчас,stand_at_attention
-стань в стойку смирно,stand_at_attention
-стойка смирно робот,stand_at_attention
 панда равняйся,stand_at_attention
-панда стойка,stand_at_attention
 робот равняйсь,stand_at_attention
-стойка панда,stand_at_attention
-встань смирно,stand_at_attention
 пожалуйста равняйся,stand_at_attention
 равняйся пожалуйста,stand_at_attention
 давай равняйся,stand_at_attention
-ну-ка стойка,stand_at_attention
 а ну равняйсь,stand_at_attention
-эй стойка,stand_at_attention
 ты равняйся,stand_at_attention
-смирно стой,stand_at_attention
-быстро в стойку,stand_at_attention
-панда давай равняйся,stand_at_attention
-робот пожалуйста стойка,stand_at_attention
 равняйся быстро,stand_at_attention
 ну равняйся,stand_at_attention
-стань ровно,stand_at_attention
+надо равняться,stand_at_attention
+нужно равняться,stand_at_attention
+пора равняться,stand_at_attention
+надо выравняться,stand_at_attention
+нужно выравняться,stand_at_attention
+пора выравняться,stand_at_attention
+выравнялся бы,stand_at_attention
+равнялся бы,stand_at_attention
+выравняешься,stand_at_attention
+робот выравняйся,stand_at_attention
+панда выровняйся,stand_at_attention
+быстро равняйся,stand_at_attention
+ну-ка равняйся,stand_at_attention
+эй равняйся,stand_at_attention
+давай выравняйся,stand_at_attention
+панда давай равняйся,stand_at_attention
+робот пожалуйста равняйся,stand_at_attention
+можно равняться,stand_at_attention
 отставить,dismiss
 вставай,dismiss
 отбой,dismiss
@@ -88,6 +111,46 @@ text,command
 закончи уже,dismiss
 ну хватит,dismiss
 стоять,dismiss
+встань,dismiss
+встаньте,dismiss
+встать,dismiss
+вставать,dismiss
+вставайте,dismiss
+надо встать,dismiss
+нужно встать,dismiss
+пора встать,dismiss
+пора вставать,dismiss
+надо вставать,dismiss
+нужно вставать,dismiss
+встал бы,dismiss
+встала бы,dismiss
+встали бы,dismiss
+встанешь,dismiss
+встанете,dismiss
+давай вставай,dismiss
+ну-ка вставай,dismiss
+а ну встань,dismiss
+эй вставай,dismiss
+ты вставай,dismiss
+быстро встань,dismiss
+панда вставай,dismiss
+робот встань,dismiss
+панда встань,dismiss
+робот вставай,dismiss
+пожалуйста встань,dismiss
+вставай пожалуйста,dismiss
+можно встать,dismiss
+хватит уже,dismiss
+прекращай,dismiss
+прекращайте,dismiss
+прекратите,dismiss
+остановитесь,dismiss
+закончить,dismiss
+заканчивай,dismiss
+заканчивайте,dismiss
+надо прекратить,dismiss
+нужно остановиться,dismiss
+пора заканчивать,dismiss
 лежать,lie_down
 ложись,lie_down
 принять положение лежа,lie_down
@@ -118,6 +181,34 @@ text,command
 робот пожалуйста ляг,lie_down
 ложись уже,lie_down
 ну лежать,lie_down
+лечь,lie_down
+ложиться,lie_down
+ляжь,lie_down
+лягте,lie_down
+ложитесь,lie_down
+надо лечь,lie_down
+нужно лечь,lie_down
+пора лечь,lie_down
+надо ложиться,lie_down
+нужно ложиться,lie_down
+пора ложиться,lie_down
+лег бы,lie_down
+легла бы,lie_down
+легли бы,lie_down
+ляжешь,lie_down
+давай ложись,lie_down
+ну-ка ляг,lie_down
+а ну ляг,lie_down
+эй ляг,lie_down
+ты ляг,lie_down
+быстро ляг,lie_down
+панда ляг,lie_down
+робот ложись,lie_down
+можно лечь,lie_down
+падай,lie_down
+падать,lie_down
+упасть,lie_down
+надо упасть,lie_down
 кувырок,rotate
 вращайся,rotate
 сделай кувырок,rotate
@@ -134,7 +225,6 @@ text,command
 панда вращайся,rotate
 робот перекувырнись,rotate
 кувырок панда,rotate
-вращайся робот,rotate
 пожалуйста кувырок,rotate
 вращайся пожалуйста,rotate
 давай кувырок,rotate
@@ -149,6 +239,36 @@ text,command
 робот пожалуйста вращайся,rotate
 кувыркайся уже,rotate
 ну вращайся,rotate
+кувыркаться,rotate
+вращаться,rotate
+перекувырнуться,rotate
+перевернуться,rotate
+покрутиться,rotate
+кувыркнись,rotate
+кувыркнитесь,rotate
+вращайтесь,rotate
+перевернитесь,rotate
+покрутитесь,rotate
+надо кувыркнуться,rotate
+нужно перевернуться,rotate
+пора кувыркаться,rotate
+надо вращаться,rotate
+кувыркнулся бы,rotate
+перевернулся бы,rotate
+кувыркнешься,rotate
+перевернешься,rotate
+давай вращайся,rotate
+ну-ка перевернись,rotate
+а ну кувыркайся,rotate
+эй перевернись,rotate
+ты кувыркайся,rotate
+быстро перевернись,rotate
+панда перевернись,rotate
+робот кувыркайся,rotate
+можно кувыркнуться,rotate
+крутись,rotate
+крутиться,rotate
+покрути,rotate
 бегать,run
 пошли,run
 беги,run
@@ -180,6 +300,31 @@ text,command
 робот пожалуйста бегай,run
 беги уже,run
 ну беги,run
+бежать,run
+побежать,run
+бегите,run
+побегите,run
+бегайте,run
+надо бежать,run
+нужно бежать,run
+пора бежать,run
+надо бегать,run
+нужно побежать,run
+побежал бы,run
+бежал бы,run
+побежишь,run
+побежите,run
+давай бегай,run
+ну-ка побеги,run
+а ну беги,run
+эй побеги,run
+ты бегай,run
+быстро беги,run
+панда побеги,run
+робот бегай,run
+можно бежать,run
+побегай,run
+побегайте,run
 смирно,stop_running
 остановись бег,stop_running
 прекрати бегать,stop_running
@@ -193,7 +338,7 @@ text,command
 панда остановись,stop_running
 робот стоп бег,stop_running
 смирно панда,stop_running
-стоп робот,stop_running
+стоп робот бег,stop_running
 пожалуйста остановись бег,stop_running
 хватит бегать пожалуйста,stop_running
 давай стоп бег,stop_running
@@ -203,11 +348,35 @@ text,command
 ты остановись бег,stop_running
 прекрати бег,stop_running
 стой не бегай,stop_running
-быстро остановись,stop_running
+быстро остановись бег,stop_running
 панда давай смирно,stop_running
 робот пожалуйста остановись бег,stop_running
-остановись уже,stop_running
+остановись бег уже,stop_running
 ну хватит бегать,stop_running
+остановить бег,stop_running
+прекратить бегать,stop_running
+перестать бегать,stop_running
+остановитесь бег,stop_running
+прекратите бегать,stop_running
+перестаньте бегать,stop_running
+надо остановить бег,stop_running
+нужно прекратить бегать,stop_running
+пора остановиться бег,stop_running
+остановился бы бег,stop_running
+прекратил бы бегать,stop_running
+остановишь бег,stop_running
+прекратишь бегать,stop_running
+давай прекращай бегать,stop_running
+ну-ка хватит бегать,stop_running
+а ну прекрати бегать,stop_running
+эй хватит бегать,stop_running
+ты прекрати бегать,stop_running
+быстро хватит бегать,stop_running
+панда хватит бегать,stop_running
+робот прекрати бегать,stop_running
+можно остановить бег,stop_running
+не бегай,stop_running
+не бегать,stop_running
 держи джойстик,reconnect_joystick
 возьми джойстик,reconnect_joystick
 подключись к джойстику,reconnect_joystick
@@ -237,4 +406,32 @@ text,command
 робот пожалуйста возьми джойстик,reconnect_joystick
 подключись уже,reconnect_joystick
 ну держи джойстик,reconnect_joystick
-а теперь дай лапу,give_paw
+держать джойстик,reconnect_joystick
+взять джойстик,reconnect_joystick
+подключиться к джойстику,reconnect_joystick
+подключить джойстик,reconnect_joystick
+подключить контроллер,reconnect_joystick
+взять контроллер,reconnect_joystick
+держите джойстик,reconnect_joystick
+возьмите джойстик,reconnect_joystick
+подключитесь к джойстику,reconnect_joystick
+подключите джойстик,reconnect_joystick
+надо взять джойстик,reconnect_joystick
+нужно подключить джойстик,reconnect_joystick
+пора подключиться к джойстику,reconnect_joystick
+надо держать джойстик,reconnect_joystick
+взял бы джойстик,reconnect_joystick
+подключился бы к джойстику,reconnect_joystick
+возьмешь джойстик,reconnect_joystick
+подключишься к джойстику,reconnect_joystick
+давай возьми джойстик,reconnect_joystick
+ну-ка возьми джойстик,reconnect_joystick
+а ну подключись к джойстику,reconnect_joystick
+эй возьми джойстик,reconnect_joystick
+ты возьми джойстик,reconnect_joystick
+быстро возьми джойстик,reconnect_joystick
+панда возьми джойстик,reconnect_joystick
+робот подключись к джойстику,reconnect_joystick
+можно взять джойстик,reconnect_joystick
+контроллер,reconnect_joystick
+джойстик,reconnect_joystick

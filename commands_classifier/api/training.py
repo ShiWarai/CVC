@@ -139,7 +139,6 @@ class TrainingManager:
             
             # Обновляем прогресс: загрузка данных
             self.progress = 0.1
-            _log_training(f"[Обучение {self.training_id}] Загрузка данных из БД...")
             
             # Загружаем данные из БД (только необученные)
             texts, labels, example_ids = db.get_examples_for_training(self.db_path)
@@ -147,13 +146,11 @@ class TrainingManager:
             if len(texts) == 0:
                 raise ValueError("Нет необученных данных для обучения в базе данных")
             
-            _log_training(f"[Обучение {self.training_id}] Загружено {len(texts)} необученных примеров")
-            
             # Проверяем минимальные требования для SetFit
             unique_labels = set(labels)
             label_counts = {label: labels.count(label) for label in unique_labels}
             
-            _log_training(f"[Обучение {self.training_id}] Классы (необученные): {label_counts}")
+            _log_training(f"[Обучение {self.training_id}] Загружено {len(texts)} примеров, классов: {len(unique_labels)}")
             
             # SetFit требует минимум 2 класса для создания отрицательных пар
             if len(unique_labels) < 2:
@@ -177,9 +174,6 @@ class TrainingManager:
                 # Для каждого класса с недостаточным количеством примеров дополняем обученными
                 for label in classes_with_insufficient_examples:
                     needed = 2 - label_counts[label]  # Сколько нужно добавить до минимума
-                    _log_training(
-                        f"[Обучение {self.training_id}] Дополняем класс '{label}': нужно {needed} примеров (сейчас {label_counts[label]})"
-                    )
                     
                     # Получаем обученные примеры из этого класса
                     trained_texts, trained_labels, trained_ids = db.get_trained_examples_by_labels(
@@ -192,19 +186,10 @@ class TrainingManager:
                         labels.extend(trained_labels)
                         # Важно: не добавляем trained_ids в example_ids, так как эти примеры уже обучены
                         # и не должны быть отмечены как is_trained = 1 после обучения
-                        _log_training(
-                            f"[Обучение {self.training_id}] Добавлено {len(trained_texts)} обученных примеров из класса '{label}'"
-                        )
-                    else:
-                        _log_training(
-                            f"[Обучение {self.training_id}] Предупреждение: не найдено обученных примеров для класса '{label}'",
-                            "warning"
-                        )
                 
                 # Пересчитываем статистику после дополнения
                 unique_labels = set(labels)
                 label_counts = {label: labels.count(label) for label in unique_labels}
-                _log_training(f"[Обучение {self.training_id}] Классы после дополнения: {label_counts}")
                 
                 # Проверяем еще раз после дополнения
                 min_examples_per_class = min(label_counts.values())
@@ -234,36 +219,16 @@ class TrainingManager:
                     f"Удалите существующую модель вручную, если хотите обучить заново."
                 )
             
-            _log_training(f"[Обучение {self.training_id}] Модель не найдена. Первичное обучение...")
-            
-            # ЛОГИКА ПЕРЕОБУЧЕНИЯ ОТКЛЮЧЕНА (закомментировано)
-            # if model_exists:
-            #     _log_training(f"[Обучение {self.training_id}] Обнаружена существующая модель. Начинается переобучение...")
-            #     # Создаем backup старой модели для восстановления в случае ошибки
-            #     backup_path_obj = Path(f"{self.model_path}_backup")
-            #     if backup_path_obj.exists():
-            #         shutil.rmtree(backup_path_obj)
-            #     shutil.copytree(self.model_path, backup_path_obj)
-            #     backup_path = str(backup_path_obj)  # Сохраняем как строку для использования в except
-            #     _log_training(f"[Обучение {self.training_id}] Старая модель скопирована в backup: {backup_path}")
-            
             # Обновляем прогресс: инициализация модели
             self.progress = 0.2
-            _log_training(f"[Обучение {self.training_id}] Инициализация модели {self.model_name}...")
             
             # Создаем и обучаем модель
-            # Убеждаемся, что confidence_threshold - это float
             threshold_float = float(self.confidence_threshold)
-            _log_training(f"[Обучение {self.training_id}] Создание классификатора с confidence_threshold={threshold_float} (тип: {type(threshold_float)})")
-            
             classifier = CommandsClassifier(
                 model_name=self.model_name,
                 confidence_threshold=threshold_float,
                 cache_dir=self.cache_dir
             )
-            
-            # Проверяем, что threshold правильно установлен
-            _log_training(f"[Обучение {self.training_id}] Проверка: classifier.confidence_threshold={classifier.confidence_threshold} (тип: {type(classifier.confidence_threshold)})")
             
             # Обновляем прогресс: начало обучения
             self.progress = 0.3
@@ -272,14 +237,10 @@ class TrainingManager:
             num_iterations_int = int(num_iterations)
             num_epochs_int = int(num_epochs)
             batch_size_int = int(batch_size)
-            learning_rate_float = float(learning_rate)  # Критично: learning_rate должен быть float
+            learning_rate_float = float(learning_rate)
             
-            # Используем устройство (в Docker контейнере всегда CPU)
+            # Используем устройство
             device = self.default_device
-            _log_training(f"[Обучение {self.training_id}] ℹ Обучение на {device.upper()}")
-            
-            _log_training(f"[Обучение {self.training_id}] Начало обучения (iterations={num_iterations_int}, epochs={num_epochs_int}, batch_size={batch_size_int}, lr={learning_rate_float}, device={device})...")
-            _log_training(f"[Обучение {self.training_id}] Типы параметров: iterations={type(num_iterations_int)}, epochs={type(num_epochs_int)}, batch_size={type(batch_size_int)}, lr={type(learning_rate_float)}")
             
             # Обучаем модель
             try:
@@ -297,25 +258,42 @@ class TrainingManager:
                     self.metrics = eval_metrics
                 
                 if eval_metrics:
-                    _log_training(f"[Обучение {self.training_id}] Метрики качества модели:")
+                    _log_training(f"[Обучение {self.training_id}] Метрики качества:")
                     for metric, value in eval_metrics.items():
                         _log_training(f"[Обучение {self.training_id}]   {metric}: {value:.4f}")
-                else:
-                    _log_training(f"[Обучение {self.training_id}] Метрики не были вычислены", "warning")
             except Exception as train_error:
                 import traceback
-                _log_training(f"[Обучение {self.training_id}] Ошибка в classifier.train(): {train_error}", "error")
-                _log_training(f"[Обучение {self.training_id}] Тип confidence_threshold: {type(classifier.confidence_threshold)}, значение: {classifier.confidence_threshold}", "error")
-                _log_training(f"[Обучение {self.training_id}] Полная трассировка:\n{traceback.format_exc()}", "error")
+                _log_training(f"[Обучение {self.training_id}] Ошибка при обучении: {train_error}", "error")
+                _log_training(f"[Обучение {self.training_id}] Трассировка:\n{traceback.format_exc()}", "error")
                 raise
             
             # Обновляем прогресс: сохранение модели
             self.progress = 0.9
-            _log_training(f"[Обучение {self.training_id}] Сохранение модели в {self.model_path}...")
             
-            # Сохраняем модель (метод save() сам обработает удаление старой модели)
+            # Сохраняем модель
             classifier.save(self.model_path)
-            _log_training(f"[Обучение {self.training_id}] Модель успешно сохранена")
+            
+            # Освобождаем память GPU после обучения
+            if device == "cuda":
+                try:
+                    import torch
+                    import gc
+                    # Перемещаем модель на CPU перед удалением
+                    if classifier.model is not None:
+                        if hasattr(classifier.model, 'to'):
+                            classifier.model = classifier.model.to('cpu')
+                        if hasattr(classifier.model, 'model_body') and hasattr(classifier.model.model_body, 'to'):
+                            classifier.model.model_body = classifier.model.model_body.to('cpu')
+                    # Удаляем ссылку на модель
+                    del classifier
+                    # Принудительная сборка мусора
+                    gc.collect()
+                    # Очищаем кэш CUDA
+                    if torch.cuda.is_available():
+                        torch.cuda.empty_cache()
+                        torch.cuda.synchronize()
+                except Exception:
+                    pass
             
             # ЛОГИКА УДАЛЕНИЯ BACKUP ОТКЛЮЧЕНА (закомментировано)
             # # Удаляем backup после успешного сохранения
@@ -327,9 +305,7 @@ class TrainingManager:
             
             # Отмечаем использованные строки как обученные
             if example_ids:
-                _log_training(f"[Обучение {self.training_id}] Отмечаем {len(example_ids)} примеров как обученные...")
                 db.mark_examples_as_trained(self.db_path, example_ids)
-                _log_training(f"[Обучение {self.training_id}] Примеры успешно отмечены как обученные")
             
             # Обучение завершено успешно
             with self.lock:
@@ -337,29 +313,23 @@ class TrainingManager:
                 self.progress = 1.0
                 self.completed_at = datetime.now()
             
-            _log_training(f"[Обучение {self.training_id}] Обучение завершено успешно! Модель сохранена в {self.model_path}")
+            _log_training(f"[Обучение {self.training_id}] Обучение завершено успешно")
             
             # Автоматически перезагружаем модель, если указан callback
             if self.on_training_complete:
                 try:
-                    _log_training(f"[Обучение {self.training_id}] Перезагрузка модели...")
                     self.on_training_complete()
-                    _log_training(f"[Обучение {self.training_id}] Модель успешно перезагружена и готова к использованию")
                 except Exception as reload_error:
                     _log_training(
-                        f"[Обучение {self.training_id}] Предупреждение: не удалось перезагрузить модель автоматически: {reload_error}. "
-                        f"Перезапустите сервер вручную.",
+                        f"[Обучение {self.training_id}] Предупреждение: не удалось перезагрузить модель: {reload_error}",
                         "warning"
                     )
-            else:
-                _log_training(f"[Обучение {self.training_id}] ВНИМАНИЕ: Для использования новой модели перезапустите сервер")
                 
         except Exception as e:
             # Ошибка при обучении
             import traceback
-            error_traceback = traceback.format_exc()
             _log_training(f"[Обучение {self.training_id}] ОШИБКА: {e}", "error")
-            _log_training(f"[Обучение {self.training_id}] Трассировка:\n{error_traceback}", "error")
+            _log_training(f"[Обучение {self.training_id}] Трассировка:\n{traceback.format_exc()}", "error")
             
             # ЛОГИКА ВОССТАНОВЛЕНИЯ ИЗ BACKUP ОТКЛЮЧЕНА (закомментировано)
             # # В случае ошибки восстанавливаем старую модель из backup, если она была

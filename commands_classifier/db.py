@@ -116,7 +116,6 @@ def init_db(db_path: str, csv_path: Optional[str] = None) -> None:
             cursor.execute("ALTER TABLE examples ADD COLUMN is_trained INTEGER DEFAULT 0")
             # Устанавливаем is_trained = 0 для всех существующих записей
             cursor.execute("UPDATE examples SET is_trained = 0 WHERE is_trained IS NULL")
-            print("Добавлено поле is_trained в таблицу examples")
         
         conn.commit()
         
@@ -164,17 +163,11 @@ def init_db(db_path: str, csv_path: Optional[str] = None) -> None:
                             conn.commit()
                             total_added += added_count
                             total_skipped += skipped_count
-                            if added_count > 0:
-                                print(f"Добавлено {added_count} новых примеров из {csv_file.name} (пропущено {skipped_count} существующих)")
-                            elif skipped_count > 0:
-                                print(f"Все примеры из {csv_file.name} уже есть в БД (пропущено {skipped_count})")
-                        else:
-                            print(f"Пропущен {csv_file.name}: отсутствуют колонки 'text' или 'command'")
                     except Exception as e:
                         print(f"Ошибка при синхронизации {csv_file.name}: {e}")
                 
-                if total_added > 0 or total_skipped > 0:
-                    print(f"Синхронизация завершена: добавлено {total_added} новых примеров, пропущено {total_skipped} существующих из {len(csv_files)} файл(ов)")
+                if total_added > 0:
+                    print(f"Синхронизация CSV: добавлено {total_added} новых примеров из {len(csv_files)} файл(ов)")
     except sqlite3.OperationalError as e:
         error_msg = (
             f"Не удалось создать/открыть базу данных по пути: {db_path}\n"
