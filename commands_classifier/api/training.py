@@ -42,7 +42,7 @@ class TrainingManager:
         self, 
         db_path: str, 
         model_path: str, 
-        model_name: str = "google/embeddinggemma-300M",
+        model_name: str = "deepvk/USER-bge-m3",
         confidence_threshold: float = 0.5,
         on_training_complete: Optional[Callable[[], None]] = None,
         default_device: str = "cpu",
@@ -77,6 +77,7 @@ class TrainingManager:
         self.error: Optional[str] = None
         self.started_at: Optional[datetime] = None
         self.completed_at: Optional[datetime] = None
+        self.metrics: Optional[Dict[str, Any]] = None  # Метрики качества модели
     
     def start_training(
         self,
@@ -111,6 +112,7 @@ class TrainingManager:
             self.error = None
             self.started_at = datetime.now()
             self.completed_at = None
+            self.metrics = None  # Сбрасываем метрики при новом обучении
             
             # Запускаем обучение в отдельном потоке
             self.training_thread = threading.Thread(
@@ -281,7 +283,7 @@ class TrainingManager:
             
             # Обучаем модель
             try:
-                classifier.train(
+                eval_metrics = classifier.train(
                     texts=texts,
                     labels=labels,
                     num_iterations=num_iterations_int,
@@ -290,6 +292,16 @@ class TrainingManager:
                     learning_rate=learning_rate_float,
                     device=device
                 )
+                # Сохраняем метрики
+                with self.lock:
+                    self.metrics = eval_metrics
+                
+                if eval_metrics:
+                    _log_training(f"[Обучение {self.training_id}] Метрики качества модели:")
+                    for metric, value in eval_metrics.items():
+                        _log_training(f"[Обучение {self.training_id}]   {metric}: {value:.4f}")
+                else:
+                    _log_training(f"[Обучение {self.training_id}] Метрики не были вычислены", "warning")
             except Exception as train_error:
                 import traceback
                 _log_training(f"[Обучение {self.training_id}] Ошибка в classifier.train(): {train_error}", "error")
@@ -374,10 +386,10 @@ class TrainingManager:
         Возвращает текущий статус обучения.
         
         Returns:
-            Словарь со статусом обучения
+            Словарь со статусом обучения и метриками качества
         """
         with self.lock:
-            return {
+            status = {
                 "training_id": self.training_id,
                 "status": self.status.value,
                 "progress": self.progress,
@@ -385,6 +397,10 @@ class TrainingManager:
                 "started_at": self.started_at.isoformat() if self.started_at else None,
                 "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             }
+            # Добавляем метрики, если они есть
+            if self.metrics:
+                status["metrics"] = self.metrics
+            return status
     
     def is_training(self) -> bool:
         """

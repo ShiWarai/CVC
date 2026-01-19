@@ -121,7 +121,7 @@ def load_config(config_path: str = "config.yaml"):
             "server": {"host": "0.0.0.0", "port": 20001},
             "model": {
                 "path": "models/my_model",
-                "name": "google/embeddinggemma-300M",
+                "name": "deepvk/USER-bge-m3",
                 "confidence_threshold": 0.5
             },
             "database": {
@@ -177,6 +177,19 @@ def init_app():
     """Инициализирует приложение при запуске."""
     global classifier, training_manager
     
+    # Инициализируем токен Hugging Face (только при запуске сервера, не при импорте клиента)
+    try:
+        import os
+        import huggingface_hub
+        hf_token = os.getenv("HF_TOKEN")
+        if hf_token:
+            huggingface_hub.login(token=hf_token, add_to_git_credential=False)
+    except ImportError:
+        # huggingface_hub не установлен, используем только переменные окружения
+        pass
+    except Exception:
+        pass
+    
     load_config()
     
     # Автоматически определяем устройство для обучения
@@ -187,20 +200,28 @@ def init_app():
         torch_version = str(torch.__version__)
         if cuda_available:
             default_device = "cuda"
-            print(f"✓ CUDA доступна. Обучение будет выполняться на GPU: {torch.cuda.get_device_name(0)}")
+            device_name = torch.cuda.get_device_name(0)
+            # Проверяем, является ли это AMD GPU через ROCm
+            if "rocm" in torch_version.lower() or "+rocmsdk" in torch_version.lower():
+                print(f"✓ AMD ROCm доступен. Обучение будет выполняться на AMD GPU: {device_name}")
+            else:
+                print(f"✓ CUDA доступна. Обучение будет выполняться на GPU: {device_name}")
         else:
             default_device = "cpu"
             # Проверяем, не CPU-only ли версия PyTorch
             if "+cpu" in torch_version.lower():
-                print("⚠ Обнаружена CPU-only версия PyTorch. Для использования CUDA установите зависимости из requirements-cuda.txt:")
+                print("⚠ Обнаружена CPU-only версия PyTorch.")
+                print("   Для использования NVIDIA CUDA установите зависимости из requirements-cuda.txt:")
                 print("   pip install -r requirements-cuda.txt")
-            print("ℹ CUDA недоступна. Обучение будет выполняться на CPU")
+                print("   Для использования AMD ROCm установите зависимости из requirements-rocm.txt:")
+                print("   pip install -r requirements-rocm.txt")
+            print("ℹ GPU недоступен. Обучение будет выполняться на CPU")
     except ImportError:
         default_device = "cpu"
         print("ℹ PyTorch не установлен. Обучение будет выполняться на CPU")
     except Exception as e:
         default_device = "cpu"
-        print(f"ℹ Ошибка при проверке CUDA: {e}. Обучение будет выполняться на CPU")
+        print(f"ℹ Ошибка при проверке GPU: {e}. Обучение будет выполняться на CPU")
     
     # Инициализируем базу данных
     db_path = config["database"]["path"]

@@ -243,7 +243,26 @@ def train_command(args):
         
         print(f"Обучение запущено. ID задачи: {result['training_id']}")
         print(f"Сообщение: {result['message']}")
-        print("\nДля проверки статуса используйте: python -m commands_classifier.client train-status")
+        print("\nОжидание завершения обучения...")
+        
+        # Ждем завершения обучения и показываем метрики
+        import time
+        while True:
+            time.sleep(2)  # Проверяем каждые 2 секунды
+            status = client.get_training_status()
+            
+            if status['status'] == 'completed':
+                print(f"\n✓ Обучение завершено успешно!")
+                if 'metrics' in status and status['metrics']:
+                    print("\nМетрики качества модели:")
+                    for metric, value in status['metrics'].items():
+                        print(f"  {metric}: {value:.4f}")
+                break
+            elif status['status'] == 'failed':
+                print(f"\n✗ Обучение завершилось с ошибкой: {status.get('error', 'Неизвестная ошибка')}")
+                sys.exit(1)
+            elif status['status'] == 'running':
+                print(f"Прогресс: {status['progress']:.1%}", end='\r')
         
     except requests.exceptions.HTTPError as e:
         if e.response.status_code == 409:
@@ -272,6 +291,12 @@ def train_status_command(args):
             print(f"Завершено: {status['completed_at']}")
         if status['error']:
             print(f"Ошибка: {status['error']}")
+        
+        # Показываем метрики качества, если они есть
+        if 'metrics' in status and status['metrics']:
+            print("\nМетрики качества модели:")
+            for metric, value in status['metrics'].items():
+                print(f"  {metric}: {value:.4f}")
             
     except Exception as e:
         print(f"Ошибка: {e}", file=sys.stderr)

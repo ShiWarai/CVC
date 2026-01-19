@@ -1,10 +1,34 @@
 """Класс для работы с SetFit моделью классификации команд."""
 
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
+import numpy as np
+import os
+
+# Патч для совместимости с PyTorch ROCm на Windows
+# sentence-transformers использует torch.distributed.is_initialized(), 
+# которая может быть недоступна в ROCm версии PyTorch
+try:
+    import torch
+    if not hasattr(torch.distributed, 'is_initialized'):
+        def _is_initialized():
+            return False
+        torch.distributed.is_initialized = _is_initialized
+except ImportError:
+    pass
+
 from datasets import Dataset
 from setfit import SetFitModel, SetFitTrainer
-import numpy as np
+
+
+def _get_hf_token() -> Optional[str]:
+    """
+    Получает токен Hugging Face из переменных окружения.
+    
+    Returns:
+        Токен Hugging Face или None, если не найден
+    """
+    return os.getenv("HF_TOKEN")
 
 
 class CommandsClassifier:
@@ -12,7 +36,7 @@ class CommandsClassifier:
     
     def __init__(
         self,
-        model_name: str = "google/embeddinggemma-300M",
+        model_name: str = "deepvk/USER-bge-m3",
         confidence_threshold: float = 0.5,
         cache_dir: Optional[str] = None
     ):
@@ -20,7 +44,7 @@ class CommandsClassifier:
         Инициализирует классификатор.
         
         Args:
-            model_name: Имя предобученной модели (по умолчанию: google/embeddinggemma-300M)
+            model_name: Имя предобученной модели (по умолчанию: deepvk/USER-bge-m3)
             confidence_threshold: Порог уверенности для отбраковки (0.0-1.0). 
                                   Если уверенность ниже порога, возвращается "unknown"
             cache_dir: Путь для кэширования базовой модели (опционально)
@@ -36,45 +60,61 @@ class CommandsClassifier:
         self,
         texts: List[str],
         labels: List[str],
+        eval_texts: Optional[List[str]] = None,
+        eval_labels: Optional[List[str]] = None,
+        eval_split: float = 0.2,
         num_iterations: int = 20,
         num_epochs: int = 1,
         batch_size: int = 16,
         learning_rate: float = 2e-5,
         device: Optional[str] = None
-    ):
+    ) -> Optional[Dict[str, float]]:
         """
         Обучает модель на предоставленных данных.
         
         Args:
             texts: Список текстов для обучения
             labels: Список меток (команд) для каждого текста
+            eval_texts: Опциональный список текстов для валидации
+            eval_labels: Опциональный список меток для валидации
+            eval_split: Доля данных для валидации (0.0-1.0), если eval_texts не передан. По умолчанию 0.2 (20%)
             num_iterations: Количество итераций контрастного обучения (используется как num_epochs для body)
             num_epochs: Количество эпох для fine-tuning head
             batch_size: Размер батча (больше = быстрее, но требует больше памяти)
             learning_rate: Скорость обучения
             device: Устройство для обучения ('cpu', 'cuda' или None - определяется автоматически)
+        
+        Returns:
+            Словарь с метриками качества на валидационном датасете (accuracy, f1 и т.д.) или None, если метрики не удалось вычислить
         """
         if len(texts) != len(labels):
             raise ValueError(
                 f"Количество текстов ({len(texts)}) не совпадает с количеством меток ({len(labels)})"
             )
         
+        # Автоматическое разделение данных если eval не передан
+        if eval_texts is None:
+            from sklearn.model_selection import train_test_split
+            try:
+                texts, eval_texts, labels, eval_labels = train_test_split(
+                    texts, labels, test_size=eval_split, random_state=42, stratify=labels
+                )
+                print(f"ℹ Данные автоматически разделены: {len(texts)} train, {len(eval_texts)} eval")
+            except ValueError:
+                # Если stratify не работает (недостаточно примеров в классах), используем без stratify
+                texts, eval_texts, labels, eval_labels = train_test_split(
+                    texts, labels, test_size=eval_split, random_state=42
+                )
+                print(f"ℹ Данные автоматически разделены (без stratify): {len(texts)} train, {len(eval_texts)} eval")
+        else:
+            if eval_labels is None or len(eval_texts) != len(eval_labels):
+                raise ValueError(
+                    f"Количество eval_texts ({len(eval_texts) if eval_texts else 0}) не совпадает с количеством eval_labels ({len(eval_labels) if eval_labels else 0})"
+                )
         
         # Определяем устройство
-        if device is None:
-            # Проверяем доступность CUDA, если не указано явно
-            try:
-                import torch
-                cuda_available = torch.cuda.is_available()
-                if cuda_available:
-                    device = "cuda"
-                    print(f"✓ CUDA доступна. Используется GPU: {torch.cuda.get_device_name(0)}")
-                else:
-                    device = "cpu"
-                    print("ℹ CUDA недоступна. Используется CPU.")
-            except ImportError:
-                device = "cpu"
-                print("ℹ PyTorch не установлен. Используется CPU.")
+        import torch
+        device = device or ("cuda" if torch.cuda.is_available() else "cpu")
         
         # Создаем модель с кэшированием в указанную директорию
         cache_dir_path = None
@@ -83,67 +123,39 @@ class CommandsClassifier:
             cache_dir_path.mkdir(parents=True, exist_ok=True)
             cache_dir_path = str(cache_dir_path)
         
-        # Создаем модель и сразу перемещаем на нужное устройство
-        # Используем use_safetensors=True для обхода требования torch>=2.6
+        # Получаем токен Hugging Face для доступа к gated моделям
+        hf_token = _get_hf_token()
+        
+        # Создаем модель
         try:
             self.model = SetFitModel.from_pretrained(
                 self.model_name,
                 cache_dir=cache_dir_path,
-                use_safetensors=True
+                use_safetensors=True,
+                token=hf_token
             )
-        except Exception as e:
+        except Exception:
             # Если safetensors не доступны, пробуем без них
-            # Это может вызвать ошибку если transformers>=4.48 и torch<2.6
-            try:
-                self.model = SetFitModel.from_pretrained(
-                    self.model_name,
-                    cache_dir=cache_dir_path
-                )
-            except ValueError as ve:
-                if "torch>=2.6" in str(ve).lower() or "torch >= 2.6" in str(ve).lower():
-                    raise ValueError(
-                        f"Модель {self.model_name} требует torch>=2.6, но установлена {__import__('torch').__version__}. "
-                        f"Используйте альтернативную модель, например: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2"
-                    ) from ve
-                raise
+            self.model = SetFitModel.from_pretrained(
+                self.model_name,
+                cache_dir=cache_dir_path,
+                token=hf_token
+            )
         
-        # Перемещаем модель на устройство
-        if device == "cuda":
-            try:
-                import torch
-                if torch.cuda.is_available():
-                    # Перемещаем модель на GPU
-                    self.model = self.model.to(device)
-                    # Проверяем, что модель действительно на GPU
-                    # SetFitModel содержит SentenceTransformer, который нужно проверить отдельно
-                    if hasattr(self.model, 'model_body') and hasattr(self.model.model_body, 'to'):
-                        self.model.model_body = self.model.model_body.to(device)
-                    print(f"✓ Модель перемещена на GPU: {torch.cuda.get_device_name(0)}")
-                    print(f"✓ CUDA версия: {torch.version.cuda}")
-                    print(f"✓ Память GPU: {torch.cuda.get_device_properties(0).total_memory / 1024**3:.2f} GB")
-                else:
-                    device = "cpu"
-                    print("⚠ CUDA была запрошена, но недоступна. Используется CPU.")
-                    if hasattr(self.model, 'to'):
-                        self.model = self.model.to(device)
-            except Exception as e:
-                device = "cpu"
-                print(f"⚠ Ошибка при использовании CUDA: {e}. Используется CPU.")
-                if hasattr(self.model, 'to'):
-                    self.model = self.model.to(device)
-        else:
-            if hasattr(self.model, 'to'):
-                self.model = self.model.to(device)
-            print(f"ℹ Обучение на {device.upper()}")
+        # Перемещаем модель на устройство (SetFitModel автоматически обрабатывает это)
+        self.model = self.model.to(device)
+        print(f"ℹ Обучение на {device.upper()}")
         
-        # Создаем датасет из текстов и меток
+        # Создаем датасеты
         train_dataset = Dataset.from_dict({"text": texts, "label": labels})
+        eval_dataset = Dataset.from_dict({"text": eval_texts, "label": eval_labels})
         
         # Создаем тренер с параметрами напрямую
         # Модель уже перемещена на нужное устройство выше
         trainer = SetFitTrainer(
             model=self.model,
             train_dataset=train_dataset,
+            eval_dataset=eval_dataset,
             num_iterations=num_iterations,
             num_epochs=num_epochs,
             batch_size=batch_size,
@@ -152,18 +164,23 @@ class CommandsClassifier:
         )
         
         # Обучаем модель
-        # Временно сохраняем confidence_threshold, чтобы избежать проблем во время обучения
-        # (SetFit может вызывать внутренние методы, которые могут использовать этот атрибут)
-        original_threshold = self.confidence_threshold
+        trainer.train()
+        
+        # Вычисляем метрики на eval датасете
+        eval_metrics = None
         try:
-            # Убеждаемся, что threshold - это float перед обучением
-            self.confidence_threshold = float(original_threshold)
-            trainer.train()
-        finally:
-            # Восстанавливаем значение
-            self.confidence_threshold = float(original_threshold)
+            eval_results = trainer.evaluate()
+            eval_metrics = eval_results
+            print(f"✓ Метрики на валидации:")
+            for metric, value in eval_results.items():
+                print(f"  {metric}: {value:.4f}")
+        except Exception as e:
+            print(f"⚠ Не удалось вычислить метрики: {e}")
         
         self.is_trained = True
+        
+        # Возвращаем метрики для использования в API и клиенте
+        return eval_metrics
     
     def predict(self, text: str, return_confidence: bool = False) -> str | Tuple[str, float]:
         """
@@ -185,11 +202,10 @@ class CommandsClassifier:
         # Получаем предсказания с вероятностями
         predictions, confidences = self._predict_with_confidence([text])
         command = predictions[0]
-        confidence = float(confidences[0])  # Убеждаемся, что это float
+        confidence = confidences[0]
         
         # Применяем порог уверенности
-        # Убеждаемся, что оба значения - float
-        if float(confidence) < float(self.confidence_threshold):
+        if confidence < self.confidence_threshold:
             command = "unknown"
         
         if return_confidence:
@@ -263,10 +279,7 @@ class CommandsClassifier:
         # Применяем порог уверенности
         commands = []
         for pred, conf in zip(predictions, confidences):
-            # Убеждаемся, что оба значения - float
-            conf_float = float(conf)
-            threshold_float = float(self.confidence_threshold)
-            if conf_float < threshold_float:
+            if conf < self.confidence_threshold:
                 commands.append("unknown")
             else:
                 commands.append(pred)
@@ -320,14 +333,25 @@ class CommandsClassifier:
         if not path.exists():
             raise FileNotFoundError(f"Модель не найдена: {model_path}")
         
+        # Получаем токен Hugging Face (может понадобиться для загрузки базовой модели)
+        hf_token = _get_hf_token()
+        
         # Подавляем предупреждение о токенизаторе Mistral (если модель была обучена на Mistral)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", message=".*mistral.*regex.*", category=UserWarning)
             # Пытаемся загрузить с safetensors, если доступно
             try:
-                self.model = SetFitModel.from_pretrained(str(path), use_safetensors=True)
-            except:
-                self.model = SetFitModel.from_pretrained(str(path))
+                self.model = SetFitModel.from_pretrained(
+                    str(path), 
+                    use_safetensors=True,
+                    token=hf_token
+                )
+            except Exception:
+                # Если safetensors не доступны, пробуем без них
+                self.model = SetFitModel.from_pretrained(
+                    str(path),
+                    token=hf_token
+                )
         
         self.is_trained = True
         
@@ -349,13 +373,23 @@ class CommandsClassifier:
         Raises:
             ValueError: Если модель не инициализирована
         """
+        # Получаем токен Hugging Face для доступа к gated моделям
+        hf_token = _get_hf_token()
+        
         # Если модель не загружена, загружаем базовую модель
         if self.model is None:
             # Пытаемся загрузить с safetensors, если доступно
             try:
-                self.model = SetFitModel.from_pretrained(self.model_name, use_safetensors=True)
-            except:
-                self.model = SetFitModel.from_pretrained(self.model_name)
+                self.model = SetFitModel.from_pretrained(
+                    self.model_name, 
+                    use_safetensors=True,
+                    token=hf_token
+                )
+            except Exception:
+                self.model = SetFitModel.from_pretrained(
+                    self.model_name,
+                    token=hf_token
+                )
         
         # Получаем базовую модель эмбеддингов (sentence-transformers)
         # SetFitModel имеет атрибут model_body для доступа к базовой модели
@@ -374,7 +408,8 @@ class CommandsClassifier:
         else:
             # Fallback: если encode недоступен, создаем новую базовую модель
             from sentence_transformers import SentenceTransformer
-            base_model = SentenceTransformer(self.model_name)
+            hf_token = _get_hf_token()
+            base_model = SentenceTransformer(self.model_name, token=hf_token)
             embeddings = base_model.encode(texts, convert_to_numpy=True)
         
         # Преобразуем в список списков float

@@ -17,9 +17,45 @@
 
 ## Установка
 
+Проект поддерживает три варианта установки в зависимости от вашего оборудования:
+
+### CPU (по умолчанию)
+
+Для работы на CPU без GPU ускорения:
+
 ```bash
 pip install -r requirements.txt
 ```
+
+### NVIDIA CUDA
+
+Для использования NVIDIA GPU с поддержкой CUDA:
+
+```bash
+# Сначала установите PyTorch с CUDA (см. подробные инструкции в разделе "Локальное обучение с GPU")
+pip install -r requirements-cuda.txt
+```
+
+**Требования:** NVIDIA GPU с поддержкой CUDA 12.4+, PyTorch 2.6+
+
+### AMD ROCm
+
+Для использования AMD GPU через ROCm на Windows:
+
+```bash
+# Сначала установите драйвер AMD Software: PyTorch on Windows Edition 7.1.1
+# Затем установите зависимости (см. подробные инструкции в разделе "Локальное обучение с GPU")
+pip install -r requirements-rocm.txt
+```
+
+**Требования:** 
+- Windows 11 (Windows 10 не поддерживается)
+- Python 3.12
+- Совместимое устройство AMD (RX 9070, RX 7900 XTX, Ryzen AI 9 365 и др.)
+- Драйвер AMD Software: PyTorch on Windows Edition 7.1.1
+- Минимум 32GB RAM (рекомендуется 64GB)
+
+Подробные инструкции по установке для каждого варианта см. в разделе ["Локальное обучение с GPU"](#локальное-обучение-с-gpu).
 
 **Важно:** Модель `google/embeddinggemma-300M` требует авторизации в Hugging Face:
 
@@ -365,14 +401,17 @@ python -m commands_classifier.cli serve \
 ```
 
 **Примечание:** Устройство для обучения определяется автоматически:
-- Если установлен PyTorch с CUDA поддержкой и CUDA доступна → используется GPU
+- Если установлен PyTorch с CUDA поддержкой и CUDA доступна → используется NVIDIA GPU
+- Если установлен PyTorch с ROCm поддержкой и ROCm доступен → используется AMD GPU
 - Иначе → используется CPU
 
 После запуска сервер будет доступен по адресу `http://localhost:20001`. Документация API (Swagger UI) доступна по адресу `http://localhost:20001/docs`.
 
-### Локальное обучение с CUDA
+### Локальное обучение с GPU
 
-Для использования CUDA при локальном запуске (не в Docker):
+#### NVIDIA CUDA
+
+Для использования NVIDIA CUDA при локальном запуске (не в Docker):
 
 1. Создайте виртуальное окружение:
 ```bash
@@ -414,9 +453,95 @@ python -m commands_classifier.cli serve
 
 Сервер автоматически определит доступность CUDA и будет использовать GPU, если он доступен.
 
+#### AMD ROCm
+
+Для использования AMD GPU через ROCm при локальном запуске на Windows (не в Docker):
+
+**Важно:** AMD ROCm для PyTorch на Windows требует:
+- Python 3.12
+- Совместимую AMD видеокарту или процессор (см. [список совместимых устройств](https://www.amd.com/en/resources/support-articles/release-notes/RN-AMDGPU-WINDOWS-PYTORCH-7-1-1.html))
+- Установленный драйвер AMD Software: PyTorch on Windows Edition 7.1.1
+
+1. Установите драйвер AMD:
+   - Скачайте драйвер с [официальной страницы AMD](https://www.amd.com/en/resources/support-articles/release-notes/RN-AMDGPU-WINDOWS-PYTORCH-7-1-1.html)
+   - Установите драйвер (рекомендуется удалить старые драйверы перед установкой)
+
+2. Создайте виртуальное окружение с Python 3.12:
+```bash
+python3.12 -m venv .venv
+.venv\Scripts\activate  # Windows PowerShell
+# или
+.venv\Scripts\activate.bat  # Windows CMD
+```
+
+3. Установите ROCm SDK (выполните перед установкой PyTorch):
+
+**Для CMD:**
+```cmd
+pip install --no-cache-dir ^
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm_sdk_core-0.1.dev0-py3-none-win_amd64.whl ^
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm_sdk_devel-0.1.dev0-py3-none-win_amd64.whl ^
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm_sdk_libraries_custom-0.1.dev0-py3-none-win_amd64.whl ^
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm-0.1.dev0.tar.gz
+```
+
+**Для PowerShell:**
+```powershell
+pip install --no-cache-dir `
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm_sdk_core-0.1.dev0-py3-none-win_amd64.whl `
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm_sdk_devel-0.1.dev0-py3-none-win_amd64.whl `
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm_sdk_libraries_custom-0.1.dev0-py3-none-win_amd64.whl `
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/rocm-0.1.dev0.tar.gz
+```
+
+4. Установите PyTorch с поддержкой ROCm:
+
+**Для CMD:**
+```cmd
+pip install --no-cache-dir ^
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torch-2.9.0+rocmsdk20251116-cp312-cp312-win_amd64.whl ^
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torchaudio-2.9.0+rocmsdk20251116-cp312-cp312-win_amd64.whl ^
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torchvision-0.24.0+rocmsdk20251116-cp312-cp312-win_amd64.whl
+```
+
+**Для PowerShell:**
+```powershell
+pip install --no-cache-dir `
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torch-2.9.0+rocmsdk20251116-cp312-cp312-win_amd64.whl `
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torchaudio-2.9.0+rocmsdk20251116-cp312-cp312-win_amd64.whl `
+  https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torchvision-0.24.0+rocmsdk20251116-cp312-cp312-win_amd64.whl
+```
+
+5. Проверьте установку:
+```bash
+python -c "import torch; print('Version:', torch.__version__); print('CUDA available (ROCm):', torch.cuda.is_available()); print('Device:', torch.cuda.get_device_name(0) if torch.cuda.is_available() else 'CPU')"
+```
+
+Должно показать версию с "+rocmsdk" и `CUDA available (ROCm): True`.
+
+6. Установите остальные зависимости:
+```bash
+pip install -r requirements-rocm.txt
+```
+
+**Примечание:** `requirements-rocm.txt` содержит инструкции по установке, но PyTorch и ROCm SDK нужно устанавливать вручную (см. шаги 3-4 выше).
+
+7. Запустите сервер:
+```bash
+python -m commands_classifier.cli serve
+```
+
+Сервер автоматически определит доступность AMD ROCm и будет использовать GPU, если он доступен.
+
+**Дополнительная информация:**
+- [Документация AMD ROCm для Radeon](https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/install/installrad/windows/install-pytorch.html)
+- [Документация AMD ROCm для Ryzen](https://rocm.docs.amd.com/projects/radeon-ryzen/en/latest/docs/install/installryz/windows/install-pytorch.html)
+- [Руководство по развертыванию LLM с AMD на Windows](https://gpuopen.com/learn/pytorch-windows-amd-llm-guide/)
+
 **Примечание:** 
-- В Docker контейнере всегда используется CPU (контейнер не содержит CUDA).
+- В Docker контейнере всегда используется CPU (контейнер не содержит CUDA/ROCm).
 - CUDA доступна только при локальном запуске с установленным PyTorch CUDA.
+- AMD ROCm доступен только при локальном запуске с установленным PyTorch ROCm.
 - Устройство определяется автоматически при запуске сервера.
 
 ### Конфигурация
@@ -593,28 +718,11 @@ text,command
 - `--learning-rate` (по умолчанию: 2e-5) - скорость обучения
 **Примечание:** Для ускорения обучения увеличьте `batch_size` в `config.yaml` или через API. Больший batch_size ускорит процесс, но потребует больше оперативной памяти.
 
-**Примечание о версиях PyTorch и устройстве:** 
-- Docker контейнер использует CPU-only версию PyTorch (экономия ~600MB места, быстрая установка). Устройство определяется автоматически как CPU.
-- Для локального использования CUDA см. раздел "Локальное обучение с CUDA" ниже. При локальном запуске устройство определяется автоматически: если установлен PyTorch с CUDA и CUDA доступна → используется GPU, иначе → CPU.
+## Протестированные модели
 
-**Примечание о модели:** По умолчанию используется `google/embeddinggemma-300M` - компактная модель эмбеддингов (300M параметров), оптимизированная для работы с ограниченными ресурсами памяти и поддерживающая более 100 языков, включая русский. 
-
-⚠️ **Эта модель требует авторизации в Hugging Face** (см. раздел "Установка" выше).
-
-⚠️ **ВАЖНО:** Модель `google/embeddinggemma-300M` требует `torch>=2.6`. Используйте CUDA 12.4 (cu124) вместо 12.1 (cu121), так как torch 2.6+ доступен только для cu124, cu118 или cu126. Если вы получили ошибку "torch>=2.6", убедитесь, что используете правильную версию CUDA или используйте альтернативную модель:
-
-Если вы не хотите авторизовываться или столкнулись с проблемой torch>=2.6, используйте альтернативу:
-
-```powershell
-python -m commands_classifier.cli train `
-  --dataset data/commands_example.csv `
-  --output models/my_model `
-  --model-name sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
-```
-
-Другие альтернативы:
-- `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2` (легкая, без авторизации)
-- `sentence-transformers/paraphrase-multilingual-mpnet-base-v2` (более точная, но тяжелее, без авторизации)
+- google/embeddinggemma-300M
+- deepvk/USER-bge-m3
+- RuBert-TinyV2
 
 ## Рекомендации
 
