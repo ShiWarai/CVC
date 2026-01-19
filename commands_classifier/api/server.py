@@ -2,16 +2,27 @@
 
 import yaml
 import logging
-import re
-import shutil
 from pathlib import Path
-from typing import List, Optional, Dict, Any
+from typing import Dict, Any
 from contextlib import asynccontextmanager
-from fastapi import FastAPI, HTTPException, BackgroundTasks
-from pydantic import BaseModel
+from fastapi import FastAPI
+
 from commands_classifier.model import CommandsClassifier
 from commands_classifier import db
 from commands_classifier.api.training import TrainingManager
+from commands_classifier.api.state import (
+    get_classifier, set_classifier, unload_classifier,
+    get_config, set_config,
+    get_training_manager, set_training_manager,
+    get_default_device, set_default_device
+)
+from commands_classifier.api.routes import (
+    predict_router,
+    training_router,
+    examples_router,
+    package_router,
+    health_router
+)
 
 # Настраиваем логирование
 logging.basicConfig(
@@ -21,104 +32,8 @@ logging.basicConfig(
 )
 
 
-def remove_punctuation(text: str) -> str:
-    """
-    Удаляет все знаки препинания из текста.
-    
-    Args:
-        text: Исходный текст
-        
-    Returns:
-        Текст без знаков препинания
-    """
-    # Удаляем все знаки препинания, оставляя только буквы, цифры и пробелы
-    # Используем регулярное выражение для удаления всех знаков препинания
-    text = re.sub(r'[^\w\s]', '', text)
-    # Удаляем множественные пробелы и обрезаем
-    text = re.sub(r'\s+', ' ', text).strip()
-    return text
-
-
-# Модели запросов/ответов
-class EmbedRequest(BaseModel):
-    """Запрос для получения эмбеддингов (TEI совместимый)."""
-    inputs: List[str]
-
-
-class EmbedResponse(BaseModel):
-    """Ответ с эмбеддингами (TEI совместимый)."""
-    embeddings: List[List[float]]
-
-
-class PredictRequest(BaseModel):
-    """Запрос для классификации команд."""
-    text: str
-    return_confidence: bool = False
-
-
-class PredictResponse(BaseModel):
-    """Ответ с предсказанием команды."""
-    command: str
-    confidence: Optional[float] = None
-
-
-class PredictBatchRequest(BaseModel):
-    """Запрос для batch классификации."""
-    texts: List[str]
-    return_confidence: bool = False
-
-
-class PredictBatchResponse(BaseModel):
-    """Ответ с batch предсказаниями."""
-    commands: List[str]
-    confidences: Optional[List[float]] = None
-
-
-class TrainRequest(BaseModel):
-    """Запрос для запуска обучения."""
-    num_iterations: Optional[int] = None
-    num_epochs: Optional[int] = None
-    batch_size: Optional[int] = None
-    learning_rate: Optional[float] = None
-
-
-class TrainResponse(BaseModel):
-    """Ответ на запрос обучения."""
-    training_id: str
-    message: str
-
-
-class ExampleRequest(BaseModel):
-    """Запрос для добавления примера."""
-    text: str
-    command: str
-
-
-class ExampleResponse(BaseModel):
-    """Ответ с информацией о примере."""
-    id: int
-    text: str
-    command: str
-
-
-class ResetResponse(BaseModel):
-    """Ответ на сброс обучения."""
-    message: str
-    reset_examples: int
-    model_deleted: bool
-
-
-# Глобальные переменные
-classifier: Optional[CommandsClassifier] = None
-training_manager: Optional[TrainingManager] = None
-config: Dict[str, Any] = {}
-# Автоматически определённое устройство для обучения (определяется при старте)
-default_device: str = "cpu"
-
-
-def load_config(config_path: str = "config.yaml"):
+def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
     """Загружает конфигурацию из YAML файла."""
-    global config
     config_file = Path(config_path)
     if config_file.exists():
         with open(config_file, 'r', encoding='utf-8') as f:
@@ -143,12 +58,13 @@ def load_config(config_path: str = "config.yaml"):
                 "learning_rate": 2e-5
             }
         }
+    set_config(config)
+    return config
 
 
-def load_model():
+def load_model() -> bool:
     """Загружает модель из файла."""
-    global classifier
-    
+    config = get_config()
     model_path = config["model"]["path"]
     model_path_obj = Path(model_path)
     
@@ -158,36 +74,7 @@ def load_model():
             confidence_threshold = float(config["model"].get("confidence_threshold", 0.5))
             
             # Выгружаем старую модель из памяти
-            if classifier is not None:
-                try:
-                    import torch
-                    # Перемещаем модель на CPU перед удалением, если она на GPU
-                    if classifier.model is not None:
-                        if hasattr(classifier.model, 'to'):
-                            try:
-                                classifier.model = classifier.model.to('cpu')
-                            except:
-                                pass
-                        if hasattr(classifier.model, 'model_body') and hasattr(classifier.model.model_body, 'to'):
-                            try:
-                                classifier.model.model_body = classifier.model.model_body.to('cpu')
-                            except:
-                                pass
-                except:
-                    pass
-                
-                del classifier
-                import gc
-                gc.collect()
-                
-                # Очищаем кэш CUDA после удаления модели
-                try:
-                    import torch
-                    if torch.cuda.is_available():
-                        torch.cuda.empty_cache()
-                        torch.cuda.synchronize()
-                except:
-                    pass
+            unload_classifier()
             
             # Загружаем новую модель
             cache_dir = config["model"].get("cache_dir")
@@ -196,21 +83,20 @@ def load_model():
                 cache_dir=cache_dir
             )
             classifier.load(model_path, confidence_threshold=confidence_threshold)
+            set_classifier(classifier)
             return True
         except Exception as e:
             print(f"Предупреждение: не удалось загрузить модель: {e}")
-            classifier = None
+            set_classifier(None)
             return False
     else:
-        classifier = None
+        set_classifier(None)
         return False
 
 
 def init_app():
     """Инициализирует приложение при запуске."""
-    global classifier, training_manager
-    
-    # Инициализируем токен Hugging Face (только при запуске сервера, не при импорте клиента)
+    # Инициализируем токен Hugging Face
     try:
         import os
         import huggingface_hub
@@ -218,27 +104,23 @@ def init_app():
         if hf_token:
             huggingface_hub.login(token=hf_token, add_to_git_credential=False)
     except ImportError:
-        # huggingface_hub не установлен, используем только переменные окружения
         pass
     except Exception:
         pass
     
-    load_config()
+    config = load_config()
     
     # Автоматически определяем устройство для обучения
-    global default_device
     try:
         import torch
-        cuda_available = torch.cuda.is_available()
-        torch_version = str(torch.__version__)
-        if cuda_available:
-            default_device = "cuda"
+        if torch.cuda.is_available():
+            set_default_device("cuda")
         else:
-            default_device = "cpu"
+            set_default_device("cpu")
     except ImportError:
-        default_device = "cpu"
+        set_default_device("cpu")
     except Exception:
-        default_device = "cpu"
+        set_default_device("cpu")
     
     # Инициализируем базу данных
     db_path = config["database"]["path"]
@@ -249,16 +131,18 @@ def init_app():
     model_path = config["model"]["path"]
     model_name = config["model"]["name"]
     confidence_threshold = float(config["model"].get("confidence_threshold", 0.5))
-    cache_dir = config["model"].get("cache_dir")  # Путь для кэширования базовой модели
+    cache_dir = config["model"].get("cache_dir")
+    
     training_manager = TrainingManager(
         db_path, 
         model_path, 
         model_name, 
         confidence_threshold,
-        on_training_complete=load_model,  # Передаем callback для перезагрузки
-        default_device=default_device,  # Передаем автоматически определённое устройство
-        cache_dir=cache_dir  # Передаем путь для кэширования
+        on_training_complete=load_model,
+        default_device=get_default_device(),
+        cache_dir=cache_dir
     )
+    set_training_manager(training_manager)
     
     # Пытаемся загрузить модель
     load_model()
@@ -279,336 +163,9 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-
-# Эндпоинты
-
-@app.post("/embed", response_model=EmbedResponse)
-async def embed(request: EmbedRequest):
-    """
-    Получает эмбеддинги для текстов (TEI совместимый эндпоинт).
-    
-    Args:
-        request: Запрос с текстами для эмбеддингов
-        
-    Returns:
-        Эмбеддинги для каждого текста
-    """
-    if classifier is None:
-        # Если модель не загружена, создаем базовую модель для эмбеддингов
-        cache_dir = config["model"].get("cache_dir")
-        temp_classifier = CommandsClassifier(
-            model_name=config["model"]["name"],
-            cache_dir=cache_dir
-        )
-        # Очищаем знаки препинания из всех текстов
-        cleaned_inputs = [remove_punctuation(text) for text in request.inputs]
-        embeddings = temp_classifier.get_embeddings(cleaned_inputs)
-    else:
-        # Очищаем знаки препинания из всех текстов
-        cleaned_inputs = [remove_punctuation(text) for text in request.inputs]
-        embeddings = classifier.get_embeddings(cleaned_inputs)
-    
-    return EmbedResponse(embeddings=embeddings)
-
-
-@app.post("/predict", response_model=PredictResponse)
-async def predict(request: PredictRequest):
-    """
-    Классифицирует один текст в команду.
-    
-    Args:
-        request: Запрос с текстом для классификации
-        
-    Returns:
-        Предсказанная команда и опционально уверенность
-    """
-    if classifier is None:
-        raise HTTPException(status_code=503, detail="Модель не загружена. Сначала обучите модель.")
-    
-    try:
-        # Очищаем знаки препинания из текста
-        cleaned_text = remove_punctuation(request.text)
-        
-        if request.return_confidence:
-            command, confidence = classifier.predict(cleaned_text, return_confidence=True)
-            return PredictResponse(command=command, confidence=confidence)
-        else:
-            command = classifier.predict(cleaned_text)
-            return PredictResponse(command=command)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при предсказании: {str(e)}")
-
-
-@app.post("/predict/batch", response_model=PredictBatchResponse)
-async def predict_batch(request: PredictBatchRequest):
-    """
-    Классифицирует список текстов в команды.
-    
-    Args:
-        request: Запрос с текстами для классификации
-        
-    Returns:
-        Предсказанные команды и опционально уверенности
-    """
-    if classifier is None:
-        raise HTTPException(status_code=503, detail="Модель не загружена. Сначала обучите модель.")
-    
-    try:
-        # Очищаем знаки препинания из всех текстов
-        cleaned_texts = [remove_punctuation(text) for text in request.texts]
-        
-        if request.return_confidence:
-            commands, confidences = classifier.predict_batch(cleaned_texts, return_confidence=True)
-            return PredictBatchResponse(commands=commands, confidences=confidences)
-        else:
-            commands = classifier.predict_batch(cleaned_texts)
-            return PredictBatchResponse(commands=commands)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при предсказании: {str(e)}")
-
-
-@app.post("/train", response_model=TrainResponse)
-async def train(request: TrainRequest):
-    """
-    Запускает обучение модели в фоновом режиме.
-    
-    Args:
-        request: Параметры обучения (опционально, используются значения по умолчанию из config)
-        - num_iterations: Количество итераций (по умолчанию из config.yaml)
-        - num_epochs: Количество эпох (по умолчанию из config.yaml)
-        - batch_size: Размер батча (по умолчанию из config.yaml)
-        - learning_rate: Скорость обучения (по умолчанию из config.yaml)
-        
-    Returns:
-        ID задачи обучения
-    """
-    if training_manager is None:
-        raise HTTPException(status_code=500, detail="Training manager не инициализирован")
-    
-    if training_manager.is_training():
-        raise HTTPException(status_code=409, detail="Обучение уже запущено")
-    
-    # Используем параметры из запроса или из конфига
-    training_config = config["training"]
-    num_iterations = request.num_iterations or training_config["iterations"]
-    num_epochs = request.num_epochs or training_config["epochs"]
-    batch_size = request.batch_size or training_config["batch_size"]
-    learning_rate = request.learning_rate or training_config["learning_rate"]
-    
-    # Убеждаемся, что все числовые параметры имеют правильный тип
-    num_iterations = int(num_iterations)
-    num_epochs = int(num_epochs)
-    batch_size = int(batch_size)
-    learning_rate = float(learning_rate)  # Важно: преобразуем в float
-    
-    try:
-        training_id = training_manager.start_training(
-            num_iterations=num_iterations,
-            num_epochs=num_epochs,
-            batch_size=batch_size,
-            learning_rate=learning_rate
-        )
-        return TrainResponse(
-            training_id=training_id,
-            message="Обучение запущено в фоновом режиме"
-        )
-    except RuntimeError as e:
-        raise HTTPException(status_code=409, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при запуске обучения: {str(e)}")
-
-
-@app.get("/train/status")
-async def get_training_status():
-    """
-    Возвращает статус текущего обучения.
-    
-    Returns:
-        Статус обучения (id, status, progress, error, timestamps)
-    """
-    if training_manager is None:
-        raise HTTPException(status_code=500, detail="Training manager не инициализирован")
-    
-    return training_manager.get_status()
-
-
-@app.get("/health")
-async def health():
-    """
-    Проверка работоспособности сервера (TEI совместимый).
-    
-    Returns:
-        Статус сервера
-    """
-    return {
-        "status": "healthy",
-        "model_loaded": classifier is not None,
-        "training_active": training_manager.is_training() if training_manager else False
-    }
-
-
-@app.get("/metrics")
-async def metrics():
-    """
-    Метрики сервера (TEI совместимый).
-    
-    Returns:
-        Метрики сервера
-    """
-    db_path = config["database"]["path"]
-    example_count = db.count_examples(db_path)
-    training_stats = db.get_training_stats(db_path)
-    
-    return {
-        "total_examples": example_count,
-        "trained_examples": training_stats["trained"],
-        "untrained_examples": training_stats["untrained"],
-        "model_loaded": classifier is not None,
-        "training_status": training_manager.get_status() if training_manager else None
-    }
-
-
-@app.get("/examples", response_model=List[ExampleResponse])
-async def get_examples():
-    """
-    Получает все примеры из базы данных.
-    
-    Returns:
-        Список всех примеров
-    """
-    db_path = config["database"]["path"]
-    examples = db.get_all_examples(db_path)
-    return [ExampleResponse(id=ex[0], text=ex[1], command=ex[2]) for ex in examples]
-
-
-@app.post("/examples", response_model=ExampleResponse, status_code=201)
-async def add_example(request: ExampleRequest):
-    """
-    Добавляет новый пример в базу данных.
-    
-    Args:
-        request: Данные примера (text, command)
-        
-    Returns:
-        Созданный пример с ID
-    """
-    db_path = config["database"]["path"]
-    try:
-        # Очищаем знаки препинания из текста перед сохранением
-        cleaned_text = remove_punctuation(request.text)
-        example_id = db.add_example(db_path, cleaned_text, request.command)
-        return ExampleResponse(id=example_id, text=cleaned_text, command=request.command)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка при добавлении примера: {str(e)}")
-
-
-@app.delete("/examples/{example_id}")
-async def delete_example(example_id: int):
-    """
-    Удаляет пример по ID.
-    
-    Args:
-        example_id: ID примера для удаления
-        
-    Returns:
-        Сообщение об успешном удалении
-    """
-    db_path = config["database"]["path"]
-    deleted = db.delete_example(db_path, example_id)
-    if not deleted:
-        raise HTTPException(status_code=404, detail=f"Пример с ID {example_id} не найден")
-    return {"message": f"Пример {example_id} успешно удален"}
-
-
-@app.get("/examples/{example_id}", response_model=ExampleResponse)
-async def get_example(example_id: int):
-    """
-    Получает пример по ID.
-    
-    Args:
-        example_id: ID примера
-        
-    Returns:
-        Пример
-    """
-    db_path = config["database"]["path"]
-    example = db.get_example_by_id(db_path, example_id)
-    if example is None:
-        raise HTTPException(status_code=404, detail=f"Пример с ID {example_id} не найден")
-    return ExampleResponse(id=example[0], text=example[1], command=example[2])
-
-
-@app.post("/reset", response_model=ResetResponse)
-async def reset_training():
-    """
-    Полностью сбрасывает обучение:
-    - Помечает все примеры в БД как необученные (is_trained = 0)
-    - Удаляет директорию с обученной моделью
-    - Выгружает модель из памяти
-    
-    Returns:
-        Информация о сбросе: количество сброшенных примеров и статус удаления модели
-    """
-    global classifier
-    
-    if training_manager is not None and training_manager.is_training():
-        raise HTTPException(status_code=409, detail="Невозможно сбросить обучение во время активного обучения")
-    
-    db_path = config["database"]["path"]
-    model_path = config["model"]["path"]
-    
-    # 1. Сбрасываем статус обучения в БД
-    reset_count = db.reset_training_status(db_path)
-    
-    # 2. Удаляем модель из памяти
-    model_deleted = False
-    if classifier is not None:
-        try:
-            import torch
-            import gc
-            
-            # Перемещаем модель на CPU перед удалением
-            if classifier.model is not None:
-                if hasattr(classifier.model, 'to'):
-                    try:
-                        classifier.model = classifier.model.to('cpu')
-                    except:
-                        pass
-                if hasattr(classifier.model, 'model_body') and hasattr(classifier.model.model_body, 'to'):
-                    try:
-                        classifier.model.model_body = classifier.model.model_body.to('cpu')
-                    except:
-                        pass
-            
-            del classifier
-            classifier = None
-            gc.collect()
-            
-            # Очищаем кэш CUDA
-            try:
-                if torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-                    torch.cuda.synchronize()
-            except:
-                pass
-        except Exception:
-            classifier = None
-    
-    # 3. Удаляем директорию с моделью
-    model_path_obj = Path(model_path)
-    if model_path_obj.exists():
-        try:
-            shutil.rmtree(model_path_obj)
-            model_deleted = True
-        except Exception as e:
-            raise HTTPException(
-                status_code=500, 
-                detail=f"Не удалось удалить директорию модели: {str(e)}"
-            )
-    
-    return ResetResponse(
-        message="Обучение успешно сброшено",
-        reset_examples=reset_count,
-        model_deleted=model_deleted
-    )
-
+# Подключаем роутеры
+app.include_router(predict_router)
+app.include_router(training_router)
+app.include_router(examples_router)
+app.include_router(package_router)
+app.include_router(health_router)
