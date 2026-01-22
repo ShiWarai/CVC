@@ -692,55 +692,55 @@ text,command
 скажи панде перестать бегать,stop_running
 остановись бег,stop_running
 прекрати бег,stop_running
-подключить,reconnect_joystick
-подключи,reconnect_joystick
-подключать,reconnect_joystick
-подключай,reconnect_joystick
-подключите,reconnect_joystick
-подключайте,reconnect_joystick
-подключишь,reconnect_joystick
-подключаешь,reconnect_joystick
-подключил бы,reconnect_joystick
-подключила бы,reconnect_joystick
-подключили бы,reconnect_joystick
-а ну быстро подключил,reconnect_joystick
-а ну подключил,reconnect_joystick
-подключиться,reconnect_joystick
-подключись,reconnect_joystick
-подключаться,reconnect_joystick
-подключайся,reconnect_joystick
-подключитесь,reconnect_joystick
-подключайтесь,reconnect_joystick
-подключишься,reconnect_joystick
-подключился бы,reconnect_joystick
-подключилась бы,reconnect_joystick
-взять,reconnect_joystick
-возьми,reconnect_joystick
-брать,reconnect_joystick
-бери,reconnect_joystick
-возьмите,reconnect_joystick
-берите,reconnect_joystick
-возьмешь,reconnect_joystick
-берешь,reconnect_joystick
-взял бы,reconnect_joystick
-взяла бы,reconnect_joystick
-держать,reconnect_joystick
-держи,reconnect_joystick
-держите,reconnect_joystick
-держишь,reconnect_joystick
-держал бы,reconnect_joystick
-держала бы,reconnect_joystick
-надо подключить,reconnect_joystick
-нужно подключить,reconnect_joystick
-пора подключить,reconnect_joystick
-можно подключить,reconnect_joystick
-давай подключи,reconnect_joystick
-надо подключиться,reconnect_joystick
-нужно подключиться,reconnect_joystick
-пора подключиться,reconnect_joystick
-надо взять,reconnect_joystick
-нужно взять,reconnect_joystick
-пора взять,reconnect_joystick
+подключить джойстик,reconnect_joystick
+подключи джойстик,reconnect_joystick
+подключать джойстик,reconnect_joystick
+подключай джойстик,reconnect_joystick
+подключите джойстик,reconnect_joystick
+подключайте джойстик,reconnect_joystick
+подключишь джойстик,reconnect_joystick
+подключаешь джойстик,reconnect_joystick
+подключил бы джойстик,reconnect_joystick
+подключила бы джойстик,reconnect_joystick
+подключили бы джойстик,reconnect_joystick
+а ну быстро подключил джойстик,reconnect_joystick
+а ну подключил джойстик,reconnect_joystick
+подключиться к джойстику,reconnect_joystick
+подключись к джойстику,reconnect_joystick
+подключаться к джойстику,reconnect_joystick
+подключайся к джойстику,reconnect_joystick
+подключитесь к джойстику,reconnect_joystick
+подключайтесь к джойстику,reconnect_joystick
+подключишься к джойстику,reconnect_joystick
+подключился бы к джойстику,reconnect_joystick
+подключилась бы к джойстику,reconnect_joystick
+взять джойстик,reconnect_joystick
+возьми джойстик,reconnect_joystick
+брать джойстик,reconnect_joystick
+бери джойстик,reconnect_joystick
+возьмите джойстик,reconnect_joystick
+берите джойстик,reconnect_joystick
+возьмешь джойстик,reconnect_joystick
+берешь джойстик,reconnect_joystick
+взял бы джойстик,reconnect_joystick
+взяла бы джойстик,reconnect_joystick
+держать джойстик,reconnect_joystick
+держи джойстик,reconnect_joystick
+держите джойстик,reconnect_joystick
+держишь джойстик,reconnect_joystick
+держал бы джойстик,reconnect_joystick
+держала бы джойстик,reconnect_joystick
+надо подключить джойстик,reconnect_joystick
+нужно подключить джойстик,reconnect_joystick
+пора подключить джойстик,reconnect_joystick
+можно подключить джойстик,reconnect_joystick
+давай подключи джойстик,reconnect_joystick
+надо подключиться к джойстику,reconnect_joystick
+нужно подключиться к джойстику,reconnect_joystick
+пора подключиться к джойстику,reconnect_joystick
+надо взять джойстик,reconnect_joystick
+нужно взять джойстик,reconnect_joystick
+пора взять джойстик,reconnect_joystick
 попроси робота подключить джойстик,reconnect_joystick
 попроси панду подключить джойстик,reconnect_joystick
 скажи роботу подключить джойстик,reconnect_joystick
