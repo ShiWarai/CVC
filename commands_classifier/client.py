@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+import os
 import requests
 import json
 from typing import Optional
@@ -222,33 +223,36 @@ class CVCApiClient:
         response.raise_for_status()
         return response.json()
     
-    def download_model(self, repo_id: str, local_dir: Optional[str] = None) -> dict:
+    def load_from_hf(self, repo_id: Optional[str] = None, local_dir: Optional[str] = None) -> dict:
         """
         Запускает загрузку модели с Hugging Face Hub.
         
         Args:
-            repo_id: ID репозитория на Hugging Face (например: "username/model-name")
+            repo_id: ID репозитория на Hugging Face (например: "username/model-name"). 
+                    Если не указан, сервер использует HF_REPO_ID из своей конфигурации.
             local_dir: Путь для сохранения (опционально, используется из config если не указан)
             
         Returns:
-            Результат запуска (download_id, message)
+            Результат запуска (load_id, message)
         """
-        payload = {"repo_id": repo_id}
+        payload = {}
+        if repo_id:
+            payload["repo_id"] = repo_id
         if local_dir:
             payload["local_dir"] = local_dir
         
-        response = self.session.post(f"{self.base_url}/download", json=payload)
+        response = self.session.post(f"{self.base_url}/load_from_hf", json=payload)
         response.raise_for_status()
         return response.json()
     
-    def get_download_status(self) -> dict:
+    def get_load_from_hf_status(self) -> dict:
         """
         Получает статус загрузки модели с Hugging Face Hub.
         
         Returns:
-            Статус загрузки (download_id, status, progress, local_path, error)
+            Статус загрузки (load_id, status, progress, local_path, error)
         """
-        response = self.session.get(f"{self.base_url}/download/status")
+        response = self.session.get(f"{self.base_url}/load_from_hf/status")
         response.raise_for_status()
         return response.json()
 
@@ -457,6 +461,14 @@ def main():
     # Команда package-status
     subparsers.add_parser('package-status', help='Проверить статус упаковки модели')
     
+    # Команда load-from-hf
+    load_from_hf_parser = subparsers.add_parser('load-from-hf', help='Загрузить модель с Hugging Face Hub')
+    load_from_hf_parser.add_argument('--repo-id', type=str, help='ID репозитория на Hugging Face (например: username/model-name). Если не указан, сервер использует HF_REPO_ID из своей конфигурации')
+    load_from_hf_parser.add_argument('--local-dir', type=str, help='Путь для сохранения (опционально, используется из config если не указан)')
+    
+    # Команда load-from-hf-status
+    subparsers.add_parser('load-from-hf-status', help='Проверить статус загрузки модели')
+    
     args = parser.parse_args()
     
     if not args.command:
@@ -555,6 +567,75 @@ def main():
                 print(f"Завершено: {status['completed_at']}")
             if status['output_path']:
                 print(f"Архив: {status['output_path']}")
+            if status['error']:
+                print(f"Ошибка: {status['error']}")
+                
+        except Exception as e:
+            print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif args.command == 'load-from-hf':
+        try:
+            client = CVCApiClient(args.url)
+            
+            # Если repo_id не указан, сервер использует свой HF_REPO_ID из конфигурации
+            payload = {}
+            if args.repo_id:
+                payload["repo_id"] = args.repo_id
+                print(f"Запуск загрузки модели с Hugging Face Hub...")
+                print(f"Репозиторий: {args.repo_id}")
+            else:
+                print(f"Запуск загрузки модели с Hugging Face Hub...")
+                print(f"Репозиторий: будет использован из конфигурации сервера (HF_REPO_ID)")
+            
+            if args.local_dir:
+                payload["local_dir"] = args.local_dir
+            
+            result = client.load_from_hf(**payload)
+            print(f"✓ Загрузка запущена. ID задачи: {result['load_id']}")
+            print(f"Сообщение: {result['message']}")
+            print("\nОжидание завершения загрузки...")
+            
+            # Ждем завершения загрузки
+            import time
+            while True:
+                time.sleep(2)
+                status = client.get_load_from_hf_status()
+                
+                if status['status'] == 'completed':
+                    print(f"\n✓ Загрузка завершена успешно!")
+                    print(f"  Модель загружена в: {status['local_path']}")
+                    break
+                elif status['status'] == 'failed':
+                    print(f"\n✗ Загрузка завершилась с ошибкой: {status.get('error', 'Неизвестная ошибка')}")
+                    sys.exit(1)
+                elif status['status'] == 'running':
+                    progress = status.get('progress', 0)
+                    print(f"Прогресс загрузки: {progress:.0%}", end='\r')
+                    
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 409:
+                print(f"Ошибка: {e.response.json().get('detail', 'Загрузка уже выполняется')}", file=sys.stderr)
+            else:
+                print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
+        except Exception as e:
+            print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif args.command == 'load-from-hf-status':
+        try:
+            client = CVCApiClient(args.url)
+            status = client.get_load_from_hf_status()
+            
+            print(f"ID задачи: {status['load_id'] or 'нет активной задачи'}")
+            print(f"Статус: {status['status']}")
+            print(f"Прогресс: {status['progress']:.0%}")
+            
+            if status['started_at']:
+                print(f"Начато: {status['started_at']}")
+            if status['completed_at']:
+                print(f"Завершено: {status['completed_at']}")
+            if status['local_path']:
+                print(f"Путь: {status['local_path']}")
             if status['error']:
                 print(f"Ошибка: {status['error']}")
                 

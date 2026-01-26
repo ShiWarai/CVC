@@ -4,7 +4,7 @@ from commands_classifier.api.routes.predict import router as predict_router
 from commands_classifier.api.routes.training import router as training_router
 from commands_classifier.api.routes.examples import router as examples_router
 from commands_classifier.api.routes.package import router as package_router
-from commands_classifier.api.routes.download import router as download_router
+from commands_classifier.api.routes.load_from_hf import router as load_from_hf_router
 from commands_classifier.api.routes.health import router as health_router
 
 __all__ = [
@@ -12,6 +12,6 @@ __all__ = [
     "training_router", 
     "examples_router",
     "package_router",
-    "download_router",
+    "load_from_hf_router",
     "health_router",
 ]

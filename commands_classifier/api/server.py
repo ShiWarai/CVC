@@ -22,7 +22,7 @@ from commands_classifier.api.routes import (
     training_router,
     examples_router,
     package_router,
-    download_router,
+    load_from_hf_router,
     health_router
 )
 
@@ -138,5 +138,5 @@ app.include_router(predict_router)
 app.include_router(training_router)
 app.include_router(examples_router)
 app.include_router(package_router)
-app.include_router(download_router)
+app.include_router(load_from_hf_router)
 app.include_router(health_router)

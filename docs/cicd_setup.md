@@ -13,7 +13,7 @@
 Для генерации SSH-ключа используйте скрипт:
 
 ```bash
-bash scripts/generate_ssh_key.sh
+bash ci/generate_ssh_key.sh
 ```
 
 Скрипт создаст ключ в `~/.cvc_ssh_keys/deploy_key` (вне репозитория) и выведет публичный ключ для добавления на production-сервер.
@@ -214,10 +214,10 @@ cat ~/.cvc_ssh_keys/deploy_key.pub
 
 ## Шаг 5: Настройка скриптов для обучения и упаковки
 
-Скрипты уже созданы в директории `scripts/`:
-- `scripts/generate_ssh_key.sh` - генерация SSH-ключа (опционально, если нужен SSH для других задач)
-- `scripts/train_via_api.py` - запуск обучения модели через API
-- `scripts/upload_to_hf.py` - загрузка модели на Hugging Face Hub
+Скрипты уже созданы в директории `ci/`:
+- `ci/generate_ssh_key.sh` - генерация SSH-ключа (опционально, если нужен SSH для других задач)
+- `ci/train_via_api.py` - запуск обучения модели через API
+- `ci/upload_to_hf.py` - загрузка модели на Hugging Face Hub
 
 ## Шаг 6: Проверка workflow
 
@@ -236,7 +236,7 @@ Workflow файл находится в `.github/workflows/deploy.yml`. Он а�
 # На GPU-машине (где будет запускаться CI/CD)
 export HF_TOKEN="your_token_here"
 export HF_REPO_ID="your-username/model-name"
-python scripts/upload_to_hf.py
+python ci/upload_to_hf.py
 ```
 
 Если загрузка успешна, модель появится на https://huggingface.co/your-username/model-name

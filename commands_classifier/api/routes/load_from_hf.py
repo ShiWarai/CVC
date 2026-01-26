@@ -11,25 +11,25 @@ from pydantic import BaseModel
 
 from commands_classifier.api.state import get_config, get_training_manager, load_model
 
-router = APIRouter(tags=["download"])
+router = APIRouter(tags=["load_from_hf"])
 
 
 # Модели запросов/ответов
-class DownloadRequest(BaseModel):
+class LoadFromHfRequest(BaseModel):
     """Запрос на загрузку модели с Hugging Face."""
-    repo_id: str  # Например: "username/model-name"
+    repo_id: Optional[str] = None  # Например: "username/model-name". Если не указан, используется HF_REPO_ID из конфигурации сервера
     local_dir: Optional[str] = None  # Путь для сохранения (опционально, используется из config если не указан)
 
 
-class DownloadResponse(BaseModel):
+class LoadFromHfResponse(BaseModel):
     """Ответ на запрос загрузки модели."""
     message: str
-    download_id: str
+    load_id: str
 
 
-class DownloadStatusResponse(BaseModel):
+class LoadFromHfStatusResponse(BaseModel):
     """Ответ со статусом загрузки модели."""
-    download_id: str
+    load_id: str
     status: str  # idle, pending, running, completed, failed
     progress: float
     local_path: Optional[str] = None
@@ -39,8 +39,8 @@ class DownloadStatusResponse(BaseModel):
 
 
 # Статус загрузки модели (модульный уровень)
-_download_status: Dict[str, Any] = {
-    "download_id": None,
+_load_from_hf_status: Dict[str, Any] = {
+    "load_id": None,
     "status": "idle",
     "progress": 0.0,
     "local_path": None,
@@ -50,35 +50,35 @@ _download_status: Dict[str, Any] = {
 }
 
 
-def _run_download_task(repo_id: str, local_dir: str, download_id: str):
+def _run_load_from_hf_task(repo_id: str, local_dir: str, load_id: str):
     """
     Фоновая задача для загрузки модели с Hugging Face Hub.
     """
-    global _download_status
+    global _load_from_hf_status
     
     try:
-        _download_status["status"] = "running"
-        _download_status["progress"] = 0.1
+        _load_from_hf_status["status"] = "running"
+        _load_from_hf_status["progress"] = 0.1
         
         # Импортируем huggingface_hub
         try:
             from huggingface_hub import snapshot_download
         except ImportError:
-            _download_status["status"] = "failed"
-            _download_status["error"] = "huggingface-hub не установлен. Установите: pip install huggingface-hub"
-            _download_status["completed_at"] = datetime.now().isoformat()
+            _load_from_hf_status["status"] = "failed"
+            _load_from_hf_status["error"] = "huggingface-hub не установлен. Установите: pip install huggingface-hub"
+            _load_from_hf_status["completed_at"] = datetime.now().isoformat()
             return
         
         # Получаем токен из переменных окружения
         hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN")
         
-        _download_status["progress"] = 0.2
+        _load_from_hf_status["progress"] = 0.2
         
         # Создаем директорию для модели
         local_path_obj = Path(local_dir)
         local_path_obj.mkdir(parents=True, exist_ok=True)
         
-        _download_status["progress"] = 0.3
+        _load_from_hf_status["progress"] = 0.3
         
         # Загружаем модель
         try:
@@ -88,19 +88,19 @@ def _run_download_task(repo_id: str, local_dir: str, download_id: str):
                 token=hf_token,
                 local_dir_use_symlinks=False  # Не используем симлинки для Docker
             )
-            _download_status["progress"] = 0.9
+            _load_from_hf_status["progress"] = 0.9
             
             # Проверяем, что модель загружена
             if not local_path_obj.exists() or not any(local_path_obj.iterdir()):
-                _download_status["status"] = "failed"
-                _download_status["error"] = "Модель не была загружена или директория пуста"
-                _download_status["completed_at"] = datetime.now().isoformat()
+                _load_from_hf_status["status"] = "failed"
+                _load_from_hf_status["error"] = "Модель не была загружена или директория пуста"
+                _load_from_hf_status["completed_at"] = datetime.now().isoformat()
                 return
             
-            _download_status["status"] = "completed"
-            _download_status["progress"] = 1.0
-            _download_status["local_path"] = str(local_path_obj)
-            _download_status["completed_at"] = datetime.now().isoformat()
+            _load_from_hf_status["status"] = "completed"
+            _load_from_hf_status["progress"] = 1.0
+            _load_from_hf_status["local_path"] = str(local_path_obj)
+            _load_from_hf_status["completed_at"] = datetime.now().isoformat()
             
             # Перезагружаем модель в память
             try:
@@ -110,18 +110,18 @@ def _run_download_task(repo_id: str, local_dir: str, download_id: str):
                 print(f"Предупреждение: не удалось перезагрузить модель в память: {e}")
             
         except Exception as e:
-            _download_status["status"] = "failed"
-            _download_status["error"] = f"Ошибка при загрузке модели: {str(e)}"
-            _download_status["completed_at"] = datetime.now().isoformat()
+            _load_from_hf_status["status"] = "failed"
+            _load_from_hf_status["error"] = f"Ошибка при загрузке модели: {str(e)}"
+            _load_from_hf_status["completed_at"] = datetime.now().isoformat()
             
     except Exception as e:
-        _download_status["status"] = "failed"
-        _download_status["error"] = str(e)
-        _download_status["completed_at"] = datetime.now().isoformat()
+        _load_from_hf_status["status"] = "failed"
+        _load_from_hf_status["error"] = str(e)
+        _load_from_hf_status["completed_at"] = datetime.now().isoformat()
 
 
-@router.post("/download", response_model=DownloadResponse)
-async def download_model(request: DownloadRequest):
+@router.post("/load_from_hf", response_model=LoadFromHfResponse)
+async def load_from_hf(request: LoadFromHfRequest):
     """
     Загружает модель с Hugging Face Hub.
     Запускается в фоновом режиме.
@@ -134,18 +134,25 @@ async def download_model(request: DownloadRequest):
     Returns:
         ID задачи загрузки
     """
-    global _download_status
+    global _load_from_hf_status
     
     training_manager = get_training_manager()
     config = get_config()
     
     # Проверяем, что не идёт загрузка
-    if _download_status["status"] == "running":
+    if _load_from_hf_status["status"] == "running":
         raise HTTPException(status_code=409, detail="Загрузка уже выполняется")
     
     # Проверяем, что не идёт обучение
     if training_manager is not None and training_manager.is_training():
         raise HTTPException(status_code=409, detail="Невозможно загрузить модель во время обучения")
+    
+    # Определяем repo_id - из запроса или из конфигурации сервера
+    repo_id = request.repo_id
+    if not repo_id:
+        repo_id = os.getenv("HF_REPO_ID")
+        if not repo_id:
+            raise HTTPException(status_code=400, detail="repo_id не указан в запросе и HF_REPO_ID не найден в конфигурации сервера")
     
     # Определяем путь для сохранения
     if request.local_dir:
@@ -156,11 +163,11 @@ async def download_model(request: DownloadRequest):
         local_dir = str(Path(model_path).parent / Path(model_path).name)
     
     # Генерируем ID задачи
-    download_id = str(uuid.uuid4())[:8]
+    load_id = str(uuid.uuid4())[:8]
     
     # Сбрасываем статус
-    _download_status = {
-        "download_id": download_id,
+    _load_from_hf_status = {
+        "load_id": load_id,
         "status": "pending",
         "progress": 0.0,
         "local_path": None,
@@ -171,32 +178,32 @@ async def download_model(request: DownloadRequest):
     
     # Запускаем в фоновом потоке
     thread = threading.Thread(
-        target=_run_download_task,
-        args=(request.repo_id, local_dir, download_id),
+        target=_run_load_from_hf_task,
+        args=(repo_id, local_dir, load_id),
         daemon=True
     )
     thread.start()
     
-    return DownloadResponse(
+    return LoadFromHfResponse(
         message="Загрузка модели запущена в фоновом режиме",
-        download_id=download_id
+        load_id=load_id
     )
 
 
-@router.get("/download/status", response_model=DownloadStatusResponse)
-async def get_download_status():
+@router.get("/load_from_hf/status", response_model=LoadFromHfStatusResponse)
+async def get_load_from_hf_status():
     """
     Возвращает статус загрузки модели.
     
     Returns:
         Статус загрузки (id, status, progress, local_path, error, timestamps)
     """
-    return DownloadStatusResponse(
-        download_id=_download_status["download_id"] or "",
-        status=_download_status["status"],
-        progress=_download_status["progress"],
-        local_path=_download_status["local_path"],
-        error=_download_status["error"],
-        started_at=_download_status["started_at"],
-        completed_at=_download_status["completed_at"]
+    return LoadFromHfStatusResponse(
+        load_id=_load_from_hf_status["load_id"] or "",
+        status=_load_from_hf_status["status"],
+        progress=_load_from_hf_status["progress"],
+        local_path=_load_from_hf_status["local_path"],
+        error=_load_from_hf_status["error"],
+        started_at=_load_from_hf_status["started_at"],
+        completed_at=_load_from_hf_status["completed_at"]
     )

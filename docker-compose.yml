@@ -13,11 +13,12 @@ services:
       - ./db:/app/db
       - ./config.yaml:/app/config.yaml:ro
       - ./data:/app/data:ro
-      - ./scripts:/app/scripts:ro
+      - ./ci:/app/ci:ro
     environment:
       - HF_HOME=/app/.cache/huggingface
       - HF_TOKEN=${HF_TOKEN}
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+      - HF_REPO_ID=${HF_REPO_ID}
     restart: unless-stopped
     networks:
       - robot-services-network

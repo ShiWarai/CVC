@@ -61,10 +61,11 @@ pip install -r requirements-rocm.txt
 
 1. Перейдите на [страницу модели](https://huggingface.co/google/embeddinggemma-300M) и примите условия использования
 2. Получите токен доступа в [настройках аккаунта](https://huggingface.co/settings/tokens)
-3. Создайте файл `.env` в корне проекта и добавьте токен:
+3. Создайте файл `.env` в корне проекта и добавьте токен и ID репозитория:
 
 ```bash
 HF_TOKEN=your_token_here
+HF_REPO_ID=your-username/model-name
 ```
 
 Токен будет автоматически загружен при запуске приложения (через `python-dotenv`).
@@ -83,8 +84,9 @@ HF_TOKEN=your_token_here
 # Скопируйте пример файла
 cp .env.example .env
 
-# Отредактируйте .env и добавьте ваш Hugging Face токен
+# Отредактируйте .env и добавьте ваш Hugging Face токен и ID репозитория
 # HF_TOKEN=your_token_here
+# HF_REPO_ID=your-username/model-name
 ```
 
 Получите токен на [https://huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
@@ -317,6 +319,20 @@ python -m commands_classifier.client examples delete --id 1
 **Проверка работоспособности:**
 ```bash
 python -m commands_classifier.client health
+```
+
+**Загрузка модели с Hugging Face Hub:**
+```bash
+# Использует HF_REPO_ID из конфигурации сервера (.env)
+python -m commands_classifier.client load-from-hf
+
+# Или с указанием конкретного репозитория
+python -m commands_classifier.client load-from-hf --repo-id "username/model-name"
+```
+
+**Проверка статуса загрузки модели:**
+```bash
+python -m commands_classifier.client load-from-hf-status
 ```
 
 ## Использование Python клиента
@@ -651,16 +667,25 @@ curl http://localhost:20001/examples/1
 
 #### Загрузка модели с Hugging Face Hub
 
-**POST /download** - Загрузка модели с Hugging Face Hub в фоновом режиме
+**POST /load_from_hf** - Загрузка модели с Hugging Face Hub в фоновом режиме
+
+Если `repo_id` не указан, сервер использует `HF_REPO_ID` из своей конфигурации (переменная окружения или `.env` файл).
+
 ```bash
-curl -X POST "http://localhost:20001/download" \
+# Использует HF_REPO_ID из конфигурации сервера
+curl -X POST "http://localhost:20001/load_from_hf" \
+  -H "Content-Type: application/json" \
+  -d '{}'
+
+# Или с указанием конкретного репозитория
+curl -X POST "http://localhost:20001/load_from_hf" \
   -H "Content-Type: application/json" \
   -d '{"repo_id": "username/model-name", "local_dir": "models/my_model"}'
 ```
 
-**GET /download/status** - Статус загрузки модели
+**GET /load_from_hf/status** - Статус загрузки модели
 ```bash
-curl http://localhost:20001/download/status
+curl http://localhost:20001/load_from_hf/status
 ```
 
 ### База данных
@@ -835,7 +860,7 @@ docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
   - Получите на https://huggingface.co/settings/tokens
   - Формат: `hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
 
-- **HF_REPO_ID** - ID репозитория на Hugging Face (обязательно)
+- **HF_REPO_ID** - ID репозитория на Hugging Face для загрузки/выгрузки моделей (обязательно)
   - Формат: `username/model-name`
   - Пример: `your-username/cvc-commands-classifier`
 

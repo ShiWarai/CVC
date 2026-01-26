@@ -47,7 +47,7 @@ jobs:
         # Проверяем Python
         python --version
 
-    - name: Install Python dependencies for scripts
+    - name: Install Python dependencies for CI scripts
       run: |
         echo "Установка минимальных зависимостей для CI/CD скриптов..."
         # Скрипты работают на хосте и взаимодействуют с контейнером через API
@@ -130,7 +130,7 @@ jobs:
           -e BATCH_SIZE="${BATCH_SIZE}" \
           -e LEARNING_RATE="${LEARNING_RATE}" \
           -e TRAINING_DB_PATH="${TRAINING_DB_PATH}" \
-          cvc-api python /app/scripts/train_via_api.py
+          cvc-api python /app/ci/train_via_api.py
         echo "✓ Обучение завершено"
 
     - name: Upload model to Hugging Face
@@ -153,7 +153,7 @@ jobs:
           exit 1
         fi
         
-        python scripts/upload_to_hf.py
+        python ci/upload_to_hf.py
         echo "✓ Модель загружена на Hugging Face Hub"
 
     - name: Cleanup

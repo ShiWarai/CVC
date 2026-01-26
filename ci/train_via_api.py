@@ -6,8 +6,6 @@
 
 import sys
 import os
-import time
-import subprocess
 from pathlib import Path
 
 # Добавляем корневую директорию проекта в путь
@@ -20,7 +18,6 @@ else:
     project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from commands_classifier.client import CVCApiClient
 from commands_classifier.model import CommandsClassifier
 from commands_classifier import db as db_module
 import yaml
@@ -35,29 +32,6 @@ def load_config(config_path: str = "config.yaml") -> dict:
         config_file = project_root / config_path
     with open(config_file, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
-
-
-def wait_for_server(url: str = "http://localhost:20001", timeout: int = 120) -> bool:
-    """Ожидает готовности сервера."""
-    import requests
-    
-    print(f"Ожидание готовности сервера на {url}...")
-    start_time = time.time()
-    
-    while time.time() - start_time < timeout:
-        try:
-            response = requests.get(f"{url}/health", timeout=5)
-            if response.status_code == 200:
-                print("✓ Сервер готов")
-                return True
-        except Exception:
-            pass
-        
-        time.sleep(2)
-        print(".", end="", flush=True)
-    
-    print(f"\n✗ Сервер не ответил за {timeout} секунд")
-    return False
 
 
 def main():
@@ -184,58 +158,8 @@ def main():
         mark_examples_as_trained(training_db_path, example_ids)
         print(f"✓ {len(example_ids)} примеров помечено как обученные")
         
-        # Упаковка модели выполняется через API (нужен сервер для /package endpoint)
-        # Запускаем сервер, если он не запущен
-        server_config = config.get("server", {})
-        api_url = f"http://{server_config.get('host', 'localhost')}:{server_config.get('port', 20001)}"
-        
-        print(f"\nПодготовка к упаковке модели...")
-        client = None
-        try:
-            client = CVCApiClient(api_url)
-            client.health()
-            print("✓ Сервер уже запущен")
-        except Exception:
-            # Внутри Docker контейнера сервер должен быть уже запущен
-            # Просто ждем его готовности
-            print("Ожидание готовности сервера...")
-            if wait_for_server(api_url, timeout=60):
-                client = CVCApiClient(api_url)
-            else:
-                print("⚠️  Сервер не готов, пропускаем упаковку...")
-        
-        # Упаковываем модель через API
-        if client:
-            print(f"\nУпаковка модели через API...")
-            try:
-                package_result = client.package()
-                package_id = package_result.get("package_id")
-                print(f"✓ Упаковка запущена. ID задачи: {package_id}")
-                
-                # Ждем завершения упаковки
-                while True:
-                    time.sleep(2)
-                    status = client.get_package_status()
-                    
-                    if status.get("status") == "completed":
-                        output_path = status.get("output_path")
-                        print(f"\n✓ Модель упакована: {output_path}")
-                        # Сохраняем путь для использования в CI/CD
-                        archive_file = os.getenv("GITHUB_OUTPUT", "/tmp/archive_path.txt")
-                        with open(archive_file, "a") as f:
-                            f.write(f"archive_path={output_path}\n")
-                        print(f"ARCHIVE_PATH={output_path}")
-                        break
-                    elif status.get("status") == "failed":
-                        error = status.get("error", "Неизвестная ошибка")
-                        print(f"\n✗ Упаковка завершилась с ошибкой: {error}", file=sys.stderr)
-                        return 1
-                    elif status.get("status") == "running":
-                        progress = status.get("progress", 0)
-                        print(f"Прогресс упаковки: {progress:.1%}", end='\r')
-            except Exception as e:
-                print(f"\n⚠️  Ошибка при упаковке: {e}", file=sys.stderr)
-                print("Продолжаем без упаковки...")
+        print(f"\n✓ Обучение завершено. Модель сохранена в {model_path}")
+        print(f"Модель будет загружена на Hugging Face Hub на следующем этапе CI/CD")
         
         return 0
         
@@ -245,8 +169,6 @@ def main():
         traceback.print_exc()
         return 1
     finally:
-        # Если мы запускали сервер, не останавливаем его (может использоваться дальше)
-        # Можно добавить опцию для остановки, если нужно
         pass
 
 
