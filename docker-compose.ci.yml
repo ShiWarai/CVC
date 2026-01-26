@@ -1,0 +1,20 @@
+version: '3.8'
+
+# Файл для CI/CD с поддержкой CUDA/GPU
+# Используется в GitHub Actions workflow
+# Запуск: docker-compose -f docker-compose.yml -f docker-compose.ci.yml up -d
+
+services:
+  cvc-api:
+    build:
+      args:
+        USE_CUDA: "true"
+    # Для доступа к GPU (требует nvidia-container-runtime)
+    # Если nvidia-container-runtime не установлен, контейнер запустится без GPU
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]

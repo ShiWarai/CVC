@@ -72,16 +72,32 @@ jobs:
           docker network create robot-services-network || true
         fi
         
+        # Проверяем доступность CUDA для Docker
+        if command -v nvidia-smi &> /dev/null; then
+          echo "✓ NVIDIA GPU обнаружен"
+          nvidia-smi --query-gpu=name,driver_version,memory.total --format=csv,noheader
+          # Проверяем поддержку NVIDIA Container Runtime
+          if docker info | grep -q "nvidia"; then
+            echo "✓ NVIDIA Container Runtime доступен"
+          else
+            echo "⚠️  NVIDIA Container Runtime не настроен, но будет использоваться CUDA версия PyTorch"
+          fi
+        else
+          echo "⚠️  nvidia-smi не доступен, но будет использоваться CUDA версия PyTorch"
+        fi
+        
         # Проверяем наличие образа (для переиспользования)
         if docker images | grep -q "cvc-api"; then
-          echo "✓ Образ cvc-api уже существует, будет переиспользован"
+          echo "ℹ️  Образ cvc-api будет пересобран с CUDA поддержкой"
         else
-          echo "ℹ️  Образ cvc-api будет собран при первом запуске"
+          echo "ℹ️  Образ cvc-api будет собран с CUDA поддержкой"
         fi
 
     - name: Run training
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        # Используем CUDA версию для CI/CD (GPU-машина)
+        USE_CUDA: "true"
         # Переменные окружения для параметров обучения (опционально)
         # Если не установлены или пустые, используются значения из config.yaml
         NUM_ITERATIONS: ${{ secrets.NUM_ITERATIONS }}
@@ -94,11 +110,16 @@ jobs:
         echo "=========================================="
         echo "Запуск обучения модели"
         echo "=========================================="
-        # Убеждаемся, что контейнер запущен
-        docker-compose up -d  --build
+        echo "Использование CUDA версии Docker образа..."
+        # Удаляем старый контейнер (если есть) для избежания ошибки ContainerConfig
+        docker rm -f cvc-api || true
+        # Запускаем контейнер с CUDA поддержкой
+        # Используем docker-compose.ci.yml для GPU доступа
+        docker-compose -f docker-compose.yml -f docker-compose.ci.yml build --build-arg USE_CUDA=true cvc-api
+        docker-compose -f docker-compose.yml -f docker-compose.ci.yml up -d cvc-api
         sleep 5
         # Запускаем скрипт внутри Docker контейнера, где есть все зависимости
-        docker-compose exec -T \
+        docker-compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
           -e HF_TOKEN="${HF_TOKEN}" \
           -e NUM_ITERATIONS="${NUM_ITERATIONS}" \
           -e NUM_EPOCHS="${NUM_EPOCHS}" \
@@ -138,7 +159,7 @@ jobs:
         echo "Очистка временных файлов"
         echo "=========================================="
         # Останавливаем контейнер, если он был запущен этим job
-        docker-compose down || true
+        docker-compose -f docker-compose.yml -f docker-compose.ci.yml down || true
         echo "✓ Очистка завершена"
 
     - name: Summary

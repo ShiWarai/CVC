@@ -5,6 +5,10 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        # По умолчанию используется CPU версия
+        # Для CUDA версии установите USE_CUDA=true в .env или передайте через переменную окружения
+        USE_CUDA: ${USE_CUDA:-false}
     container_name: cvc-api
     ports:
       - "20001:20001"
@@ -30,6 +34,8 @@ services:
       # Альтернативное имя переменной (на случай если используется другое)
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
     restart: unless-stopped
+    # Для CUDA версии с GPU доступом используйте docker-compose.ci.yml
+    # Пример: docker-compose -f docker-compose.yml -f docker-compose.ci.yml up -d
     networks:
       - robot-services-network
     healthcheck:
