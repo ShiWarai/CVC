@@ -96,8 +96,6 @@ jobs:
     - name: Run training
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        # Используем CUDA версию для CI/CD (GPU-машина)
-        USE_CUDA: "true"
         # Переменные окружения для параметров обучения (опционально)
         # Если не установлены или пустые, используются значения из config.yaml
         NUM_ITERATIONS: ${{ secrets.NUM_ITERATIONS }}
@@ -115,7 +113,7 @@ jobs:
         docker rm -f cvc-api || true
         # Запускаем контейнер с CUDA поддержкой
         # Используем docker-compose.ci.yml для GPU доступа
-        docker-compose -f docker-compose.yml -f docker-compose.ci.yml build --build-arg USE_CUDA=true cvc-api
+        docker-compose -f docker-compose.yml -f docker-compose.ci.yml build cvc-api
         docker-compose -f docker-compose.yml -f docker-compose.ci.yml up -d cvc-api
         sleep 5
         # Запускаем скрипт внутри Docker контейнера, где есть все зависимости

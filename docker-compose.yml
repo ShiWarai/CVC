@@ -5,37 +5,22 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-      args:
-        # По умолчанию используется CPU версия
-        # Для CUDA версии установите USE_CUDA=true в .env или передайте через переменную окружения
-        USE_CUDA: ${USE_CUDA:-false}
     container_name: cvc-api
     ports:
       - "20001:20001"
     volumes:
-      # Монтируем модели, чтобы они сохранялись между перезапусками
       - ./models:/app/models
       - ./checkpoints:/app/checkpoints
-      # Монтируем кэш Hugging Face, чтобы не скачивать оригинальную модель каждый раз
       - ./cache/huggingface:/app/.cache/huggingface
-      # Монтируем директорию для базы данных (монтирование файла может создать директорию вместо файла)
       - ./db:/app/db
-      # Монтируем конфигурацию (опционально, для изменения без пересборки)
       - ./config.yaml:/app/config.yaml:ro
-      # Монтируем данные (опционально)
       - ./data:/app/data:ro
-      # Монтируем scripts для выполнения скриптов внутри контейнера
       - ./scripts:/app/scripts:ro
     environment:
-      # Переменные окружения для Hugging Face
       - HF_HOME=/app/.cache/huggingface
-      # Токен для доступа к gated моделям (загружается из .env файла)
       - HF_TOKEN=${HF_TOKEN}
-      # Альтернативное имя переменной (на случай если используется другое)
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
     restart: unless-stopped
-    # Для CUDA версии с GPU доступом используйте docker-compose.ci.yml
-    # Пример: docker-compose -f docker-compose.yml -f docker-compose.ci.yml up -d
     networks:
       - robot-services-network
     healthcheck:
@@ -47,6 +32,4 @@ services:
 
 networks:
   robot-services-network:
-    # Сеть создаётся автоматически docker-compose
-    # Если сеть уже существует (создана вручную или другими сервисами), она будет переиспользована
     driver: bridge

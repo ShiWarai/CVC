@@ -1,34 +1,18 @@
-FROM python:3.11-slim
-
-# Build argument для выбора между CPU и CUDA версией
-ARG USE_CUDA=false
+FROM pytorch/pytorch:2.6.0-cuda12.4-cudnn9-runtime
 
 ENV PIP_NO_CACHE_DIR=1
 ENV PYTHONDONTWRITEBYTECODE=1
-
-RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
 RUN pip install --root-user-action=ignore --upgrade pip && \
     pip install --root-user-action=ignore setuptools wheel
 
-# Копируем оба файла requirements
-COPY requirements.txt .
-COPY requirements-cuda.txt .
+COPY requirements-docker.txt .
 
-# Выбираем файл requirements в зависимости от USE_CUDA
-RUN if [ "$USE_CUDA" = "true" ]; then \
-        echo "Использование CUDA версии зависимостей..." && \
-        pip install --root-user-action=ignore -r requirements-cuda.txt && \
-        python -c "import uvicorn; import fastapi; import torch; print('✓ uvicorn, fastapi и torch (CUDA) установлены'); print('✓ PyTorch версия:', torch.__version__); print('ℹ️  CUDA доступность будет проверена при запуске контейнера')" || \
-        (echo "✗ Ошибка установки CUDA зависимостей" && exit 1); \
-    else \
-        echo "Использование CPU версии зависимостей..." && \
-        pip install --root-user-action=ignore -r requirements.txt && \
-        python -c "import uvicorn; import fastapi; print('✓ uvicorn и fastapi установлены')" || \
-        (echo "✗ Ошибка установки зависимостей" && exit 1); \
-    fi
+RUN pip install --root-user-action=ignore -r requirements-docker.txt && \
+    python -c "import uvicorn; import fastapi; print('✓ uvicorn и fastapi установлены')" || \
+    (echo "✗ Ошибка: uvicorn или fastapi не установлены" && pip list | grep -E "(uvicorn|fastapi)" && exit 1)
 
 COPY commands_classifier/ ./commands_classifier/
 COPY config.yaml .
@@ -42,4 +26,3 @@ ENV PYTHONPATH=/app
 EXPOSE 20001
 
 CMD ["python", "-m", "commands_classifier.cli", "serve", "--host", "0.0.0.0", "--port", "20001"]
-
