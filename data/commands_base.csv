@@ -456,3 +456,4 @@ text,command
 можно взять джойстик,reconnect_joystick
 контроллер,reconnect_joystick
 джойстик,reconnect_joystick
+опусти робота,lie_down

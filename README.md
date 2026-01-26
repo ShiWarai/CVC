@@ -649,6 +649,20 @@ curl -X DELETE "http://localhost:20001/examples/1"
 curl http://localhost:20001/examples/1
 ```
 
+#### Загрузка модели с Hugging Face Hub
+
+**POST /download** - Загрузка модели с Hugging Face Hub в фоновом режиме
+```bash
+curl -X POST "http://localhost:20001/download" \
+  -H "Content-Type: application/json" \
+  -d '{"repo_id": "username/model-name", "local_dir": "models/my_model"}'
+```
+
+**GET /download/status** - Статус загрузки модели
+```bash
+curl http://localhost:20001/download/status
+```
+
 ### База данных
 
 Обучающие данные хранятся в SQLite базе данных (`db/training_data.db` по умолчанию в Docker, `training_data.db` для локального запуска). При первом запуске сервера, если база данных пустая, автоматически выполняется миграция данных из директории или CSV файла (указанного в `config.yaml`). Если указана директория, загружаются все CSV файлы из неё.

@@ -1,0 +1,132 @@
+name: ML Pipeline - Train and Deploy
+
+on:
+  push:
+    branches: [ main, master ]  # Триггер на push в main/master (новый датасет)
+  workflow_dispatch:  # Позволяет запускать вручную через GitHub UI
+  schedule:
+    # Запуск каждый день в полночь UTC (опционально, раскомментируйте если нужно)
+    # - cron: '0 0 * * *'
+
+jobs:
+  train-and-deploy:
+    runs-on: self-hosted  # Используется GPU-машина с self-hosted runner
+    timeout-minutes: 60  # Таймаут для всего job (60 минут)
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0  # Полная история для git pull
+
+    - name: Pull latest changes
+      run: |
+        echo "Обновление кода из репозитория..."
+        git fetch origin
+        git pull origin main || git pull origin master
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'  # Укажите вашу версию Python
+
+    - name: Install system dependencies
+      run: |
+        echo "Проверка системных зависимостей..."
+        # Проверяем доступность CUDA
+        nvidia-smi || echo "⚠️  nvidia-smi не доступен, будет использоваться CPU"
+        # Проверяем Python
+        python --version
+
+    - name: Install Python dependencies
+      run: |
+        echo "Установка зависимостей Python..."
+        # Устанавливаем зависимости в зависимости от наличия CUDA
+        if command -v nvidia-smi &> /dev/null; then
+          echo "Обнаружен NVIDIA GPU, устанавливаем CUDA зависимости..."
+          pip install -r requirements-cuda.txt || pip install -r requirements.txt
+        else
+          echo "GPU не обнаружен, устанавливаем CPU зависимости..."
+          pip install -r requirements.txt
+        fi
+        # Устанавливаем huggingface-hub для загрузки моделей
+        pip install huggingface-hub
+
+    - name: Check Hugging Face token
+      run: |
+        if [ -z "${{ secrets.HF_TOKEN }}" ]; then
+          echo "⚠️  Предупреждение: HF_TOKEN не установлен в секретах GitHub"
+          echo "Модель google/embeddinggemma-300M требует токен Hugging Face"
+        else
+          echo "✓ HF_TOKEN установлен"
+        fi
+
+    - name: Check Docker and docker-compose
+      run: |
+        echo "Проверка Docker..."
+        docker --version
+        docker-compose --version || docker compose version
+        
+        # Проверяем наличие сети (если требуется)
+        if ! docker network ls | grep -q robot-services-network; then
+          echo "Создание сети robot-services-network..."
+          docker network create robot-services-network || true
+        fi
+
+    - name: Run training via API
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        NUM_ITERATIONS: ${{ secrets.NUM_ITERATIONS || '' }}
+        NUM_EPOCHS: ${{ secrets.NUM_EPOCHS || '' }}
+        BATCH_SIZE: ${{ secrets.BATCH_SIZE || '' }}
+        LEARNING_RATE: ${{ secrets.LEARNING_RATE || '' }}
+      run: |
+        echo "=========================================="
+        echo "Запуск обучения модели через API"
+        echo "=========================================="
+        python scripts/train_via_api.py
+        echo "✓ Обучение завершено"
+
+    - name: Upload model to Hugging Face
+      env:
+        HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        HF_REPO_ID: ${{ secrets.HF_REPO_ID }}
+      run: |
+        echo "=========================================="
+        echo "Загрузка модели на Hugging Face Hub"
+        echo "=========================================="
+        
+        if [ -z "$HF_TOKEN" ]; then
+          echo "✗ Ошибка: HF_TOKEN не установлен в GitHub Secrets" >&2
+          exit 1
+        fi
+        
+        if [ -z "$HF_REPO_ID" ]; then
+          echo "✗ Ошибка: HF_REPO_ID не установлен в GitHub Secrets" >&2
+          echo "Установите секрет HF_REPO_ID (например: username/model-name)" >&2
+          exit 1
+        fi
+        
+        python scripts/upload_to_hf.py
+        echo "✓ Модель загружена на Hugging Face Hub"
+
+    - name: Cleanup
+      if: always()  # Выполняется всегда, даже при ошибке
+      run: |
+        echo "Очистка временных файлов..."
+        echo "✓ Очистка завершена"
+
+    - name: Summary
+      if: always()
+      run: |
+        echo "=========================================="
+        echo "Итоги выполнения пайплайна"
+        echo "=========================================="
+        if [ "${{ job.status }}" == "success" ]; then
+          echo "✓ Пайплайн выполнен успешно"
+          echo "  Модель обучена и загружена на Hugging Face Hub"
+          echo "  Репозиторий: https://huggingface.co/${{ secrets.HF_REPO_ID }}"
+        else
+          echo "✗ Пайплайн завершился с ошибкой"
+          echo "  Проверьте логи выше для деталей"
+        fi

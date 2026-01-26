@@ -221,6 +221,36 @@ class CVCApiClient:
         response = self.session.get(f"{self.base_url}/package/status")
         response.raise_for_status()
         return response.json()
+    
+    def download_model(self, repo_id: str, local_dir: Optional[str] = None) -> dict:
+        """
+        Запускает загрузку модели с Hugging Face Hub.
+        
+        Args:
+            repo_id: ID репозитория на Hugging Face (например: "username/model-name")
+            local_dir: Путь для сохранения (опционально, используется из config если не указан)
+            
+        Returns:
+            Результат запуска (download_id, message)
+        """
+        payload = {"repo_id": repo_id}
+        if local_dir:
+            payload["local_dir"] = local_dir
+        
+        response = self.session.post(f"{self.base_url}/download", json=payload)
+        response.raise_for_status()
+        return response.json()
+    
+    def get_download_status(self) -> dict:
+        """
+        Получает статус загрузки модели с Hugging Face Hub.
+        
+        Returns:
+            Статус загрузки (download_id, status, progress, local_path, error)
+        """
+        response = self.session.get(f"{self.base_url}/download/status")
+        response.raise_for_status()
+        return response.json()
 
 
 def predict_command(args):
