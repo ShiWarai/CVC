@@ -92,9 +92,9 @@ def main():
         print(f"\nЗагрузка модели на Hugging Face Hub...")
         # Формируем уникальное сообщение коммита с SHA из GitHub
         if commit_sha:
-            commit_message = f"Auto-upload: модель обучена через CI/CD (GitHub: {commit_sha})"
+            commit_message = f"CI: модель обучена и загружена ({commit_sha})"
         else:
-            commit_message = "Auto-upload: модель обучена через CI/CD"
+            commit_message = "CI: модель обучена и загружена"
         
         api.upload_folder(
             folder_path=str(model_path_obj),
