@@ -17,14 +17,6 @@ jobs:
     timeout-minutes: 60  # Таймаут для всего job (60 минут)
     
     steps:
-    - name: Cleanup problematic directories
-      continue-on-error: true
-      run: |
-        echo "Очистка директорий с проблемными правами доступа..."
-        # Пытаемся удалить директории, созданные Docker от root
-        # Используем continue-on-error, чтобы не падать, если не получится
-        rm -rf cache/huggingface 2>/dev/null || true
-    
     - name: Checkout code
       uses: actions/checkout@v4
       with:
@@ -33,12 +25,8 @@ jobs:
 
     - name: Prepare directories
       run: |
-        echo "Подготовка директорий с правильными правами доступа..."
-        # Создаем директории с правильными правами ДО запуска Docker
-        # Это гарантирует, что Docker сможет писать в них
+        echo "Подготовка директорий..."
         mkdir -p cache/huggingface models checkpoints db
-        # Устанавливаем права доступа на запись для всех
-        chmod -R 777 cache models checkpoints db 2>/dev/null || true
 
     - name: Pull latest changes
       run: |
@@ -78,11 +66,11 @@ jobs:
           echo "✓ HF_TOKEN установлен"
         fi
 
-    - name: Check Docker and docker-compose
+    - name: Check Docker and docker compose
       run: |
         echo "Проверка Docker..."
         docker --version
-        docker-compose --version || docker compose version
+        docker compose version
         
         # Проверяем наличие сети (если требуется)
         if ! docker network ls | grep -q robot-services-network; then
@@ -131,11 +119,11 @@ jobs:
         docker rm -f cvc-api || true
         # Запускаем контейнер с CUDA поддержкой
         # Используем docker-compose.ci.yml для GPU доступа
-        docker-compose -f docker-compose.yml -f docker-compose.ci.yml build cvc-api
-        docker-compose -f docker-compose.yml -f docker-compose.ci.yml up -d cvc-api
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml build cvc-api
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d cvc-api
         sleep 5
         # Запускаем скрипт внутри Docker контейнера, где есть все зависимости
-        docker-compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
           -e HF_TOKEN="${HF_TOKEN}" \
           -e NUM_ITERATIONS="${NUM_ITERATIONS}" \
           -e NUM_EPOCHS="${NUM_EPOCHS}" \
@@ -175,7 +163,7 @@ jobs:
         echo "Очистка временных файлов"
         echo "=========================================="
         # Останавливаем контейнер, если он был запущен этим job
-        docker-compose -f docker-compose.yml -f docker-compose.ci.yml down || true
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml down || true
         echo "✓ Очистка завершена"
 
     - name: Summary
