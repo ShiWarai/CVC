@@ -35,19 +35,15 @@ jobs:
         # Проверяем Python
         python --version
 
-    - name: Install Python dependencies
+    - name: Install Python dependencies for scripts
       run: |
-        echo "Установка зависимостей Python..."
-        # Устанавливаем зависимости в зависимости от наличия CUDA
-        if command -v nvidia-smi &> /dev/null; then
-          echo "Обнаружен NVIDIA GPU, устанавливаем CUDA зависимости..."
-          pip install -r requirements-cuda.txt || pip install -r requirements.txt
-        else
-          echo "GPU не обнаружен, устанавливаем CPU зависимости..."
-          pip install -r requirements.txt
-        fi
-        # Устанавливаем huggingface-hub для загрузки моделей
-        pip install huggingface-hub
+        echo "Установка минимальных зависимостей для CI/CD скриптов..."
+        # Скрипты работают на хосте и взаимодействуют с контейнером через API
+        # Обучение происходит внутри контейнера, поэтому на хосте нужны только:
+        # - requests (для CVCApiClient)
+        # - pyyaml (для чтения config.yaml)
+        # - huggingface-hub (для загрузки модели на HF)
+        pip install requests pyyaml huggingface-hub
 
     - name: Check Hugging Face token
       run: |
@@ -68,6 +64,13 @@ jobs:
         if ! docker network ls | grep -q robot-services-network; then
           echo "Создание сети robot-services-network..."
           docker network create robot-services-network || true
+        fi
+        
+        # Проверяем наличие образа (для переиспользования)
+        if docker images | grep -q "cvc-api"; then
+          echo "✓ Образ cvc-api уже существует, будет переиспользован"
+        else
+          echo "ℹ️  Образ cvc-api будет собран при первом запуске"
         fi
 
     - name: Run training via API
