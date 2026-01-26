@@ -31,4 +31,4 @@ services:
 
 networks:
   robot-services-network:
-    driver: bridge
+    external: true

@@ -7,3 +7,9 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
+    networks:
+      - robot-services-network
+
+networks:
+  robot-services-network:
+    driver: bridge
