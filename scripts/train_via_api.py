@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Скрипт для обучения модели через API в CI/CD пайплайне.
-Запускает сервер через docker-compose, затем использует API для обучения.
+Скрипт для обучения модели в CI/CD пайплайне.
+Может работать через API или напрямую (без API).
 """
 
 import sys
@@ -15,6 +15,8 @@ project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from commands_classifier.client import CVCApiClient
+from commands_classifier.model import CommandsClassifier
+from commands_classifier import db as db_module
 import yaml
 
 
@@ -48,13 +50,33 @@ def wait_for_server(url: str = "http://localhost:20001", timeout: int = 120) -> 
 
 
 def main():
-    """Основная функция для обучения модели через API."""
+    """Основная функция для обучения модели в CI/CD пайплайне."""
     print("=" * 60)
-    print("Запуск обучения модели через API (CI/CD)")
+    print("Запуск обучения модели (CI/CD)")
     print("=" * 60)
     
     # Загружаем конфигурацию
     config = load_config()
+    
+    # Определяем путь к БД для обучения
+    # Если TRAINING_DB_PATH не указан, используем отдельную БД для CI/CD по умолчанию
+    training_db_path = os.getenv("TRAINING_DB_PATH", "").strip()
+    if not training_db_path:
+        # По умолчанию для CI/CD используем отдельную БД
+        training_db_path = "db/training_data_ci.db"
+    
+    original_db_path = config.get("database", {}).get("path", "db/training_data.db")
+    
+    print(f"\nБаза данных:")
+    print(f"  Основная БД (из config): {original_db_path}")
+    print(f"  БД для обучения: {training_db_path}")
+    
+    # Инициализируем БД для обучения (загружает данные из CSV)
+    # В Docker пути работают относительно /app, но скрипт запускается на хосте
+    # Поэтому используем пути относительно project_root
+    csv_path = config.get("database", {}).get("csv_migration_path", "data")
+    db_module.init_db(training_db_path, csv_path)
+    print(f"✓ База данных для обучения инициализирована")
     
     # Параметры обучения из конфига или переменных окружения
     training_config = config.get("training", {})
@@ -71,135 +93,141 @@ def main():
     learning_rate_env = os.getenv("LEARNING_RATE", "").strip()
     learning_rate = float(learning_rate_env) if learning_rate_env else training_config.get("learning_rate", 2e-5)
     
-    server_config = config.get("server", {})
-    api_url = f"http://{server_config.get('host', 'localhost')}:{server_config.get('port', 20001)}"
-    
     print(f"\nПараметры обучения:")
     print(f"  Итераций: {num_iterations}")
     print(f"  Эпох: {num_epochs}")
     print(f"  Размер батча: {batch_size}")
     print(f"  Скорость обучения: {learning_rate}")
-    print(f"  API URL: {api_url}")
     
-    # Проверяем, запущен ли сервер
-    print(f"\nПроверка сервера...")
+    # Сбрасываем статус обучения напрямую в БД (не через API)
+    print(f"\nСброс статуса обучения в БД {training_db_path}...")
     try:
-        client = CVCApiClient(api_url)
-        client.health()
-        print("✓ Сервер уже запущен")
-        server_started = False
-    except Exception:
-        print("Сервер не запущен, запускаем через docker-compose...")
+        reset_count = db_module.reset_training_status(training_db_path)
+        print(f"✓ Сброс выполнен: {reset_count} примеров помечено как необученные")
+    except Exception as e:
+        print(f"⚠️  Предупреждение: не удалось выполнить reset: {e}")
+        print("Продолжаем обучение...")
+    
+    # Загружаем данные из БД для обучения
+    print(f"\nЗагрузка данных из БД для обучения...")
+    texts, labels, example_ids = db_module.get_examples_for_training(training_db_path)
+    
+    if len(texts) == 0:
+        print("✗ Ошибка: нет необученных данных в базе данных", file=sys.stderr)
+        print(f"  Проверьте БД: {training_db_path}", file=sys.stderr)
+        return 1
+    
+    print(f"✓ Загружено {len(texts)} примеров для обучения")
+    
+    # Обучаем модель напрямую (не через API)
+    print(f"\nЗапуск обучения модели...")
+    try:
+        model_config = config.get("model", {})
+        model_path = model_config.get("path", "models/panda_commands")
+        model_name = model_config.get("name", "google/embeddinggemma-300M")
+        confidence_threshold = float(model_config.get("confidence_threshold", 0.5))
+        cache_dir = model_config.get("cache_dir")
         
-        # Запускаем docker-compose
-        print("Запуск docker-compose up -d...")
-        result = subprocess.run(
-            ["docker-compose", "up", "-d"],
-            cwd=project_root,
-            capture_output=True,
-            text=True
+        # Определяем устройство для обучения
+        import torch
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+        print(f"  Устройство: {device}")
+        
+        # Создаем и обучаем модель
+        classifier = CommandsClassifier(
+            model_name=model_name,
+            confidence_threshold=confidence_threshold,
+            cache_dir=cache_dir
         )
         
-        if result.returncode != 0:
-            print(f"✗ Ошибка при запуске docker-compose: {result.stderr}", file=sys.stderr)
-            return 1
-        
-        print("✓ Docker-compose запущен")
-        server_started = True
-        
-        # Ждем готовности сервера
-        if not wait_for_server(api_url):
-            return 1
-    
-    # Создаем клиент
-    client = CVCApiClient(api_url)
-    
-    # Проверяем статус обучения
-    try:
-        status = client.get_training_status()
-        if status.get("status") == "running":
-            print("⚠️  Обучение уже запущено. Ожидание завершения...")
-            # Ждем завершения текущего обучения
-            while status.get("status") == "running":
-                time.sleep(5)
-                status = client.get_training_status()
-                progress = status.get("progress", 0)
-                print(f"Прогресс: {progress:.1%}", end='\r')
-            
-            if status.get("status") == "completed":
-                print("\n✓ Предыдущее обучение завершено")
-            elif status.get("status") == "failed":
-                print(f"\n⚠️  Предыдущее обучение завершилось с ошибкой: {status.get('error')}")
-                print("Продолжаем с новым обучением...")
-    except Exception as e:
-        print(f"⚠️  Не удалось проверить статус: {e}")
-    
-    # Запускаем обучение
-    print(f"\nЗапуск обучения через API...")
-    try:
-        result = client.train(
+        print("  Обучение модели...")
+        metrics = classifier.train(
+            texts=texts,
+            labels=labels,
             num_iterations=num_iterations,
             num_epochs=num_epochs,
             batch_size=batch_size,
-            learning_rate=learning_rate
+            learning_rate=learning_rate,
+            device=device
         )
         
-        training_id = result.get("training_id")
-        print(f"✓ Обучение запущено. ID задачи: {training_id}")
-        print("Ожидание завершения обучения...")
+        # Сохраняем модель
+        print(f"  Сохранение модели в {model_path}...")
+        Path(model_path).parent.mkdir(parents=True, exist_ok=True)
+        classifier.save(model_path)
         
-        # Ждем завершения обучения
-        while True:
-            time.sleep(5)
-            status = client.get_training_status()
-            
-            if status.get("status") == "completed":
-                print(f"\n✓ Обучение завершено успешно!")
-                if "metrics" in status and status["metrics"]:
-                    print("\nМетрики качества модели:")
-                    for metric, value in status["metrics"].items():
-                        print(f"  {metric}: {value:.4f}")
-                break
-            elif status.get("status") == "failed":
-                error = status.get("error", "Неизвестная ошибка")
-                print(f"\n✗ Обучение завершилось с ошибкой: {error}", file=sys.stderr)
-                return 1
-            elif status.get("status") == "running":
-                progress = status.get("progress", 0)
-                print(f"Прогресс: {progress:.1%}", end='\r')
+        print(f"\n✓ Обучение завершено успешно!")
+        if metrics:
+            print("\nМетрики качества модели:")
+            for metric, value in metrics.items():
+                print(f"  {metric}: {value:.4f}")
         
-        # После успешного обучения упаковываем модель
-        print(f"\nУпаковка модели...")
+        # Помечаем примеры как обученные
+        print(f"\nОбновление статуса примеров в БД...")
+        from commands_classifier.db import mark_examples_as_trained
+        mark_examples_as_trained(training_db_path, example_ids)
+        print(f"✓ {len(example_ids)} примеров помечено как обученные")
+        
+        # Упаковка модели выполняется через API (нужен сервер для /package endpoint)
+        # Запускаем сервер, если он не запущен
+        server_config = config.get("server", {})
+        api_url = f"http://{server_config.get('host', 'localhost')}:{server_config.get('port', 20001)}"
+        
+        print(f"\nПодготовка к упаковке модели...")
+        client = None
         try:
-            package_result = client.package()
-            package_id = package_result.get("package_id")
-            print(f"✓ Упаковка запущена. ID задачи: {package_id}")
-            
-            # Ждем завершения упаковки
-            while True:
-                time.sleep(2)
-                status = client.get_package_status()
+            client = CVCApiClient(api_url)
+            client.health()
+            print("✓ Сервер уже запущен")
+        except Exception:
+            print("Запуск сервера через docker-compose для упаковки...")
+            result = subprocess.run(
+                ["docker-compose", "up", "-d"],
+                cwd=project_root,
+                capture_output=True,
+                text=True
+            )
+            if result.returncode != 0:
+                print(f"⚠️  Не удалось запустить сервер: {result.stderr}", file=sys.stderr)
+                print("Пропускаем упаковку...")
+            else:
+                if wait_for_server(api_url, timeout=60):
+                    client = CVCApiClient(api_url)
+                else:
+                    print("⚠️  Сервер не готов, пропускаем упаковку...")
+        
+        # Упаковываем модель через API
+        if client:
+            print(f"\nУпаковка модели через API...")
+            try:
+                package_result = client.package()
+                package_id = package_result.get("package_id")
+                print(f"✓ Упаковка запущена. ID задачи: {package_id}")
                 
-                if status.get("status") == "completed":
-                    output_path = status.get("output_path")
-                    print(f"\n✓ Модель упакована: {output_path}")
-                    # Сохраняем путь для использования в CI/CD
-                    archive_file = os.getenv("GITHUB_OUTPUT", "/tmp/archive_path.txt")
-                    with open(archive_file, "a") as f:
-                        f.write(f"archive_path={output_path}\n")
-                    # Также выводим в stdout для совместимости
-                    print(f"ARCHIVE_PATH={output_path}")
-                    break
-                elif status.get("status") == "failed":
-                    error = status.get("error", "Неизвестная ошибка")
-                    print(f"\n✗ Упаковка завершилась с ошибкой: {error}", file=sys.stderr)
-                    return 1
-                elif status.get("status") == "running":
-                    progress = status.get("progress", 0)
-                    print(f"Прогресс упаковки: {progress:.1%}", end='\r')
-        except Exception as e:
-            print(f"\n⚠️  Ошибка при упаковке: {e}", file=sys.stderr)
-            print("Продолжаем без упаковки...")
+                # Ждем завершения упаковки
+                while True:
+                    time.sleep(2)
+                    status = client.get_package_status()
+                    
+                    if status.get("status") == "completed":
+                        output_path = status.get("output_path")
+                        print(f"\n✓ Модель упакована: {output_path}")
+                        # Сохраняем путь для использования в CI/CD
+                        archive_file = os.getenv("GITHUB_OUTPUT", "/tmp/archive_path.txt")
+                        with open(archive_file, "a") as f:
+                            f.write(f"archive_path={output_path}\n")
+                        print(f"ARCHIVE_PATH={output_path}")
+                        break
+                    elif status.get("status") == "failed":
+                        error = status.get("error", "Неизвестная ошибка")
+                        print(f"\n✗ Упаковка завершилась с ошибкой: {error}", file=sys.stderr)
+                        return 1
+                    elif status.get("status") == "running":
+                        progress = status.get("progress", 0)
+                        print(f"Прогресс упаковки: {progress:.1%}", end='\r')
+            except Exception as e:
+                print(f"\n⚠️  Ошибка при упаковке: {e}", file=sys.stderr)
+                print("Продолжаем без упаковки...")
         
         return 0
         

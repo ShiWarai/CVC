@@ -4,6 +4,12 @@ on:
   push:
     branches: [ main, master, dev ]  # Триггер на push в main/master/dev (новый датасет)
   workflow_dispatch:  # Позволяет запускать вручную через GitHub UI
+    inputs:
+      db_path:
+        description: 'Путь к базе данных для обучения (относительно корня проекта, по умолчанию: db/training_data_ci.db)'
+        required: false
+        default: 'db/training_data_ci.db'
+        type: string
 
 jobs:
   train-and-deploy:
@@ -82,9 +88,11 @@ jobs:
         NUM_EPOCHS: ${{ secrets.NUM_EPOCHS }}
         BATCH_SIZE: ${{ secrets.BATCH_SIZE }}
         LEARNING_RATE: ${{ secrets.LEARNING_RATE }}
+        # Путь к базе данных для обучения (по умолчанию: db/training_data_ci.db для CI/CD)
+        TRAINING_DB_PATH: ${{ github.event.inputs.db_path || 'db/training_data_ci.db' }}
       run: |
         echo "=========================================="
-        echo "Запуск обучения модели через API"
+        echo "Запуск обучения модели"
         echo "=========================================="
         python scripts/train_via_api.py
         echo "✓ Обучение завершено"
