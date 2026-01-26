@@ -95,7 +95,7 @@ jobs:
         echo "Запуск обучения модели"
         echo "=========================================="
         # Убеждаемся, что контейнер запущен
-        docker-compose up -d
+        docker-compose up -d  --build
         sleep 5
         # Запускаем скрипт внутри Docker контейнера, где есть все зависимости
         docker-compose exec -T \

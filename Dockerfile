@@ -12,7 +12,9 @@ RUN pip install --upgrade pip && \
 
 COPY requirements.txt .
 
-RUN pip install -r requirements.txt
+RUN pip install --root-user-action=ignore -r requirements.txt && \
+    python -c "import uvicorn; import fastapi; print('✓ uvicorn и fastapi установлены')" || \
+    (echo "✗ Ошибка установки зависимостей" && exit 1)
 
 COPY commands_classifier/ ./commands_classifier/
 COPY config.yaml .
