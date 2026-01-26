@@ -10,13 +10,15 @@ https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torchaudio-2.9.0+rocmsdk2025
 https://repo.radeon.com/rocm/windows/rocm-rel-7.1.1/torchvision-0.24.0+rocmsdk20251116-cp312-cp312-win_amd64.whl
 
 # Остальные зависимости проекта
-setfit>=0.7.0
-sentence-transformers>=2.2.0
-pandas>=1.5.0
-scikit-learn>=1.0.0
-datasets>=2.0.0
-fastapi>=0.100.0
-uvicorn>=0.23.0
+setfit>=1.1.3
+transformers>=4.57.0
+sentence-transformers>=5.2.0
+pandas>=2.3.0
+scikit-learn>=1.8.0
+datasets>=4.5.0
+fastapi>=0.128.0
+uvicorn>=0.40.0
 pyyaml>=6.0
-requests>=2.31.0
-python-dotenv>=1.0.0
+requests>=2.32.0
+python-dotenv>=1.2.0
+psutil

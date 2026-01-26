@@ -2,17 +2,23 @@
 
 import argparse
 import sys
+import os
 
 
 def serve_command(args):
     """Команда для запуска API сервера."""
+    # Проверяем импорт uvicorn отдельно
     try:
         import uvicorn
-        
-        print(f"Запуск API сервера на {args.host}:{args.port}")
-        print(f"Конфигурация: {args.config}")
-        print(f"Документация API: http://{args.host}:{args.port}/docs")
-        
+    except ImportError:
+        print("Ошибка: uvicorn не установлен. Установите его: pip install uvicorn", file=sys.stderr)
+        sys.exit(1)
+    
+    print(f"Запуск API сервера на {args.host}:{args.port}")
+    print(f"Конфигурация: {args.config}")
+    print(f"Документация API: http://{args.host}:{args.port}/docs")
+    
+    try:
         # Для reload нужно передавать строку импорта, а не объект
         if args.reload:
             uvicorn.run(
@@ -30,11 +36,15 @@ def serve_command(args):
                 port=args.port,
                 reload=False
             )
-    except ImportError:
-        print("Ошибка: uvicorn не установлен. Установите его: pip install uvicorn", file=sys.stderr)
+    except ImportError as e:
+        print(f"Ошибка импорта модуля: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         sys.exit(1)
     except Exception as e:
         print(f"Ошибка при запуске сервера: {e}", file=sys.stderr)
+        import traceback
+        traceback.print_exc(file=sys.stderr)
         sys.exit(1)
 
 

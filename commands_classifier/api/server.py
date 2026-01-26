@@ -14,7 +14,8 @@ from commands_classifier.api.state import (
     get_classifier, set_classifier, unload_classifier,
     get_config, set_config,
     get_training_manager, set_training_manager,
-    get_default_device, set_default_device
+    get_default_device, set_default_device,
+    load_model
 )
 from commands_classifier.api.routes import (
     predict_router,
@@ -61,38 +62,6 @@ def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
         }
     set_config(config)
     return config
-
-
-def load_model() -> bool:
-    """Загружает модель из файла."""
-    config = get_config()
-    model_path = config["model"]["path"]
-    model_path_obj = Path(model_path)
-    
-    if model_path_obj.exists():
-        try:
-            # Убеждаемся, что confidence_threshold - это float
-            confidence_threshold = float(config["model"].get("confidence_threshold", 0.5))
-            
-            # Выгружаем старую модель из памяти
-            unload_classifier()
-            
-            # Загружаем новую модель
-            cache_dir = config["model"].get("cache_dir")
-            classifier = CommandsClassifier(
-                confidence_threshold=confidence_threshold,
-                cache_dir=cache_dir
-            )
-            classifier.load(model_path, confidence_threshold=confidence_threshold)
-            set_classifier(classifier)
-            return True
-        except Exception as e:
-            print(f"Предупреждение: не удалось загрузить модель: {e}")
-            set_classifier(None)
-            return False
-    else:
-        set_classifier(None)
-        return False
 
 
 def init_app():

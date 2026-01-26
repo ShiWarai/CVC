@@ -1,6 +1,7 @@
 """Глобальное состояние приложения."""
 
 from typing import Optional, Dict, Any
+from pathlib import Path
 from commands_classifier.model import CommandsClassifier
 from commands_classifier.api.training import TrainingManager
 
@@ -90,3 +91,35 @@ def set_default_device(device: str) -> None:
     """Устанавливает устройство по умолчанию."""
     global _default_device
     _default_device = device
+
+
+def load_model() -> bool:
+    """Загружает модель из файла."""
+    config = get_config()
+    model_path = config["model"]["path"]
+    model_path_obj = Path(model_path)
+    
+    if model_path_obj.exists():
+        try:
+            # Убеждаемся, что confidence_threshold - это float
+            confidence_threshold = float(config["model"].get("confidence_threshold", 0.5))
+            
+            # Выгружаем старую модель из памяти
+            unload_classifier()
+            
+            # Загружаем новую модель
+            cache_dir = config["model"].get("cache_dir")
+            classifier = CommandsClassifier(
+                confidence_threshold=confidence_threshold,
+                cache_dir=cache_dir
+            )
+            classifier.load(model_path, confidence_threshold=confidence_threshold)
+            set_classifier(classifier)
+            return True
+        except Exception as e:
+            print(f"Предупреждение: не удалось загрузить модель: {e}")
+            set_classifier(None)
+            return False
+    else:
+        set_classifier(None)
+        return False
