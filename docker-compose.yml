@@ -47,4 +47,6 @@ services:
 
 networks:
   robot-services-network:
-    external: true
+    # Сеть создаётся автоматически docker-compose
+    # Если сеть уже существует (создана вручную или другими сервисами), она будет переиспользована
+    driver: bridge
