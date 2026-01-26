@@ -17,19 +17,28 @@ jobs:
     timeout-minutes: 60  # Таймаут для всего job (60 минут)
     
     steps:
+    - name: Cleanup problematic directories
+      continue-on-error: true
+      run: |
+        echo "Очистка директорий с проблемными правами доступа..."
+        # Пытаемся удалить директории, созданные Docker от root
+        # Используем continue-on-error, чтобы не падать, если не получится
+        rm -rf cache/huggingface 2>/dev/null || true
+    
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Полная история для git pull
         clean: false  # Не удалять существующие файлы (избегаем проблем с правами доступа)
 
-    - name: Fix permissions
+    - name: Prepare directories
       run: |
-        echo "Создание директорий с правильными правами доступа..."
-        # Создаем директории с правильными правами, если их нет
+        echo "Подготовка директорий с правильными правами доступа..."
+        # Создаем директории с правильными правами ДО запуска Docker
+        # Это гарантирует, что Docker сможет писать в них
         mkdir -p cache/huggingface models checkpoints db
-        # Исправляем права доступа на существующие директории (если возможно)
-        chmod -R 755 cache models checkpoints db 2>/dev/null || true
+        # Устанавливаем права доступа на запись для всех
+        chmod -R 777 cache models checkpoints db 2>/dev/null || true
 
     - name: Pull latest changes
       run: |

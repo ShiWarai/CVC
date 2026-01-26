@@ -20,6 +20,15 @@ COPY data/ ./data/
 
 RUN mkdir -p models checkpoints
 
+# Создаем пользователя для запуска приложения (не root)
+# Используем UID/GID 1000, который обычно соответствует первому пользователю на Linux
+RUN groupadd -r appuser -g 1000 && \
+    useradd -r -u 1000 -g appuser -d /app -s /bin/bash appuser && \
+    chown -R appuser:appuser /app
+
 EXPOSE 20001
+
+# Переключаемся на пользователя appuser
+USER appuser
 
 CMD ["python", "-m", "commands_classifier.cli", "serve", "--host", "0.0.0.0", "--port", "20001"]
