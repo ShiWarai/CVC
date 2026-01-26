@@ -2,7 +2,7 @@ name: ML Pipeline - Train and Deploy
 
 on:
   push:
-    branches: [ main, master ]  # Триггер на push в main/master (новый датасет)
+    branches: [ main, master, dev ]  # Триггер на push в main/master/dev (новый датасет)
   workflow_dispatch:  # Позволяет запускать вручную через GitHub UI
   schedule:
     # Запуск каждый день в полночь UTC (опционально, раскомментируйте если нужно)
@@ -23,7 +23,7 @@ jobs:
       run: |
         echo "Обновление кода из репозитория..."
         git fetch origin
-        git pull origin main || git pull origin master
+        git pull origin main || git pull origin master || git pull origin dev
 
     - name: Set up Python
       uses: actions/setup-python@v5
