@@ -745,6 +745,109 @@ text,command
 - **Качество данных**: Используйте разнообразные формулировки для каждой команды
 - **Тестирование**: После обучения протестируйте модель на новых примерах
 
+## CI/CD и автоматическое обучение
+
+Проект включает CI/CD пайплайн для автоматического обучения моделей через GitHub Actions. Подробная документация находится в [docs/cicd_setup.md](docs/cicd_setup.md).
+
+### Настройка self-hosted runner для GPU
+
+Для использования GPU в CI/CD необходимо настроить self-hosted runner на машине с NVIDIA GPU.
+
+#### 1. Установка GitHub Actions runner
+
+```bash
+# Перейдите в репозиторий на GitHub
+# Settings → Actions → Runners → New self-hosted runner
+# Следуйте инструкциям для Linux
+
+# Пример команд (замените на актуальные из GitHub):
+mkdir actions-runner && cd actions-runner
+curl -o actions-runner-linux-x64-2.311.0.tar.gz -L https://github.com/actions/runner/releases/download/v2.311.0/actions-runner-linux-x64-2.311.0.tar.gz
+tar xzf ./actions-runner-linux-x64-2.311.0.tar.gz
+./config.sh --url https://github.com/YOUR_USERNAME/YOUR_REPO --token YOUR_TOKEN
+sudo ./svc.sh install
+sudo ./svc.sh start
+```
+
+#### 2. Настройка прав доступа к Docker
+
+Добавьте пользователя runner в группу docker:
+
+```bash
+# Определите пользователя под которым работает runner (обычно это пользователь, который запустил config.sh)
+# Если запускали через sudo, это может быть root
+sudo usermod -aG docker $USER  # или имя пользователя runner
+# Перезапустите runner после изменения групп
+sudo ./svc.sh stop
+sudo ./svc.sh start
+```
+
+#### 3. Установка NVIDIA Container Runtime
+
+**Важно:** Для использования GPU в Docker контейнерах необходимо установить NVIDIA Container Runtime.
+
+**Проверка текущего состояния:**
+
+```bash
+# 1. Проверка NVIDIA драйверов
+nvidia-smi
+
+# 2. Проверка поддержки NVIDIA в Docker
+docker info | grep -i nvidia
+
+# 3. Проверка что NVIDIA Container Runtime работает
+docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
+```
+
+Если команда из пункта 3 выполняется без ошибок и показывает информацию о GPU — NVIDIA Container Runtime установлен и работает.
+
+**Установка NVIDIA Container Runtime:**
+
+Если получили ошибку `could not select device driver "nvidia"`, выполните:
+
+```bash
+# Определяем дистрибутив
+distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+
+# Добавляем репозиторий NVIDIA
+curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+
+# Устанавливаем
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+
+# Перезапускаем Docker
+sudo systemctl restart docker
+
+# Проверяем установку
+docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
+```
+
+#### 4. Настройка GitHub Secrets
+
+В репозитории GitHub перейдите в:
+**Settings → Secrets and variables → Actions → New repository secret**
+
+Добавьте следующие секреты:
+
+- **HF_TOKEN** - токен Hugging Face (обязательно)
+  - Получите на https://huggingface.co/settings/tokens
+  - Формат: `hf_xxxxxxxxxxxxxxxxxxxxxxxxxxxxx`
+
+- **HF_REPO_ID** - ID репозитория на Hugging Face (обязательно)
+  - Формат: `username/model-name`
+  - Пример: `your-username/cvc-commands-classifier`
+
+- **NUM_ITERATIONS**, **NUM_EPOCHS**, **BATCH_SIZE**, **LEARNING_RATE** (опционально)
+  - Для переопределения параметров обучения из config.yaml
+
+#### 5. Проверка работы
+
+После настройки workflow автоматически запускается при push в ветки `main`, `master` или `dev`. Также можно запустить вручную через **Actions → ML Pipeline - Train and Deploy → Run workflow**.
+
+Подробная документация: [docs/cicd_setup.md](docs/cicd_setup.md)
+
 ## Структура проекта
 
 ```

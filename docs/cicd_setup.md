@@ -107,6 +107,48 @@ cat ~/.cvc_ssh_keys/deploy_key.pub
    docker ps  # Должно работать без sudo
    ```
    
+3. **Установите NVIDIA Container Runtime (для использования GPU в Docker):**
+   
+   **Важно:** Для использования GPU в Docker контейнерах необходимо установить NVIDIA Container Runtime.
+   
+   **Проверка текущего состояния:**
+   
+   ```bash
+   # 1. Проверка NVIDIA драйверов
+   nvidia-smi
+   
+   # 2. Проверка поддержки NVIDIA в Docker
+   docker info | grep -i nvidia
+   
+   # 3. Проверка что NVIDIA Container Runtime работает
+   docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
+   ```
+   
+   Если команда из пункта 3 выполняется без ошибок и показывает информацию о GPU — NVIDIA Container Runtime установлен и работает.
+   
+   **Установка NVIDIA Container Runtime:**
+   
+   Если получили ошибку `could not select device driver "nvidia"`, выполните:
+   
+   ```bash
+   # Определяем дистрибутив
+   distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+   
+   # Добавляем репозиторий NVIDIA
+   curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
+   curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
+   
+   # Устанавливаем
+   sudo apt-get update
+   sudo apt-get install -y nvidia-container-toolkit
+   
+   # Перезапускаем Docker
+   sudo systemctl restart docker
+   
+   # Проверяем установку
+   docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
+   ```
+   
    Вариант B: Настройте sudo без пароля для команд docker (если вариант A не подходит):
    ```bash
    # Создайте файл sudoers для пользователя runner
@@ -135,9 +177,34 @@ cat ~/.cvc_ssh_keys/deploy_key.pub
    sudo docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi
    ```
 
-4. Установите NVIDIA Container Toolkit (если используете Docker):
+4. **Установите NVIDIA Container Runtime (если используете Docker):**
+   
+   **Важно:** Для использования GPU в Docker контейнерах необходимо установить NVIDIA Container Runtime (ранее назывался NVIDIA Container Toolkit).
+   
+   **Проверка текущего состояния:**
+   
    ```bash
+   # 1. Проверка NVIDIA драйверов
+   nvidia-smi
+   
+   # 2. Проверка поддержки NVIDIA в Docker
+   docker info | grep -i nvidia
+   
+   # 3. Проверка что NVIDIA Container Runtime работает
+   docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
+   ```
+   
+   Если команда из пункта 3 выполняется без ошибок и показывает информацию о GPU — NVIDIA Container Runtime установлен и работает.
+   
+   **Установка NVIDIA Container Runtime:**
+   
+   Если получили ошибку `could not select device driver "nvidia"`, выполните:
+   
+   ```bash
+   # Определяем дистрибутив
    distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
+   
+   # Добавляем репозиторий NVIDIA
    curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
    curl -s -L https://nvidia.github.io/nvidia-docker/$distribution/nvidia-docker.list | sudo tee /etc/apt/sources.list.d/nvidia-docker.list
    sudo apt-get update
@@ -185,7 +252,12 @@ python scripts/upload_to_hf.py
 ### Проблема: GPU не доступен в runner
 - Проверьте `nvidia-smi` на GPU-машине
 - Убедитесь, что пользователь runner имеет доступ к GPU
-- Если используете Docker, проверьте установку NVIDIA Container Toolkit
+- Если используете Docker, проверьте установку NVIDIA Container Runtime:
+  ```bash
+  docker info | grep -i nvidia
+  docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
+  ```
+- Если получили ошибку `could not select device driver "nvidia"`, установите NVIDIA Container Runtime (см. Шаг 4, пункт 3)
 
 ### Проблема: Модель не скачивается на production-сервере
 - Убедитесь, что на production-сервере установлен `huggingface-hub`
