@@ -76,10 +76,12 @@ jobs:
     - name: Run training via API
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        NUM_ITERATIONS: ${{ secrets.NUM_ITERATIONS || '' }}
-        NUM_EPOCHS: ${{ secrets.NUM_EPOCHS || '' }}
-        BATCH_SIZE: ${{ secrets.BATCH_SIZE || '' }}
-        LEARNING_RATE: ${{ secrets.LEARNING_RATE || '' }}
+        # Переменные окружения для параметров обучения (опционально)
+        # Если не установлены или пустые, используются значения из config.yaml
+        NUM_ITERATIONS: ${{ secrets.NUM_ITERATIONS }}
+        NUM_EPOCHS: ${{ secrets.NUM_EPOCHS }}
+        BATCH_SIZE: ${{ secrets.BATCH_SIZE }}
+        LEARNING_RATE: ${{ secrets.LEARNING_RATE }}
       run: |
         echo "=========================================="
         echo "Запуск обучения модели через API"
@@ -113,7 +115,11 @@ jobs:
     - name: Cleanup
       if: always()  # Выполняется всегда, даже при ошибке
       run: |
-        echo "Очистка временных файлов..."
+        echo "=========================================="
+        echo "Очистка временных файлов"
+        echo "=========================================="
+        # Останавливаем контейнер, если он был запущен этим job
+        docker-compose down || true
         echo "✓ Очистка завершена"
 
     - name: Summary

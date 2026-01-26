@@ -58,10 +58,18 @@ def main():
     
     # Параметры обучения из конфига или переменных окружения
     training_config = config.get("training", {})
-    num_iterations = int(os.getenv("NUM_ITERATIONS", training_config.get("iterations", 20)))
-    num_epochs = int(os.getenv("NUM_EPOCHS", training_config.get("epochs", 1)))
-    batch_size = int(os.getenv("BATCH_SIZE", training_config.get("batch_size", 128)))
-    learning_rate = float(os.getenv("LEARNING_RATE", training_config.get("learning_rate", 2e-5)))
+    # Обрабатываем пустые строки: если переменная окружения пустая, используем значение из конфига
+    num_iterations_env = os.getenv("NUM_ITERATIONS", "").strip()
+    num_iterations = int(num_iterations_env) if num_iterations_env else training_config.get("iterations", 20)
+    
+    num_epochs_env = os.getenv("NUM_EPOCHS", "").strip()
+    num_epochs = int(num_epochs_env) if num_epochs_env else training_config.get("epochs", 1)
+    
+    batch_size_env = os.getenv("BATCH_SIZE", "").strip()
+    batch_size = int(batch_size_env) if batch_size_env else training_config.get("batch_size", 128)
+    
+    learning_rate_env = os.getenv("LEARNING_RATE", "").strip()
+    learning_rate = float(learning_rate_env) if learning_rate_env else training_config.get("learning_rate", 2e-5)
     
     server_config = config.get("server", {})
     api_url = f"http://{server_config.get('host', 'localhost')}:{server_config.get('port', 20001)}"
