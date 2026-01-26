@@ -79,7 +79,7 @@ jobs:
           echo "ℹ️  Образ cvc-api будет собран при первом запуске"
         fi
 
-    - name: Run training via API
+    - name: Run training
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
         # Переменные окружения для параметров обучения (опционально)
@@ -94,7 +94,18 @@ jobs:
         echo "=========================================="
         echo "Запуск обучения модели"
         echo "=========================================="
-        python scripts/train_via_api.py
+        # Убеждаемся, что контейнер запущен
+        docker-compose up -d
+        sleep 5
+        # Запускаем скрипт внутри Docker контейнера, где есть все зависимости
+        docker-compose exec -T \
+          -e HF_TOKEN="${HF_TOKEN}" \
+          -e NUM_ITERATIONS="${NUM_ITERATIONS}" \
+          -e NUM_EPOCHS="${NUM_EPOCHS}" \
+          -e BATCH_SIZE="${BATCH_SIZE}" \
+          -e LEARNING_RATE="${LEARNING_RATE}" \
+          -e TRAINING_DB_PATH="${TRAINING_DB_PATH}" \
+          cvc-api python /app/scripts/train_via_api.py
         echo "✓ Обучение завершено"
 
     - name: Upload model to Hugging Face

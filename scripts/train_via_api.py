@@ -11,7 +11,13 @@ import subprocess
 from pathlib import Path
 
 # Добавляем корневую директорию проекта в путь
-project_root = Path(__file__).parent.parent
+# В Docker контейнере это /app, на хосте - родительская директория скрипта
+if Path("/app").exists():
+    # Работаем внутри Docker контейнера
+    project_root = Path("/app")
+else:
+    # Работаем на хосте
+    project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
 from commands_classifier.client import CVCApiClient
@@ -22,7 +28,12 @@ import yaml
 
 def load_config(config_path: str = "config.yaml") -> dict:
     """Загружает конфигурацию из YAML файла."""
-    with open(config_path, 'r', encoding='utf-8') as f:
+    # В Docker контейнере используем /app/config.yaml, на хосте - относительно project_root
+    if Path("/app").exists():
+        config_file = Path("/app") / "config.yaml" if config_path == "config.yaml" else Path(config_path)
+    else:
+        config_file = project_root / config_path
+    with open(config_file, 'r', encoding='utf-8') as f:
         return yaml.safe_load(f)
 
 
@@ -180,21 +191,13 @@ def main():
             client.health()
             print("✓ Сервер уже запущен")
         except Exception:
-            print("Запуск сервера через docker-compose для упаковки...")
-            result = subprocess.run(
-                ["docker-compose", "up", "-d"],
-                cwd=project_root,
-                capture_output=True,
-                text=True
-            )
-            if result.returncode != 0:
-                print(f"⚠️  Не удалось запустить сервер: {result.stderr}", file=sys.stderr)
-                print("Пропускаем упаковку...")
+            # Внутри Docker контейнера сервер должен быть уже запущен
+            # Просто ждем его готовности
+            print("Ожидание готовности сервера...")
+            if wait_for_server(api_url, timeout=60):
+                client = CVCApiClient(api_url)
             else:
-                if wait_for_server(api_url, timeout=60):
-                    client = CVCApiClient(api_url)
-                else:
-                    print("⚠️  Сервер не готов, пропускаем упаковку...")
+                print("⚠️  Сервер не готов, пропускаем упаковку...")
         
         # Упаковываем модель через API
         if client:
