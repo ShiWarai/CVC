@@ -56,12 +56,19 @@ def main():
     print(f"  Основная БД (из config): {original_db_path}")
     print(f"  БД для обучения: {training_db_path}")
     
-    # Инициализируем БД для обучения (загружает данные из CSV)
+    # Удаляем старую БД для обеспечения чистой БД при каждом запуске CI/CD
+    training_db_path_obj = Path(training_db_path)
+    if training_db_path_obj.exists():
+        print(f"  Удаление существующей БД для создания чистой БД...")
+        training_db_path_obj.unlink()
+        print(f"✓ Старая БД удалена")
+    
+    # Инициализируем БД для обучения (загружает данные из CSV/TXT)
     # В Docker пути работают относительно /app, но скрипт запускается на хосте
     # Поэтому используем пути относительно project_root
     csv_path = config.get("database", {}).get("csv_migration_path", "data")
     db_module.init_db(training_db_path, csv_path)
-    print(f"✓ База данных для обучения инициализирована")
+    print(f"✓ База данных для обучения инициализирована (чистая БД)")
     
     # Параметры обучения из конфига или переменных окружения
     training_config = config.get("training", {})
@@ -89,14 +96,8 @@ def main():
     print(f"  Размер батча: {batch_size}")
     print(f"  Скорость обучения: {learning_rate}")
     
-    # Сбрасываем статус обучения напрямую в БД (не через API)
-    print(f"\nСброс статуса обучения в БД {training_db_path}...")
-    try:
-        reset_count = db_module.reset_training_status(training_db_path)
-        print(f"✓ Сброс выполнен: {reset_count} примеров помечено как необученные")
-    except Exception as e:
-        print(f"⚠️  Предупреждение: не удалось выполнить reset: {e}")
-        print("Продолжаем обучение...")
+    # БД уже чистая (была удалена и пересоздана), поэтому все примеры уже имеют is_trained = 0
+    # Сброс статуса не нужен, так как БД была создана заново
     
     # Загружаем данные из БД для обучения
     print(f"\nЗагрузка данных из БД для обучения...")

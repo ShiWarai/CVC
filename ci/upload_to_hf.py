@@ -40,6 +40,14 @@ def main():
         print("Установите переменную окружения HF_REPO_ID (например: username/model-name)", file=sys.stderr)
         return 1
     
+    # Получаем SHA коммита из GitHub для уникального коммита в HF
+    github_sha = os.getenv("GITHUB_SHA", "")
+    if github_sha:
+        # Используем короткий SHA (первые 7 символов)
+        commit_sha = github_sha[:7]
+    else:
+        commit_sha = None
+    
     # Загружаем конфигурацию для определения пути к модели
     config = load_config()
     model_path = config.get("model", {}).get("path", "models/panda_commands")
@@ -53,6 +61,8 @@ def main():
     print(f"\nПараметры загрузки:")
     print(f"  Репозиторий HF: {hf_repo_id}")
     print(f"  Путь к модели: {model_path}")
+    if commit_sha:
+        print(f"  Коммит GitHub: {commit_sha}")
     
     try:
         # Авторизуемся в HF
@@ -80,11 +90,17 @@ def main():
         
         # Загружаем модель
         print(f"\nЗагрузка модели на Hugging Face Hub...")
+        # Формируем уникальное сообщение коммита с SHA из GitHub
+        if commit_sha:
+            commit_message = f"Auto-upload: модель обучена через CI/CD (GitHub: {commit_sha})"
+        else:
+            commit_message = "Auto-upload: модель обучена через CI/CD"
+        
         api.upload_folder(
             folder_path=str(model_path_obj),
             repo_id=hf_repo_id,
             repo_type="model",
-            commit_message=f"Auto-upload: модель обучена через CI/CD",
+            commit_message=commit_message,
             ignore_patterns=["*.pyc", "__pycache__", "*.log"]
         )
         

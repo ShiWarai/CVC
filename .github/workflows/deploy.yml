@@ -137,6 +137,7 @@ jobs:
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
         HF_REPO_ID: ${{ secrets.HF_REPO_ID }}
+        GITHUB_SHA: ${{ github.sha }}
       run: |
         echo "=========================================="
         echo "Загрузка модели на Hugging Face Hub"
