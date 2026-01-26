@@ -21,6 +21,15 @@ jobs:
       uses: actions/checkout@v4
       with:
         fetch-depth: 0  # Полная история для git pull
+        clean: false  # Не удалять существующие файлы (избегаем проблем с правами доступа)
+
+    - name: Fix permissions
+      run: |
+        echo "Создание директорий с правильными правами доступа..."
+        # Создаем директории с правильными правами, если их нет
+        mkdir -p cache/huggingface models checkpoints db
+        # Исправляем права доступа на существующие директории (если возможно)
+        chmod -R 755 cache models checkpoints db 2>/dev/null || true
 
     - name: Pull latest changes
       run: |
