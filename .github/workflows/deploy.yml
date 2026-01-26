@@ -4,9 +4,6 @@ on:
   push:
     branches: [ main, master, dev ]  # Триггер на push в main/master/dev (новый датасет)
   workflow_dispatch:  # Позволяет запускать вручную через GitHub UI
-  schedule:
-    # Запуск каждый день в полночь UTC (опционально, раскомментируйте если нужно)
-    # - cron: '0 0 * * *'
 
 jobs:
   train-and-deploy:
