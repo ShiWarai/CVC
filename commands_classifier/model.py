@@ -66,7 +66,7 @@ class CommandsClassifier:
         num_iterations: int = 20,
         num_epochs: int = 1,
         batch_size: int = 16,
-        learning_rate: float = 2e-5,
+        learning_rate: float = 2e-5,  # Может быть float или str, будет преобразовано
         device: Optional[str] = None
     ) -> Optional[Dict[str, float]]:
         """
@@ -147,6 +147,9 @@ class CommandsClassifier:
         train_dataset = Dataset.from_dict({"text": texts, "label": labels})
         eval_dataset = Dataset.from_dict({"text": eval_texts, "label": eval_labels})
         
+        # Убеждаемся, что learning_rate это float (может прийти как str из config)
+        learning_rate_float = float(learning_rate)
+        
         # Создаем тренер с параметрами напрямую
         # Модель уже перемещена на нужное устройство выше
         trainer = SetFitTrainer(
@@ -156,7 +159,7 @@ class CommandsClassifier:
             num_iterations=num_iterations,
             num_epochs=num_epochs,
             batch_size=batch_size,
-            learning_rate=learning_rate,
+            learning_rate=learning_rate_float,
             column_mapping={"text": "text", "label": "label"},
         )
         

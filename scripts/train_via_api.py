@@ -102,7 +102,12 @@ def main():
     batch_size = int(batch_size_env) if batch_size_env else training_config.get("batch_size", 128)
     
     learning_rate_env = os.getenv("LEARNING_RATE", "").strip()
-    learning_rate = float(learning_rate_env) if learning_rate_env else training_config.get("learning_rate", 2e-5)
+    if learning_rate_env:
+        learning_rate = float(learning_rate_env)
+    else:
+        lr_from_config = training_config.get("learning_rate", 2e-5)
+        # Преобразуем в float (может быть str из YAML или уже float)
+        learning_rate = float(lr_from_config)
     
     print(f"\nПараметры обучения:")
     print(f"  Итераций: {num_iterations}")
