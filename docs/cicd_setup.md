@@ -81,16 +81,61 @@ cat ~/.cvc_ssh_keys/deploy_key.pub
    sudo ./svc.sh start
    ```
 
-2. Убедитесь, что runner имеет доступ к CUDA:
+2. **Настройте права доступа к Docker (ВАЖНО!):**
+   
+   Вариант A: Добавьте пользователя runner в группу docker (рекомендуется):
+   ```bash
+   # Определите пользователя, под которым запущен runner
+   # Если runner запущен вручную через ./run.sh, это пользователь, который запустил команду
+   # Если runner запущен как сервис, проверьте:
+   ps aux | grep Runner.Listener
+   
+   # Добавьте пользователя в группу docker
+   # Если runner запущен от пользователя 'user':
+   sudo usermod -aG docker user
+   
+   # Или если используете текущего пользователя:
+   sudo usermod -aG docker $USER
+   
+   # ВАЖНО: После добавления в группу нужно:
+   # 1. Выйти из сессии и войти заново (или выполнить newgrp docker)
+   # 2. Если runner запущен как сервис - перезапустить:
+   sudo systemctl restart actions.runner.*.service
+   # 3. Если runner запущен вручную - перезапустить его после выхода/входа
+   
+   # Проверьте права:
+   docker ps  # Должно работать без sudo
+   ```
+   
+   Вариант B: Настройте sudo без пароля для команд docker (если вариант A не подходит):
+   ```bash
+   # Создайте файл sudoers для пользователя runner
+   sudo visudo -f /etc/sudoers.d/docker-runner
+   
+   # Добавьте строку (замените 'user' на имя пользователя runner):
+   user ALL=(ALL) NOPASSWD: /usr/bin/docker, /usr/bin/docker-compose, /usr/local/bin/docker-compose
+   
+   # Сохраните и проверьте:
+   sudo docker ps
+   ```
+   
+   **Примечание:** Если runner запущен вручную (через `./run.sh`), после добавления в группу docker:
+   - Выйдите из текущей сессии терминала
+   - Войдите заново (или выполните `newgrp docker` в текущей сессии)
+   - Перезапустите runner: `./run.sh`
+
+3. Убедитесь, что runner имеет доступ к CUDA:
    ```bash
    # Проверьте доступность GPU
    nvidia-smi
    
    # Убедитесь, что Docker имеет доступ к GPU (если используете Docker)
    docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi
+   # Или с sudo, если права не настроены:
+   sudo docker run --rm --gpus all nvidia/cuda:12.4.0-base-ubuntu22.04 nvidia-smi
    ```
 
-3. Установите NVIDIA Container Toolkit (если используете Docker):
+4. Установите NVIDIA Container Toolkit (если используете Docker):
    ```bash
    distribution=$(. /etc/os-release;echo $ID$VERSION_ID)
    curl -s -L https://nvidia.github.io/nvidia-docker/gpgkey | sudo apt-key add -
