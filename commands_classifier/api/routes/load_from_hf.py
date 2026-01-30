@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from commands_classifier.api.state import get_config, get_training_manager, load_model
 
@@ -21,8 +21,9 @@ class LoadFromHfRequest(BaseModel):
     repo_id: Optional[str] = Field(None, max_length=200)
     local_dir: Optional[str] = Field(None, max_length=500)
     
-    @validator('repo_id')
-    def validate_repo_id(cls, v):
+    @field_validator('repo_id')
+    @classmethod
+    def validate_repo_id(cls, v: Optional[str]) -> Optional[str]:
         """Проверяет формат repo_id."""
         if v is not None:
             # Проверяем формат username/model-name
@@ -30,8 +31,9 @@ class LoadFromHfRequest(BaseModel):
                 raise ValueError('repo_id должен иметь формат "username/model-name"')
         return v
     
-    @validator('local_dir')
-    def validate_local_dir(cls, v):
+    @field_validator('local_dir')
+    @classmethod
+    def validate_local_dir(cls, v: Optional[str]) -> Optional[str]:
         """Проверяет, что путь не содержит недопустимые символы."""
         if v is not None:
             # Запрещаем абсолютные пути и обратные слэши Windows

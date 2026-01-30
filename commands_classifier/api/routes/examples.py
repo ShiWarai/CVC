@@ -2,7 +2,7 @@
 
 from typing import List
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from commands_classifier.api.state import get_config
 from commands_classifier.api.utils import remove_punctuation
@@ -17,8 +17,9 @@ class ExampleRequest(BaseModel):
     text: str = Field(..., min_length=1, max_length=1000)
     command: str = Field(..., min_length=1, max_length=100)
     
-    @validator('text', 'command')
-    def validate_no_control_chars(cls, v):
+    @field_validator('text', 'command')
+    @classmethod
+    def validate_no_control_chars(cls, v: str) -> str:
         """Проверяет, что строка не содержит управляющих символов."""
         if any(ord(c) < 32 and c not in '\n\r\t' for c in v):
             raise ValueError('Строка содержит недопустимые управляющие символы')
