@@ -1,153 +1,153 @@
-# Security Documentation
+# Документация по безопасности
 
-## Security Improvements Implemented
+## Реализованные улучшения безопасности
 
-This document describes the security vulnerabilities that were identified and fixed in the CVC project.
+Этот документ описывает уязвимости безопасности, которые были выявлены и исправлены в проекте CVC.
 
-### 1. SQL Injection Prevention
+### 1. Предотвращение SQL-инъекций
 
-**Location**: `commands_classifier/db.py`
+**Расположение**: `commands_classifier/db.py`
 
-**Issue**: Potential SQL injection in `mark_examples_as_trained()` function.
+**Проблема**: Потенциальная SQL-инъекция в функции `mark_examples_as_trained()`.
 
-**Fix**: 
-- Added input validation to ensure all IDs are integers
-- Added limit check to prevent DoS attacks (max 10000 IDs per operation)
-- Used parameterized queries consistently
+**Исправление**: 
+- Добавлена валидация входных данных для проверки, что все ID являются целыми числами
+- Добавлена проверка лимита для предотвращения DoS-атак (макс. 10000 ID на операцию)
+- Последовательно использованы параметризованные запросы
 
-### 2. Command Injection Prevention
+### 2. Предотвращение инъекций команд
 
-**Location**: `commands_classifier/api/routes/package.py`
+**Расположение**: `commands_classifier/api/routes/package.py`
 
-**Issue**: Unvalidated paths passed to subprocess without validation.
+**Проблема**: Непроверенные пути передаются в subprocess без валидации.
 
-**Fix**:
-- Added path validation using `Path.resolve()`
-- Validate paths are within working directory using `relative_to()`
-- Check for dangerous characters in directory names before passing to tar command
-- Explicitly set `shell=False` in subprocess.Popen
+**Исправление**:
+- Добавлена валидация путей с использованием `Path.resolve()`
+- Валидация путей на нахождение в рабочей директории с использованием `relative_to()`
+- Проверка опасных символов в именах директорий перед передачей команде tar
+- Явная установка `shell=False` в subprocess.Popen
 
-### 3. Path Traversal Protection
+### 3. Защита от обхода путей
 
-**Location**: Multiple files
+**Расположение**: Множество файлов
 
-**Issue**: File paths not validated, allowing potential directory traversal.
+**Проблема**: Пути к файлам не валидировались, что позволяло потенциальный обход директорий.
 
-**Fixes**:
-- `package.py`: Added path validation and checks for dangerous characters
-- `load_from_hf.py`: Added regex validation for repo_id format and path checks
-- Implemented `Path.resolve()` to canonicalize paths
-- Check that paths are within working directory
+**Исправления**:
+- `package.py`: Добавлена валидация путей и проверка опасных символов
+- `load_from_hf.py`: Добавлена валидация формата repo_id регулярным выражением и проверка путей
+- Реализовано `Path.resolve()` для канонизации путей
+- Проверка нахождения путей в рабочей директории
 
-### 4. Input Validation
+### 4. Валидация входных данных
 
-**Location**: All API route files
+**Расположение**: Все файлы маршрутов API
 
-**Issue**: Missing input validation on API endpoints.
+**Проблема**: Отсутствие валидации входных данных на эндпоинтах API.
 
-**Fixes**:
-- Added Pydantic field validators with length limits
-- Added checks for control characters
-- Added range validation for numeric parameters
-- Implemented custom validators for special fields
+**Исправления**:
+- Добавлены валидаторы полей Pydantic с ограничениями длины
+- Добавлены проверки управляющих символов
+- Добавлена валидация диапазонов для числовых параметров
+- Реализованы пользовательские валидаторы для специальных полей
 
-### 5. Thread Safety
+### 5. Потокобезопасность
 
-**Location**: `load_from_hf.py`, `package.py`
+**Расположение**: `load_from_hf.py`, `package.py`
 
-**Issue**: Race conditions in global state management.
+**Проблема**: Состояние гонки при управлении глобальным состоянием.
 
-**Fix**:
-- Added threading locks for all global state access
-- Protected all reads and writes to shared state with locks
+**Исправление**:
+- Добавлены блокировки потоков для всего доступа к глобальному состоянию
+- Защищены все чтения и записи в общее состояние блокировками
 
-### 6. Information Disclosure Prevention
+### 6. Предотвращение раскрытия информации
 
-**Location**: Multiple files
+**Расположение**: Множество файлов
 
-**Issue**: Error messages could leak sensitive information.
+**Проблема**: Сообщения об ошибках могли раскрывать конфиденциальную информацию.
 
-**Fixes**:
-- Sanitized error messages to avoid exposing internal paths
-- Removed detailed installation instructions from error messages
-- Generic error messages for failed operations
+**Исправления**:
+- Очищены сообщения об ошибках во избежание раскрытия внутренних путей
+- Удалены подробные инструкции по установке из сообщений об ошибках
+- Общие сообщения об ошибках для неудачных операций
 
-### 7. Input Size Limits
+### 7. Ограничения размера входных данных
 
-**Location**: API route files
+**Расположение**: Файлы маршрутов API
 
-**Issue**: No limits on input size could lead to DoS.
+**Проблема**: Отсутствие ограничений на размер входных данных могло привести к DoS.
 
-**Fixes**:
-- Limited text input to 5000 characters
-- Limited batch operations to 100 items
-- Limited command names to 100 characters
-- Limited training parameters to reasonable ranges
+**Исправления**:
+- Ограничение текстового ввода до 5000 символов
+- Ограничение пакетных операций до 100 элементов
+- Ограничение имён команд до 100 символов
+- Ограничение параметров обучения разумными диапазонами
 
-## Remaining Security Considerations
+## Оставшиеся вопросы безопасности
 
-### 1. Authentication and Authorization
+### 1. Аутентификация и авторизация
 
-**Status**: Not implemented
+**Статус**: Не реализовано
 
-**Recommendation**: All API endpoints are currently public. For production deployment, consider adding:
-- API key authentication
-- JWT tokens for session management
-- Role-based access control (RBAC)
-- Rate limiting per user/API key
+**Рекомендация**: В настоящее время все эндпоинты API публичны. Для продакшн-развёртывания рассмотрите добавление:
+- Аутентификация по API-ключу
+- JWT-токены для управления сессиями
+- Контроль доступа на основе ролей (RBAC)
+- Ограничение частоты запросов на пользователя/API-ключ
 
-### 2. Rate Limiting
+### 2. Ограничение частоты запросов
 
-**Status**: Not implemented
+**Статус**: Не реализовано
 
-**Recommendation**: Add rate limiting to prevent abuse:
-- Use middleware like `slowapi` for FastAPI
-- Implement per-endpoint rate limits
-- Add IP-based throttling
+**Рекомендация**: Добавьте ограничение частоты запросов для предотвращения злоупотреблений:
+- Используйте middleware типа `slowapi` для FastAPI
+- Реализуйте ограничения частоты для каждого эндпоинта
+- Добавьте троттлинг на основе IP-адреса
 
 ### 3. HTTPS/TLS
 
-**Status**: Not configured
+**Статус**: Не настроено
 
-**Recommendation**: 
-- Use a reverse proxy (nginx, traefik) with TLS certificates
-- Enforce HTTPS in production
-- Use Let's Encrypt for free certificates
+**Рекомендация**: 
+- Используйте обратный прокси (nginx, traefik) с TLS-сертификатами
+- Принудительно используйте HTTPS в продакшн
+- Используйте Let's Encrypt для бесплатных сертификатов
 
-### 4. Environment Variables
+### 4. Переменные окружения
 
-**Status**: Properly isolated
+**Статус**: Правильно изолированы
 
-**Current state**: HF_TOKEN is loaded from environment, not hardcoded
-**Recommendation**: Continue using environment variables for secrets
+**Текущее состояние**: HF_TOKEN загружается из окружения, не жёстко закодирован
+**Рекомендация**: Продолжайте использовать переменные окружения для секретов
 
-### 5. Docker Security
+### 5. Безопасность Docker
 
-**Status**: Basic security
+**Статус**: Базовая безопасность
 
-**Recommendations**:
-- Run container as non-root user
-- Use read-only filesystem where possible
-- Implement resource limits (CPU, memory)
-- Regular security updates for base image
+**Рекомендации**:
+- Запускайте контейнер от имени не-root пользователя
+- Используйте файловую систему только для чтения где возможно
+- Реализуйте ограничения ресурсов (CPU, память)
+- Регулярные обновления безопасности для базового образа
 
-## Security Testing
+## Тестирование безопасности
 
-### Running Security Checks
+### Запуск проверок безопасности
 
-1. **CodeQL Analysis**: Use GitHub's CodeQL to scan for vulnerabilities
-2. **Dependency Scanning**: Regularly update dependencies and check for CVEs
-3. **Input Fuzzing**: Test API endpoints with malformed inputs
-4. **Penetration Testing**: Consider third-party security audit
+1. **Анализ CodeQL**: Используйте CodeQL от GitHub для сканирования уязвимостей
+2. **Сканирование зависимостей**: Регулярно обновляйте зависимости и проверяйте на CVE
+3. **Фаззинг входных данных**: Тестируйте эндпоинты API с некорректными входными данными
+4. **Тестирование на проникновение**: Рассмотрите сторонний аудит безопасности
 
-### Security Headers
+### Заголовки безопасности
 
-Consider adding security headers in production:
+Рассмотрите добавление заголовков безопасности в продакшн:
 ```python
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 
-# Add security headers
+# Добавление заголовков безопасности
 @app.middleware("http")
 async def add_security_headers(request, call_next):
     response = await call_next(request)
@@ -158,12 +158,12 @@ async def add_security_headers(request, call_next):
     return response
 ```
 
-## Reporting Security Issues
+## Сообщение об уязвимостях безопасности
 
-If you discover a security vulnerability, please report it privately to the maintainers rather than opening a public issue.
+Если вы обнаружите уязвимость безопасности, пожалуйста, сообщите о ней в частном порядке сопровождающим проекта, а не открывая публичную issue.
 
-## Security Update Policy
+## Политика обновлений безопасности
 
-- Security patches are applied as soon as possible
-- Dependencies are reviewed quarterly for known vulnerabilities
-- Security advisories are published when appropriate
+- Патчи безопасности применяются как можно скорее
+- Зависимости проверяются ежеквартально на наличие известных уязвимостей
+- Уведомления о безопасности публикуются при необходимости

@@ -1,162 +1,162 @@
-# Pydantic v2 Migration Guide
+# Руководство по миграции на Pydantic v2
 
-## Problem: "Что-то пошло не так?" (Something went wrong?)
+## Проблема: "Что-то пошло не так?"
 
-### Root Cause
+### Причина
 
-The CVC codebase was using deprecated Pydantic v1 syntax with Pydantic v2.12.5 installed, causing deprecation warnings:
+Кодовая база CVC использовала устаревший синтаксис Pydantic v1 при установленном Pydantic v2.12.5, что вызывало предупреждения об устаревании:
 
 ```
-PydanticDeprecatedSince20: Pydantic V1 style `@validator` validators are deprecated. 
-You should migrate to Pydantic V2 style `@field_validator` validators, 
-see the migration guide for more details. 
-Deprecated in Pydantic V2.0 to be removed in V3.0.
+PydanticDeprecatedSince20: Валидаторы в стиле Pydantic V1 `@validator` устарели. 
+Необходимо мигрировать на валидаторы в стиле Pydantic V2 `@field_validator`, 
+см. руководство по миграции для получения дополнительной информации. 
+Устарело в Pydantic V2.0, будет удалено в V3.0.
 ```
 
-## Solution
+## Решение
 
-Migrated all Pydantic validators from v1 to v2 API.
+Выполнена миграция всех валидаторов Pydantic с v1 на v2 API.
 
-## Changes Made
+## Внесённые изменения
 
-### 1. Decorator Migration
+### 1. Миграция декораторов
 
-**Before (v1):**
+**Было (v1):**
 ```python
 from pydantic import validator
 
 @validator('field_name')
 def validate_field(cls, v):
-    # validation logic
+    # логика валидации
     return v
 ```
 
-**After (v2):**
+**Стало (v2):**
 ```python
 from pydantic import field_validator
 
 @field_validator('field_name')
 @classmethod
 def validate_field(cls, v: str) -> str:
-    # validation logic
+    # логика валидации
     return v
 ```
 
-### 2. Field Constraints for Lists
+### 2. Ограничения полей для списков
 
-**Before (v1):**
+**Было (v1):**
 ```python
 from pydantic import Field
 
 inputs: List[str] = Field(..., min_items=1, max_items=100)
 ```
 
-**After (v2):**
+**Стало (v2):**
 ```python
 from pydantic import Field
 
 inputs: List[str] = Field(..., min_length=1, max_length=100)
 ```
 
-## Files Modified
+## Изменённые файлы
 
 ### 1. `commands_classifier/api/routes/examples.py`
 
-**Changes:**
-- Replaced `@validator` with `@field_validator`
-- Added `@classmethod` decorator
-- Added type hints: `(cls, v: str) -> str`
+**Изменения:**
+- Заменено `@validator` на `@field_validator`
+- Добавлен декоратор `@classmethod`
+- Добавлены типы: `(cls, v: str) -> str`
 
-**Validator:**
-- `validate_no_control_chars` - validates text and command fields
+**Валидатор:**
+- `validate_no_control_chars` - проверяет поля text и command
 
 ### 2. `commands_classifier/api/routes/predict.py`
 
-**Changes:**
-- Replaced `@validator` with `@field_validator`
-- Added `@classmethod` decorator
-- Changed `min_items` → `min_length` and `max_items` → `max_length`
-- Added type hints: `(cls, v: List[str]) -> List[str]`
+**Изменения:**
+- Заменено `@validator` на `@field_validator`
+- Добавлен декоратор `@classmethod`
+- Изменено `min_items` → `min_length` и `max_items` → `max_length`
+- Добавлены типы: `(cls, v: List[str]) -> List[str]`
 
-**Validators:**
-- `EmbedRequest.validate_inputs` - validates embedding inputs
-- `PredictBatchRequest.validate_texts` - validates batch prediction texts
+**Валидаторы:**
+- `EmbedRequest.validate_inputs` - проверяет входные данные для эмбеддингов
+- `PredictBatchRequest.validate_texts` - проверяет тексты для пакетного предсказания
 
 ### 3. `commands_classifier/api/routes/load_from_hf.py`
 
-**Changes:**
-- Replaced `@validator` with `@field_validator`
-- Added `@classmethod` decorator
-- Added type hints: `(cls, v: Optional[str]) -> Optional[str]`
+**Изменения:**
+- Заменено `@validator` на `@field_validator`
+- Добавлен декоратор `@classmethod`
+- Добавлены типы: `(cls, v: Optional[str]) -> Optional[str]`
 
-**Validators:**
-- `LoadFromHfRequest.validate_repo_id` - validates Hugging Face repo ID format
-- `LoadFromHfRequest.validate_local_dir` - validates local directory path
+**Валидаторы:**
+- `LoadFromHfRequest.validate_repo_id` - проверяет формат ID репозитория Hugging Face
+- `LoadFromHfRequest.validate_local_dir` - проверяет путь к локальной директории
 
-## Key Differences Between v1 and v2
+## Ключевые различия между v1 и v2
 
-| Feature | Pydantic v1 | Pydantic v2 |
+| Функция | Pydantic v1 | Pydantic v2 |
 |---------|-------------|-------------|
-| Validator decorator | `@validator` | `@field_validator` |
-| Class method | Optional | **Required** `@classmethod` |
-| Type hints | Optional | Recommended |
-| List min/max | `min_items`, `max_items` | `min_length`, `max_length` |
-| Import | `from pydantic import validator` | `from pydantic import field_validator` |
+| Декоратор валидатора | `@validator` | `@field_validator` |
+| Метод класса | Опционально | **Обязательно** `@classmethod` |
+| Типизация | Опционально | Рекомендуется |
+| Мин/макс для списков | `min_items`, `max_items` | `min_length`, `max_length` |
+| Импорт | `from pydantic import validator` | `from pydantic import field_validator` |
 
-## Benefits of Migration
+## Преимущества миграции
 
-1. ✅ **No Deprecation Warnings** - Code is future-proof for Pydantic v3
-2. ✅ **Better Type Safety** - Type hints improve IDE support and catch errors
-3. ✅ **Improved Performance** - Pydantic v2 uses Rust core for better performance
-4. ✅ **Better Error Messages** - v2 provides more detailed validation errors
-5. ✅ **Modern Best Practices** - Follows current Pydantic standards
+1. ✅ **Нет предупреждений об устаревании** - Код готов к Pydantic v3
+2. ✅ **Улучшенная типобезопасность** - Типы улучшают поддержку IDE и выявляют ошибки
+3. ✅ **Повышенная производительность** - Pydantic v2 использует ядро на Rust для лучшей производительности
+4. ✅ **Улучшенные сообщения об ошибках** - v2 предоставляет более детальные сообщения об ошибках валидации
+5. ✅ **Современные лучшие практики** - Соответствует текущим стандартам Pydantic
 
-## Testing
+## Тестирование
 
-All validators were tested to ensure:
-- ✅ No syntax errors
-- ✅ No deprecation warnings
-- ✅ Validation logic works correctly
-- ✅ Invalid input is properly rejected
-- ✅ Valid input is accepted
+Все валидаторы были протестированы для обеспечения:
+- ✅ Отсутствие синтаксических ошибок
+- ✅ Отсутствие предупреждений об устаревании
+- ✅ Логика валидации работает корректно
+- ✅ Некорректный ввод корректно отклоняется
+- ✅ Корректный ввод принимается
 
-### Test Results
+### Результаты тестирования
 
 ```
-✓ ExampleRequest validation works
-✓ EmbedRequest validation works
-✓ PredictRequest validation works
-✓ PredictBatchRequest validation works
-✓ LoadFromHfRequest validation works
-✓ Control char validation works
-✓ Empty list validation works
-✅ No deprecation warnings detected
+✓ Валидация ExampleRequest работает
+✓ Валидация EmbedRequest работает
+✓ Валидация PredictRequest работает
+✓ Валидация PredictBatchRequest работает
+✓ Валидация LoadFromHfRequest работает
+✓ Валидация управляющих символов работает
+✓ Валидация пустого списка работает
+✅ Предупреждения об устаревании не обнаружены
 ```
 
-## Migration Checklist
+## Чек-лист миграции
 
-For future Pydantic v2 migrations:
+Для будущих миграций на Pydantic v2:
 
-- [ ] Replace `@validator` with `@field_validator`
-- [ ] Add `@classmethod` decorator to all validators
-- [ ] Add type hints to validator methods
-- [ ] Change `min_items`/`max_items` to `min_length`/`max_length` for sequences
-- [ ] Update imports: `validator` → `field_validator`
-- [ ] Test validators work correctly
-- [ ] Verify no deprecation warnings
+- [ ] Заменить `@validator` на `@field_validator`
+- [ ] Добавить декоратор `@classmethod` ко всем валидаторам
+- [ ] Добавить типизацию к методам валидаторов
+- [ ] Изменить `min_items`/`max_items` на `min_length`/`max_length` для последовательностей
+- [ ] Обновить импорты: `validator` → `field_validator`
+- [ ] Протестировать работу валидаторов
+- [ ] Проверить отсутствие предупреждений об устаревании
 
-## References
+## Справочные материалы
 
-- [Pydantic v2 Migration Guide](https://docs.pydantic.dev/latest/migration/)
-- [Field Validators Documentation](https://docs.pydantic.dev/latest/concepts/validators/#field-validators)
-- [Pydantic v2 Release Notes](https://docs.pydantic.dev/latest/changelog/)
+- [Руководство по миграции Pydantic v2](https://docs.pydantic.dev/latest/migration/)
+- [Документация по валидаторам полей](https://docs.pydantic.dev/latest/concepts/validators/#field-validators)
+- [Заметки о выпуске Pydantic v2](https://docs.pydantic.dev/latest/changelog/)
 
-## Backward Compatibility
+## Обратная совместимость
 
-All changes maintain the same validation logic and behavior. The migration is purely syntactic and does not change:
-- What gets validated
-- How validation errors are raised
-- The validation error messages
-- The API behavior
+Все изменения сохраняют ту же логику и поведение валидации. Миграция является чисто синтаксической и не изменяет:
+- Что валидируется
+- Как генерируются ошибки валидации
+- Сообщения об ошибках валидации
+- Поведение API
 
-This is a **non-breaking change** that only updates the internal implementation to use Pydantic v2 best practices.
+Это **обратно совместимое изменение**, которое только обновляет внутреннюю реализацию для использования лучших практик Pydantic v2.
