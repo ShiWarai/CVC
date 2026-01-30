@@ -362,16 +362,24 @@ def mark_examples_as_trained(db_path: str, example_ids: List[int]) -> None:
     if not example_ids:
         return
     
+    # Валидация: убеждаемся, что все ID являются целыми числами
+    try:
+        validated_ids = [int(ex_id) for ex_id in example_ids]
+    except (ValueError, TypeError) as e:
+        raise ValueError(f"Некорректные ID примеров: {e}")
+    
     db_path = _normalize_db_path(db_path)
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
     
     # Используем параметризованный запрос для безопасности
-    placeholders = ','.join('?' * len(example_ids))
-    cursor.execute(
-        f"UPDATE examples SET is_trained = 1 WHERE id IN ({placeholders})",
-        example_ids
-    )
+    # Ограничиваем количество ID для предотвращения DoS
+    if len(validated_ids) > 10000:
+        raise ValueError("Слишком много ID для одной операции (максимум 10000)")
+    
+    placeholders = ','.join('?' * len(validated_ids))
+    query = f"UPDATE examples SET is_trained = 1 WHERE id IN ({placeholders})"
+    cursor.execute(query, validated_ids)
     
     conn.commit()
     conn.close()

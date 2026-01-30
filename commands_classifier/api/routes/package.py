@@ -33,6 +33,8 @@ class PackageStatusResponse(BaseModel):
 
 
 # Статус упаковки модели (модульный уровень)
+import threading as _threading
+_package_lock = _threading.Lock()
 _package_status: Dict[str, Any] = {
     "package_id": None,
     "status": "idle",
@@ -49,14 +51,24 @@ def _run_package_task(model_path: str, output_path: str, package_id: str):
     Фоновая задача для упаковки модели в tar.gz (только Linux).
     Использует системную команду tar для упаковки.
     """
-    global _package_status
+    global _package_status, _package_lock
     
     try:
-        _package_status["status"] = "running"
-        _package_status["progress"] = 0.1
+        with _package_lock:
+            _package_status["status"] = "running"
+            _package_status["progress"] = 0.1
         
-        model_path_obj = Path(model_path)
-        output_path_obj = Path(output_path)
+        model_path_obj = Path(model_path).resolve()
+        output_path_obj = Path(output_path).resolve()
+        
+        # Валидация путей для предотвращения path traversal
+        # Проверяем, что пути не содержат опасных символов
+        if '..' in model_path_obj.parts or '..' in output_path_obj.parts:
+            raise ValueError("Обнаружена попытка path traversal в путях")
+        
+        # Проверяем, что модель действительно существует
+        if not model_path_obj.exists() or not model_path_obj.is_dir():
+            raise ValueError("Путь к модели не существует или не является директорией")
         
         # Убеждаемся, что выходная директория существует
         output_path_obj.parent.mkdir(parents=True, exist_ok=True)
@@ -65,12 +77,17 @@ def _run_package_task(model_path: str, output_path: str, package_id: str):
         if output_path_obj.exists():
             output_path_obj.unlink()
         
-        _package_status["progress"] = 0.2
+        with _package_lock:
+            _package_status["progress"] = 0.2
         
         # Используем tar для упаковки (Linux)
         # tar -czvf output.tar.gz -C parent_dir model_dir_name
         parent_dir = model_path_obj.parent
         model_dir_name = model_path_obj.name
+        
+        # Валидация имени директории модели
+        if not model_dir_name or model_dir_name.startswith('.') or '/' in model_dir_name or '\\' in model_dir_name:
+            raise ValueError("Некорректное имя директории модели")
         
         cmd = [
             "tar", "-czvf", str(output_path_obj),
@@ -78,45 +95,53 @@ def _run_package_task(model_path: str, output_path: str, package_id: str):
             model_dir_name
         ]
         
-        _package_status["progress"] = 0.3
+        with _package_lock:
+            _package_status["progress"] = 0.3
         
-        # Запускаем процесс
+        # Запускаем процесс с ограничениями безопасности
         process = subprocess.Popen(
             cmd,
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE
+            stderr=subprocess.PIPE,
+            shell=False  # Явно указываем, что shell=False для безопасности
         )
         
-        _package_status["progress"] = 0.5
+        with _package_lock:
+            _package_status["progress"] = 0.5
         
         # Ждём завершения
         stdout, stderr = process.communicate()
         
-        _package_status["progress"] = 0.9
+        with _package_lock:
+            _package_status["progress"] = 0.9
         
         if process.returncode != 0:
             error_msg = stderr.decode('utf-8', errors='replace')
-            _package_status["status"] = "failed"
-            _package_status["error"] = f"tar вернул код {process.returncode}: {error_msg}"
-            _package_status["completed_at"] = datetime.now().isoformat()
+            with _package_lock:
+                _package_status["status"] = "failed"
+                _package_status["error"] = f"tar вернул код {process.returncode}: {error_msg}"
+                _package_status["completed_at"] = datetime.now().isoformat()
             return
         
         # Проверяем, что файл создан
         if not output_path_obj.exists():
-            _package_status["status"] = "failed"
-            _package_status["error"] = "Архив не был создан"
-            _package_status["completed_at"] = datetime.now().isoformat()
+            with _package_lock:
+                _package_status["status"] = "failed"
+                _package_status["error"] = "Архив не был создан"
+                _package_status["completed_at"] = datetime.now().isoformat()
             return
         
-        _package_status["status"] = "completed"
-        _package_status["progress"] = 1.0
-        _package_status["output_path"] = str(output_path_obj)
-        _package_status["completed_at"] = datetime.now().isoformat()
+        with _package_lock:
+            _package_status["status"] = "completed"
+            _package_status["progress"] = 1.0
+            _package_status["output_path"] = str(output_path_obj)
+            _package_status["completed_at"] = datetime.now().isoformat()
         
     except Exception as e:
-        _package_status["status"] = "failed"
-        _package_status["error"] = str(e)
-        _package_status["completed_at"] = datetime.now().isoformat()
+        with _package_lock:
+            _package_status["status"] = "failed"
+            _package_status["error"] = str(e)
+            _package_status["completed_at"] = datetime.now().isoformat()
 
 
 @router.post("/package", response_model=PackageResponse)
@@ -128,14 +153,15 @@ async def package_model():
     Returns:
         ID задачи упаковки
     """
-    global _package_status
+    global _package_status, _package_lock
     
     training_manager = get_training_manager()
     config = get_config()
     
     # Проверяем, что не идёт упаковка
-    if _package_status["status"] == "running":
-        raise HTTPException(status_code=409, detail="Упаковка уже выполняется")
+    with _package_lock:
+        if _package_status["status"] == "running":
+            raise HTTPException(status_code=409, detail="Упаковка уже выполняется")
     
     # Проверяем, что не идёт обучение
     if training_manager is not None and training_manager.is_training():
@@ -157,15 +183,16 @@ async def package_model():
     package_id = str(uuid.uuid4())[:8]
     
     # Сбрасываем статус
-    _package_status = {
-        "package_id": package_id,
-        "status": "pending",
-        "progress": 0.0,
-        "output_path": None,
-        "error": None,
-        "started_at": datetime.now().isoformat(),
-        "completed_at": None
-    }
+    with _package_lock:
+        _package_status = {
+            "package_id": package_id,
+            "status": "pending",
+            "progress": 0.0,
+            "output_path": None,
+            "error": None,
+            "started_at": datetime.now().isoformat(),
+            "completed_at": None
+        }
     
     # Запускаем в фоновом потоке
     thread = threading.Thread(
@@ -189,12 +216,13 @@ async def get_package_status():
     Returns:
         Статус упаковки (id, status, progress, output_path, error, timestamps)
     """
-    return PackageStatusResponse(
-        package_id=_package_status["package_id"] or "",
-        status=_package_status["status"],
-        progress=_package_status["progress"],
-        output_path=_package_status["output_path"],
-        error=_package_status["error"],
-        started_at=_package_status["started_at"],
-        completed_at=_package_status["completed_at"]
-    )
+    with _package_lock:
+        return PackageStatusResponse(
+            package_id=_package_status["package_id"] or "",
+            status=_package_status["status"],
+            progress=_package_status["progress"],
+            output_path=_package_status["output_path"],
+            error=_package_status["error"],
+            started_at=_package_status["started_at"],
+            completed_at=_package_status["completed_at"]
+        )

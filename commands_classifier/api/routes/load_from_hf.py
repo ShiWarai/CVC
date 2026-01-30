@@ -1,13 +1,14 @@
 """Эндпоинты для загрузки модели с Hugging Face Hub."""
 
 import os
+import re
 import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 
 from commands_classifier.api.state import get_config, get_training_manager, load_model
 
@@ -17,8 +18,26 @@ router = APIRouter(tags=["load_from_hf"])
 # Модели запросов/ответов
 class LoadFromHfRequest(BaseModel):
     """Запрос на загрузку модели с Hugging Face."""
-    repo_id: Optional[str] = None  # Например: "username/model-name". Если не указан, используется HF_REPO_ID из конфигурации сервера
-    local_dir: Optional[str] = None  # Путь для сохранения (опционально, используется из config если не указан)
+    repo_id: Optional[str] = Field(None, max_length=200)
+    local_dir: Optional[str] = Field(None, max_length=500)
+    
+    @validator('repo_id')
+    def validate_repo_id(cls, v):
+        """Проверяет формат repo_id."""
+        if v is not None:
+            # Проверяем формат username/model-name
+            if not re.match(r'^[a-zA-Z0-9_-]+/[a-zA-Z0-9_.-]+$', v):
+                raise ValueError('repo_id должен иметь формат "username/model-name"')
+        return v
+    
+    @validator('local_dir')
+    def validate_local_dir(cls, v):
+        """Проверяет, что путь не содержит опасных символов."""
+        if v is not None:
+            # Запрещаем ".." для предотвращения path traversal
+            if '..' in v or v.startswith('/') or '\\' in v:
+                raise ValueError('local_dir содержит недопустимые символы')
+        return v
 
 
 class LoadFromHfResponse(BaseModel):
@@ -39,6 +58,8 @@ class LoadFromHfStatusResponse(BaseModel):
 
 
 # Статус загрузки модели (модульный уровень)
+import threading as _threading
+_load_from_hf_lock = _threading.Lock()
 _load_from_hf_status: Dict[str, Any] = {
     "load_id": None,
     "status": "idle",
@@ -54,11 +75,12 @@ def _run_load_from_hf_task(repo_id: str, local_dir: str, load_id: str):
     """
     Фоновая задача для загрузки модели с Hugging Face Hub.
     """
-    global _load_from_hf_status
+    global _load_from_hf_status, _load_from_hf_lock
     
     try:
-        _load_from_hf_status["status"] = "running"
-        _load_from_hf_status["progress"] = 0.1
+        with _load_from_hf_lock:
+            _load_from_hf_status["status"] = "running"
+            _load_from_hf_status["progress"] = 0.1
         
         # Импортируем huggingface_hub
         try:
@@ -72,13 +94,15 @@ def _run_load_from_hf_task(repo_id: str, local_dir: str, load_id: str):
         # Получаем токен из переменных окружения
         hf_token = os.getenv("HF_TOKEN") or os.getenv("HUGGING_FACE_HUB_TOKEN")
         
-        _load_from_hf_status["progress"] = 0.2
+        with _load_from_hf_lock:
+            _load_from_hf_status["progress"] = 0.2
         
         # Создаем директорию для модели
         local_path_obj = Path(local_dir)
         local_path_obj.mkdir(parents=True, exist_ok=True)
         
-        _load_from_hf_status["progress"] = 0.3
+        with _load_from_hf_lock:
+            _load_from_hf_status["progress"] = 0.3
         
         # Загружаем модель
         try:
@@ -88,19 +112,22 @@ def _run_load_from_hf_task(repo_id: str, local_dir: str, load_id: str):
                 token=hf_token,
                 local_dir_use_symlinks=False  # Не используем симлинки для Docker
             )
-            _load_from_hf_status["progress"] = 0.9
+            with _load_from_hf_lock:
+                _load_from_hf_status["progress"] = 0.9
             
             # Проверяем, что модель загружена
             if not local_path_obj.exists() or not any(local_path_obj.iterdir()):
-                _load_from_hf_status["status"] = "failed"
-                _load_from_hf_status["error"] = "Модель не была загружена или директория пуста"
-                _load_from_hf_status["completed_at"] = datetime.now().isoformat()
+                with _load_from_hf_lock:
+                    _load_from_hf_status["status"] = "failed"
+                    _load_from_hf_status["error"] = "Модель не была загружена или директория пуста"
+                    _load_from_hf_status["completed_at"] = datetime.now().isoformat()
                 return
             
-            _load_from_hf_status["status"] = "completed"
-            _load_from_hf_status["progress"] = 1.0
-            _load_from_hf_status["local_path"] = str(local_path_obj)
-            _load_from_hf_status["completed_at"] = datetime.now().isoformat()
+            with _load_from_hf_lock:
+                _load_from_hf_status["status"] = "completed"
+                _load_from_hf_status["progress"] = 1.0
+                _load_from_hf_status["local_path"] = str(local_path_obj)
+                _load_from_hf_status["completed_at"] = datetime.now().isoformat()
             
             # Перезагружаем модель в память
             try:
@@ -110,14 +137,16 @@ def _run_load_from_hf_task(repo_id: str, local_dir: str, load_id: str):
                 print(f"Предупреждение: не удалось перезагрузить модель в память: {e}")
             
         except Exception as e:
-            _load_from_hf_status["status"] = "failed"
-            _load_from_hf_status["error"] = f"Ошибка при загрузке модели: {str(e)}"
-            _load_from_hf_status["completed_at"] = datetime.now().isoformat()
+            with _load_from_hf_lock:
+                _load_from_hf_status["status"] = "failed"
+                _load_from_hf_status["error"] = f"Ошибка при загрузке модели: {str(e)}"
+                _load_from_hf_status["completed_at"] = datetime.now().isoformat()
             
     except Exception as e:
-        _load_from_hf_status["status"] = "failed"
-        _load_from_hf_status["error"] = str(e)
-        _load_from_hf_status["completed_at"] = datetime.now().isoformat()
+        with _load_from_hf_lock:
+            _load_from_hf_status["status"] = "failed"
+            _load_from_hf_status["error"] = str(e)
+            _load_from_hf_status["completed_at"] = datetime.now().isoformat()
 
 
 @router.post("/load_from_hf", response_model=LoadFromHfResponse)
@@ -134,14 +163,15 @@ async def load_from_hf(request: LoadFromHfRequest):
     Returns:
         ID задачи загрузки
     """
-    global _load_from_hf_status
+    global _load_from_hf_status, _load_from_hf_lock
     
     training_manager = get_training_manager()
     config = get_config()
     
     # Проверяем, что не идёт загрузка
-    if _load_from_hf_status["status"] == "running":
-        raise HTTPException(status_code=409, detail="Загрузка уже выполняется")
+    with _load_from_hf_lock:
+        if _load_from_hf_status["status"] == "running":
+            raise HTTPException(status_code=409, detail="Загрузка уже выполняется")
     
     # Проверяем, что не идёт обучение
     if training_manager is not None and training_manager.is_training():
@@ -156,7 +186,15 @@ async def load_from_hf(request: LoadFromHfRequest):
     
     # Определяем путь для сохранения
     if request.local_dir:
-        local_dir = request.local_dir
+        # Дополнительная проверка пути
+        local_dir_path = Path(request.local_dir).resolve()
+        # Убеждаемся, что путь находится в рабочей директории
+        try:
+            working_dir = Path.cwd()
+            local_dir_path.relative_to(working_dir)
+        except ValueError:
+            raise HTTPException(status_code=400, detail="local_dir должен быть относительным путем внутри рабочей директории")
+        local_dir = str(local_dir_path)
     else:
         # Используем путь из конфига
         model_path = config["model"]["path"]
@@ -166,15 +204,16 @@ async def load_from_hf(request: LoadFromHfRequest):
     load_id = str(uuid.uuid4())[:8]
     
     # Сбрасываем статус
-    _load_from_hf_status = {
-        "load_id": load_id,
-        "status": "pending",
-        "progress": 0.0,
-        "local_path": None,
-        "error": None,
-        "started_at": datetime.now().isoformat(),
-        "completed_at": None
-    }
+    with _load_from_hf_lock:
+        _load_from_hf_status = {
+            "load_id": load_id,
+            "status": "pending",
+            "progress": 0.0,
+            "local_path": None,
+            "error": None,
+            "started_at": datetime.now().isoformat(),
+            "completed_at": None
+        }
     
     # Запускаем в фоновом потоке
     thread = threading.Thread(
@@ -198,12 +237,13 @@ async def get_load_from_hf_status():
     Returns:
         Статус загрузки (id, status, progress, local_path, error, timestamps)
     """
-    return LoadFromHfStatusResponse(
-        load_id=_load_from_hf_status["load_id"] or "",
-        status=_load_from_hf_status["status"],
-        progress=_load_from_hf_status["progress"],
-        local_path=_load_from_hf_status["local_path"],
-        error=_load_from_hf_status["error"],
-        started_at=_load_from_hf_status["started_at"],
-        completed_at=_load_from_hf_status["completed_at"]
-    )
+    with _load_from_hf_lock:
+        return LoadFromHfStatusResponse(
+            load_id=_load_from_hf_status["load_id"] or "",
+            status=_load_from_hf_status["status"],
+            progress=_load_from_hf_status["progress"],
+            local_path=_load_from_hf_status["local_path"],
+            error=_load_from_hf_status["error"],
+            started_at=_load_from_hf_status["started_at"],
+            completed_at=_load_from_hf_status["completed_at"]
+        )

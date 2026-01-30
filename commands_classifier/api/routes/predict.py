@@ -2,7 +2,7 @@
 
 from typing import List, Optional
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 
 from commands_classifier.api.state import get_classifier, get_config
 from commands_classifier.api.utils import remove_punctuation
@@ -14,7 +14,15 @@ router = APIRouter(tags=["predict"])
 # Модели запросов/ответов
 class EmbedRequest(BaseModel):
     """Запрос для получения эмбеддингов (TEI совместимый)."""
-    inputs: List[str]
+    inputs: List[str] = Field(..., max_items=100)
+    
+    @validator('inputs')
+    def validate_inputs(cls, v):
+        """Проверяет, что каждый элемент не превышает максимальную длину."""
+        for text in v:
+            if len(text) > 5000:
+                raise ValueError('Текст не должен превышать 5000 символов')
+        return v
 
 
 class EmbedResponse(BaseModel):
@@ -24,7 +32,7 @@ class EmbedResponse(BaseModel):
 
 class PredictRequest(BaseModel):
     """Запрос для классификации команд."""
-    text: str
+    text: str = Field(..., min_length=1, max_length=5000)
     return_confidence: bool = False
 
 
@@ -36,8 +44,18 @@ class PredictResponse(BaseModel):
 
 class PredictBatchRequest(BaseModel):
     """Запрос для batch классификации."""
-    texts: List[str]
+    texts: List[str] = Field(..., max_items=100)
     return_confidence: bool = False
+    
+    @validator('texts')
+    def validate_texts(cls, v):
+        """Проверяет, что каждый текст имеет допустимую длину."""
+        for text in v:
+            if len(text) > 5000:
+                raise ValueError('Каждый текст не должен превышать 5000 символов')
+            if len(text) == 0:
+                raise ValueError('Текст не может быть пустым')
+        return v
 
 
 class PredictBatchResponse(BaseModel):
