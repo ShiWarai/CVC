@@ -33,8 +33,8 @@ class PackageStatusResponse(BaseModel):
 
 
 # Статус упаковки модели (модульный уровень)
-import threading as _threading
-_package_lock = _threading.Lock()
+import threading
+_package_lock = threading.Lock()
 _package_status: Dict[str, Any] = {
     "package_id": None,
     "status": "idle",
@@ -60,11 +60,6 @@ def _run_package_task(model_path: str, output_path: str, package_id: str):
         
         model_path_obj = Path(model_path).resolve()
         output_path_obj = Path(output_path).resolve()
-        
-        # Валидация путей для предотвращения path traversal
-        # Проверяем, что пути не содержат опасных символов
-        if '..' in model_path_obj.parts or '..' in output_path_obj.parts:
-            raise ValueError("Обнаружена попытка path traversal в путях")
         
         # Проверяем, что модель действительно существует
         if not model_path_obj.exists() or not model_path_obj.is_dir():

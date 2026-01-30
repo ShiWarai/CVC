@@ -60,16 +60,10 @@ async def add_example(request: ExampleRequest):
     config = get_config()
     db_path = config["database"]["path"]
     try:
-        # Валидация длины
-        if len(request.text.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Текст не может быть пустым")
-        if len(request.command.strip()) == 0:
-            raise HTTPException(status_code=400, detail="Команда не может быть пустой")
-            
         # Очищаем знаки препинания из текста перед сохранением
         cleaned_text = remove_punctuation(request.text)
         
-        # Дополнительная валидация после очистки
+        # Проверяем, что после очистки текст не пустой
         if len(cleaned_text) == 0:
             raise HTTPException(status_code=400, detail="Текст после очистки не может быть пустым")
         

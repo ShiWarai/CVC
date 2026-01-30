@@ -14,12 +14,14 @@ router = APIRouter(tags=["predict"])
 # Модели запросов/ответов
 class EmbedRequest(BaseModel):
     """Запрос для получения эмбеддингов (TEI совместимый)."""
-    inputs: List[str] = Field(..., max_items=100)
+    inputs: List[str] = Field(..., min_items=1, max_items=100)
     
     @validator('inputs')
     def validate_inputs(cls, v):
-        """Проверяет, что каждый элемент не превышает максимальную длину."""
+        """Проверяет, что каждый элемент не превышает максимальную длину и не пустой."""
         for text in v:
+            if len(text) == 0:
+                raise ValueError('Текст не может быть пустым')
             if len(text) > 5000:
                 raise ValueError('Текст не должен превышать 5000 символов')
         return v

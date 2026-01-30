@@ -23,8 +23,8 @@ This document describes the security vulnerabilities that were identified and fi
 
 **Fix**:
 - Added path validation using `Path.resolve()`
-- Check for path traversal attempts (`..' in path)
-- Validate directory names before passing to tar command
+- Validate paths are within working directory using `relative_to()`
+- Check for dangerous characters in directory names before passing to tar command
 - Explicitly set `shell=False` in subprocess.Popen
 
 ### 3. Path Traversal Protection

@@ -32,11 +32,11 @@ class LoadFromHfRequest(BaseModel):
     
     @validator('local_dir')
     def validate_local_dir(cls, v):
-        """Проверяет, что путь не содержит опасных символов."""
+        """Проверяет, что путь не содержит недопустимые символы."""
         if v is not None:
-            # Запрещаем ".." для предотвращения path traversal
-            if '..' in v or v.startswith('/') or '\\' in v:
-                raise ValueError('local_dir содержит недопустимые символы')
+            # Запрещаем абсолютные пути и обратные слэши Windows
+            if v.startswith('/') or '\\' in v:
+                raise ValueError('local_dir должен быть относительным путем')
         return v
 
 
@@ -58,8 +58,8 @@ class LoadFromHfStatusResponse(BaseModel):
 
 
 # Статус загрузки модели (модульный уровень)
-import threading as _threading
-_load_from_hf_lock = _threading.Lock()
+import threading
+_load_from_hf_lock = threading.Lock()
 _load_from_hf_status: Dict[str, Any] = {
     "load_id": None,
     "status": "idle",
@@ -86,9 +86,10 @@ def _run_load_from_hf_task(repo_id: str, local_dir: str, load_id: str):
         try:
             from huggingface_hub import snapshot_download
         except ImportError:
-            _load_from_hf_status["status"] = "failed"
-            _load_from_hf_status["error"] = "huggingface-hub не установлен. Установите: pip install huggingface-hub"
-            _load_from_hf_status["completed_at"] = datetime.now().isoformat()
+            with _load_from_hf_lock:
+                _load_from_hf_status["status"] = "failed"
+                _load_from_hf_status["error"] = "Требуемая зависимость недоступна"
+                _load_from_hf_status["completed_at"] = datetime.now().isoformat()
             return
         
         # Получаем токен из переменных окружения
