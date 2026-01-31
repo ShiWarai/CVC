@@ -1,5 +1,11 @@
 # CVC - Classification of Voice Commands
 
+[![ML Pipeline](https://github.com/ShiWarai/CVC/actions/workflows/deploy.yml/badge.svg)](https://github.com/ShiWarai/CVC/actions/workflows/deploy.yml)
+[![License: MIT](https://img.shields.io/github/license/ShiWarai/CVC)](https://opensource.org/licenses/MIT)
+![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
+![Docker Ready](https://img.shields.io/badge/docker-ready-blue?logo=docker)
+![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-yellow)
+
 Мини-сервис для классификации голосовых команд с использованием SetFit (few-shot learning). Позволяет обучать модель на малом датасете (8-16 примеров на класс) и классифицировать текстовые команды.
 
 ## Особенности
@@ -205,6 +211,14 @@ docker run -d `
 **Примечание о кэшировании базовой модели:** Для локального использования можно настроить кэширование базовой модели в папку `models/.cache` через параметр `model.cache_dir` в `config.yaml`. Это позволит хранить базовую модель вместе с обученными моделями.
 
 **Примечание о базе данных:** База данных монтируется как директория (`./db`), а не как файл, чтобы избежать проблемы Docker, когда несуществующий файл при монтировании создается как директория. Файл `training_data.db` будет автоматически создан внутри директории `./db` при первом запуске.
+
+### Запуск тестов
+
+Тесты выполняются в Docker (образ уже содержит pytest и тестовые зависимости):
+
+```bash
+docker compose run --rm cvc-api pytest tests/ -v --tb=short
+```
 
 ### Использование клиента с Docker контейнером
 

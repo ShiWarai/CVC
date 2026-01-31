@@ -1,0 +1,31 @@
+text,command
+лягись,lie_down
+ложись,lie_down
+приляг,lie_down
+ляг,lie_down
+лечь,lie_down
+лежать,lie_down
+отдохни,lie_down
+прилёг,lie_down
+ложись спать,lie_down
+на пол,lie_down
+отмена,dismiss
+стоп,dismiss
+хватит,dismiss
+прекрати,dismiss
+остановись,dismiss
+не надо,dismiss
+отмени,dismiss
+всё,dismiss
+достаточно,dismiss
+конец,dismiss
+не знаю,unknown
+не понял,unknown
+что,unknown
+а,unknown
+ну,unknown
+хм,unknown
+э,unknown
+как,unknown
+зачем,unknown
+ничего,unknown

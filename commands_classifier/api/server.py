@@ -21,7 +21,6 @@ from commands_classifier.api.routes import (
     predict_router,
     training_router,
     examples_router,
-    package_router,
     load_from_hf_router,
     health_router
 )
@@ -41,22 +40,22 @@ def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
         with open(config_file, 'r', encoding='utf-8') as f:
             config = yaml.safe_load(f)
     else:
-        # Конфигурация по умолчанию
+        # Конфигурация по умолчанию (минимальная, основные параметры должны быть в config.yaml)
         config = {
             "server": {"host": "0.0.0.0", "port": 20001},
             "model": {
                 "path": "models/my_model",
-                "name": "deepvk/USER-bge-m3",
+                "name": None,  # Должно быть в config.yaml
                 "confidence_threshold": 0.5
             },
             "database": {
                 "path": "db/training_data.db",
-                "csv_migration_path": "data"
+                "csv_migration_path": None
             },
             "training": {
                 "iterations": 20,
                 "epochs": 1,
-                "batch_size": 16,
+                "batch_size": 32,
                 "learning_rate": 2e-5
             }
         }
@@ -137,6 +136,5 @@ app = FastAPI(
 app.include_router(predict_router)
 app.include_router(training_router)
 app.include_router(examples_router)
-app.include_router(package_router)
 app.include_router(load_from_hf_router)
 app.include_router(health_router)

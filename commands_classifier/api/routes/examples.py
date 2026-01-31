@@ -2,7 +2,7 @@
 
 from typing import List
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 
 from commands_classifier.api.state import get_config
 from commands_classifier.api.utils import remove_punctuation
@@ -14,8 +14,16 @@ router = APIRouter(tags=["examples"])
 # Модели запросов/ответов
 class ExampleRequest(BaseModel):
     """Запрос для добавления примера."""
-    text: str
-    command: str
+    text: str = Field(..., min_length=1, max_length=1000)
+    command: str = Field(..., min_length=1, max_length=100)
+    
+    @field_validator('text', 'command')
+    @classmethod
+    def validate_no_control_chars(cls, v: str) -> str:
+        """Проверяет, что строка не содержит управляющих символов."""
+        if any(ord(c) < 32 and c not in '\n\r\t' for c in v):
+            raise ValueError('Строка содержит недопустимые управляющие символы')
+        return v
 
 
 class ExampleResponse(BaseModel):
@@ -55,8 +63,15 @@ async def add_example(request: ExampleRequest):
     try:
         # Очищаем знаки препинания из текста перед сохранением
         cleaned_text = remove_punctuation(request.text)
+        
+        # Проверяем, что после очистки текст не пустой
+        if len(cleaned_text) == 0:
+            raise HTTPException(status_code=400, detail="Текст после очистки не может быть пустым")
+        
         example_id = db.add_example(db_path, cleaned_text, request.command)
         return ExampleResponse(id=example_id, text=cleaned_text, command=request.command)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ошибка при добавлении примера: {str(e)}")
 
@@ -72,6 +87,10 @@ async def delete_example(example_id: int):
     Returns:
         Сообщение об успешном удалении
     """
+    # Валидация ID
+    if example_id <= 0:
+        raise HTTPException(status_code=400, detail="ID примера должен быть положительным числом")
+    
     config = get_config()
     db_path = config["database"]["path"]
     deleted = db.delete_example(db_path, example_id)
@@ -91,6 +110,10 @@ async def get_example(example_id: int):
     Returns:
         Пример
     """
+    # Валидация ID
+    if example_id <= 0:
+        raise HTTPException(status_code=400, detail="ID примера должен быть положительным числом")
+    
     config = get_config()
     db_path = config["database"]["path"]
     example = db.get_example_by_id(db_path, example_id)

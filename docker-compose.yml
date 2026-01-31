@@ -1,5 +1,6 @@
 services:
   cvc-api:
+    image: cvc-api
     build:
       context: .
       dockerfile: Dockerfile
@@ -7,6 +8,8 @@ services:
     ports:
       - "20001:20001"
     volumes:
+      - ./commands_classifier:/app/commands_classifier:ro
+      - ./tests:/app/tests:ro
       - ./models:/app/models
       - ./checkpoints:/app/checkpoints
       - ./cache/huggingface:/app/.cache/huggingface

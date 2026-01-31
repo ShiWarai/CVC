@@ -16,7 +16,9 @@ RUN pip install --root-user-action=ignore -r requirements-docker.txt
 
 COPY commands_classifier/ ./commands_classifier/
 COPY config.yaml .
+COPY pytest.ini .
 COPY data/ ./data/
+COPY tests/ ./tests/
 
 RUN mkdir -p models checkpoints
 

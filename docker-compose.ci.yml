@@ -9,6 +9,8 @@ services:
               capabilities: [gpu]
     networks:
       - robot-services-network
+    environment:
+      - BATCH_SIZE=128
 
 networks:
   robot-services-network:
