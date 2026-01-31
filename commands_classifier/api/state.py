@@ -109,7 +109,9 @@ def load_model() -> bool:
             
             # Загружаем новую модель
             cache_dir = config["model"].get("cache_dir")
+            model_name = config["model"]["name"]
             classifier = CommandsClassifier(
+                model_name=model_name,
                 confidence_threshold=confidence_threshold,
                 cache_dir=cache_dir
             )

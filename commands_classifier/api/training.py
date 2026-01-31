@@ -14,18 +14,6 @@ from commands_classifier.model import CommandsClassifier
 # Настраиваем логгер для обучения
 logger = logging.getLogger("commands_classifier.training")
 
-def _log_training(message: str, level: str = "info"):
-    """Выводит сообщение и в лог, и в консоль для гарантированного отображения."""
-    if level == "info":
-        logger.info(message)
-        print(message, flush=True)
-    elif level == "error":
-        logger.error(message)
-        print(message, file=__import__('sys').stderr, flush=True)
-    elif level == "warning":
-        logger.warning(message)
-        print(message, flush=True)
-
 
 class TrainingStatus(str, Enum):
     """Статусы обучения."""
@@ -42,7 +30,7 @@ class TrainingManager:
         self, 
         db_path: str, 
         model_path: str, 
-        model_name: str = "deepvk/USER-bge-m3",
+        model_name: str,
         confidence_threshold: float = 0.5,
         on_training_complete: Optional[Callable[[], None]] = None,
         default_device: str = "cpu",
@@ -135,7 +123,7 @@ class TrainingManager:
         model_path_obj = Path(self.model_path)
         
         try:
-            _log_training(f"[Обучение {self.training_id}] Начало обучения...")
+            logger.info(f"[Обучение {self.training_id}] Начало обучения...")
             
             # Обновляем прогресс: загрузка данных
             self.progress = 0.1
@@ -150,7 +138,7 @@ class TrainingManager:
             unique_labels = set(labels)
             label_counts = {label: labels.count(label) for label in unique_labels}
             
-            _log_training(f"[Обучение {self.training_id}] Загружено {len(texts)} примеров, классов: {len(unique_labels)}")
+            logger.info(f"[Обучение {self.training_id}] Загружено {len(texts)} примеров, классов: {len(unique_labels)}")
             
             # SetFit требует минимум 2 класса для создания отрицательных пар
             if len(unique_labels) < 2:
@@ -166,9 +154,8 @@ class TrainingManager:
             
             # Если в некоторых классах недостаточно примеров, дополняем их обученными примерами
             if classes_with_insufficient_examples:
-                _log_training(
-                    f"[Обучение {self.training_id}] Обнаружены классы с недостаточным количеством примеров: {classes_with_insufficient_examples}",
-                    "warning"
+                logger.warning(
+                    f"[Обучение {self.training_id}] Обнаружены классы с недостаточным количеством примеров: {classes_with_insufficient_examples}"
                 )
                 
                 # Для каждого класса с недостаточным количеством примеров дополняем обученными
@@ -203,10 +190,9 @@ class TrainingManager:
             
             # Рекомендуем минимум 4 примера на класс для стабильного обучения
             if min_examples_per_class < 4:
-                _log_training(
+                logger.warning(
                     f"[Обучение {self.training_id}] Предупреждение: минимальное количество примеров на класс: {min_examples_per_class}. "
-                    f"Рекомендуется минимум 4 примера на класс для лучших результатов.",
-                    "warning"
+                    f"Рекомендуется минимум 4 примера на класс для лучших результатов."
                 )
             
             # Проверяем, существует ли уже модель (переобучение отключено)
@@ -258,13 +244,13 @@ class TrainingManager:
                     self.metrics = eval_metrics
                 
                 if eval_metrics:
-                    _log_training(f"[Обучение {self.training_id}] Метрики качества:")
+                    logger.info(f"[Обучение {self.training_id}] Метрики качества:")
                     for metric, value in eval_metrics.items():
-                        _log_training(f"[Обучение {self.training_id}]   {metric}: {value:.4f}")
+                        logger.info(f"[Обучение {self.training_id}]   {metric}: {value:.4f}")
             except Exception as train_error:
                 import traceback
-                _log_training(f"[Обучение {self.training_id}] Ошибка при обучении: {train_error}", "error")
-                _log_training(f"[Обучение {self.training_id}] Трассировка:\n{traceback.format_exc()}", "error")
+                logger.error(f"[Обучение {self.training_id}] Ошибка при обучении: {train_error}")
+                logger.error(f"[Обучение {self.training_id}] Трассировка:\n{traceback.format_exc()}")
                 raise
             
             # Обновляем прогресс: сохранение модели
@@ -301,7 +287,7 @@ class TrainingManager:
             #     backup_path_obj = Path(backup_path)
             #     if backup_path_obj.exists():
             #         shutil.rmtree(backup_path_obj)
-            #         _log_training(f"[Обучение {self.training_id}] Backup удален")
+            #         logger.info(f"[Обучение {self.training_id}] Backup удален")
             
             # Отмечаем использованные строки как обученные
             if example_ids:
@@ -313,23 +299,22 @@ class TrainingManager:
                 self.progress = 1.0
                 self.completed_at = datetime.now()
             
-            _log_training(f"[Обучение {self.training_id}] Обучение завершено успешно")
+            logger.info(f"[Обучение {self.training_id}] Обучение завершено успешно")
             
             # Автоматически перезагружаем модель, если указан callback
             if self.on_training_complete:
                 try:
                     self.on_training_complete()
                 except Exception as reload_error:
-                    _log_training(
-                        f"[Обучение {self.training_id}] Предупреждение: не удалось перезагрузить модель: {reload_error}",
-                        "warning"
+                    logger.warning(
+                        f"[Обучение {self.training_id}] Предупреждение: не удалось перезагрузить модель: {reload_error}"
                     )
                 
         except Exception as e:
             # Ошибка при обучении
             import traceback
-            _log_training(f"[Обучение {self.training_id}] ОШИБКА: {e}", "error")
-            _log_training(f"[Обучение {self.training_id}] Трассировка:\n{traceback.format_exc()}", "error")
+            logger.error(f"[Обучение {self.training_id}] ОШИБКА: {e}")
+            logger.error(f"[Обучение {self.training_id}] Трассировка:\n{traceback.format_exc()}")
             
             # ЛОГИКА ВОССТАНОВЛЕНИЯ ИЗ BACKUP ОТКЛЮЧЕНА (закомментировано)
             # # В случае ошибки восстанавливаем старую модель из backup, если она была
@@ -342,9 +327,9 @@ class TrainingManager:
             #                 shutil.rmtree(model_path_obj)
             #             # Восстанавливаем из backup
             #             shutil.move(str(backup_path_obj), str(model_path_obj))
-            #             _log_training(f"[Обучение {self.training_id}] Старая модель восстановлена из backup", "warning")
+            #             logger.warning(f"[Обучение {self.training_id}] Старая модель восстановлена из backup")
             #     except Exception as restore_error:
-            #         _log_training(f"[Обучение {self.training_id}] Не удалось восстановить модель из backup: {restore_error}", "error")
+            #         logger.error(f"[Обучение {self.training_id}] Не удалось восстановить модель из backup: {restore_error}")
             
             with self.lock:
                 self.status = TrainingStatus.FAILED

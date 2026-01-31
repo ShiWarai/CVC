@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, validator
 
 from commands_classifier.api.state import (
     get_config, 
@@ -21,10 +21,10 @@ router = APIRouter(tags=["training"])
 # Модели запросов/ответов
 class TrainRequest(BaseModel):
     """Запрос для запуска обучения."""
-    num_iterations: Optional[int] = None
-    num_epochs: Optional[int] = None
-    batch_size: Optional[int] = None
-    learning_rate: Optional[float] = None
+    num_iterations: Optional[int] = Field(None, ge=1, le=1000)
+    num_epochs: Optional[int] = Field(None, ge=1, le=100)
+    batch_size: Optional[int] = Field(None, ge=1, le=512)
+    learning_rate: Optional[float] = Field(None, gt=0, le=1.0)
 
 
 class TrainResponse(BaseModel):
