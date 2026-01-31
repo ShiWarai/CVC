@@ -12,7 +12,30 @@ on:
         type: string
 
 jobs:
+  test:
+    name: Run tests in Docker
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create network for Docker Compose
+        run: |
+          docker network create robot-services-network 2>/dev/null || true
+
+      - name: Build image
+        run: |
+          docker compose build --no-cache cvc-api
+
+      - name: Run tests in container
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          docker compose run --rm cvc-api pytest tests/ -v --tb=short
+
   train-and-deploy:
+    needs: test
     runs-on: self-hosted  # Используется GPU-машина с self-hosted runner
     timeout-minutes: 60  # Таймаут для всего job (60 минут)
     
@@ -119,7 +142,7 @@ jobs:
         docker rm -f cvc-api || true
         # Запускаем контейнер с CUDA поддержкой
         # Используем docker-compose.ci.yml для GPU доступа
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml build cvc-api
+        docker compose -f docker-compose.yml -f docker-compose.ci.yml build --no-cache cvc-api
         docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d cvc-api
         sleep 5
         # Запускаем скрипт внутри Docker контейнера, где есть все зависимости

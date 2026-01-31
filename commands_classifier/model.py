@@ -36,7 +36,7 @@ class CommandsClassifier:
     
     def __init__(
         self,
-        model_name: str = "deepvk/USER-bge-m3",
+        model_name: str,
         confidence_threshold: float = 0.5,
         cache_dir: Optional[str] = None
     ):
@@ -44,7 +44,7 @@ class CommandsClassifier:
         Инициализирует классификатор.
         
         Args:
-            model_name: Имя предобученной модели (по умолчанию: deepvk/USER-bge-m3)
+            model_name: Имя предобученной модели
             confidence_threshold: Порог уверенности для отбраковки (0.0-1.0). 
                                   Если уверенность ниже порога, возвращается "unknown"
             cache_dir: Путь для кэширования базовой модели (опционально)

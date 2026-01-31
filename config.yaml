@@ -30,7 +30,7 @@ database:
 training:
   iterations: 20
   epochs: 1
-  batch_size: 128
+  batch_size: 32
   learning_rate: 2e-5
 
 

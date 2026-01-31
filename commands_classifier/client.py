@@ -201,28 +201,6 @@ class CVCApiClient:
         response.raise_for_status()
         return response.json()
     
-    def package(self) -> dict:
-        """
-        Запускает упаковку модели в tar.gz архив (только Linux).
-        
-        Returns:
-            Результат запуска (package_id, message)
-        """
-        response = self.session.post(f"{self.base_url}/package")
-        response.raise_for_status()
-        return response.json()
-    
-    def get_package_status(self) -> dict:
-        """
-        Получает статус упаковки модели.
-        
-        Returns:
-            Статус упаковки (package_id, status, progress, output_path, error)
-        """
-        response = self.session.get(f"{self.base_url}/package/status")
-        response.raise_for_status()
-        return response.json()
-    
     def load_from_hf(self, repo_id: Optional[str] = None, local_dir: Optional[str] = None) -> dict:
         """
         Запускает загрузку модели с Hugging Face Hub.
@@ -455,12 +433,6 @@ def main():
     # Команда reset
     subparsers.add_parser('reset', help='Сбросить обучение (удалить модель, пометить все примеры как необученные)')
     
-    # Команда package
-    subparsers.add_parser('package', help='Упаковать модель в tar.gz архив (только Linux)')
-    
-    # Команда package-status
-    subparsers.add_parser('package-status', help='Проверить статус упаковки модели')
-    
     # Команда load-from-hf
     load_from_hf_parser = subparsers.add_parser('load-from-hf', help='Загрузить модель с Hugging Face Hub')
     load_from_hf_parser.add_argument('--repo-id', type=str, help='ID репозитория на Hugging Face (например: username/model-name). Если не указан, сервер использует HF_REPO_ID из своей конфигурации')
@@ -512,64 +484,6 @@ def main():
             else:
                 print(f"Ошибка: {e}", file=sys.stderr)
             sys.exit(1)
-        except Exception as e:
-            print(f"Ошибка: {e}", file=sys.stderr)
-            sys.exit(1)
-    elif args.command == 'package':
-        try:
-            client = CVCApiClient(args.url)
-            
-            print("Запуск упаковки модели...")
-            result = client.package()
-            print(f"Упаковка запущена. ID задачи: {result['package_id']}")
-            print(f"Сообщение: {result['message']}")
-            print("\nОжидание завершения упаковки...")
-            
-            # Ждем завершения упаковки
-            import time
-            while True:
-                time.sleep(1)
-                status = client.get_package_status()
-                
-                if status['status'] == 'completed':
-                    print(f"\n✓ Упаковка завершена успешно!")
-                    print(f"  Архив: {status['output_path']}")
-                    break
-                elif status['status'] == 'failed':
-                    print(f"\n✗ Упаковка завершилась с ошибкой: {status.get('error', 'Неизвестная ошибка')}")
-                    sys.exit(1)
-                elif status['status'] == 'running':
-                    print(f"Прогресс: {status['progress']:.0%}", end='\r')
-                    
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 409:
-                print(f"Ошибка: {e.response.json().get('detail', 'Упаковка уже выполняется')}", file=sys.stderr)
-            elif e.response.status_code == 404:
-                print(f"Ошибка: {e.response.json().get('detail', 'Модель не найдена')}", file=sys.stderr)
-            else:
-                print(f"Ошибка: {e}", file=sys.stderr)
-            sys.exit(1)
-        except Exception as e:
-            print(f"Ошибка: {e}", file=sys.stderr)
-            sys.exit(1)
-    elif args.command == 'package-status':
-        try:
-            client = CVCApiClient(args.url)
-            status = client.get_package_status()
-            
-            print(f"ID задачи: {status['package_id'] or 'нет активной задачи'}")
-            print(f"Статус: {status['status']}")
-            print(f"Прогресс: {status['progress']:.0%}")
-            
-            if status['started_at']:
-                print(f"Начато: {status['started_at']}")
-            if status['completed_at']:
-                print(f"Завершено: {status['completed_at']}")
-            if status['output_path']:
-                print(f"Архив: {status['output_path']}")
-            if status['error']:
-                print(f"Ошибка: {status['error']}")
-                
         except Exception as e:
             print(f"Ошибка: {e}", file=sys.stderr)
             sys.exit(1)
