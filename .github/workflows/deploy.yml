@@ -125,12 +125,10 @@ jobs:
     - name: Run training
       env:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
-        # Переменные окружения для параметров обучения (опционально)
-        # Если не установлены или пустые, используются значения из config.yaml
-        NUM_ITERATIONS: ${{ secrets.NUM_ITERATIONS }}
-        NUM_EPOCHS: ${{ secrets.NUM_EPOCHS }}
-        BATCH_SIZE: ${{ secrets.BATCH_SIZE }}
-        LEARNING_RATE: ${{ secrets.LEARNING_RATE }}
+        NUM_ITERATIONS: 20
+        NUM_EPOCHS: 1
+        BATCH_SIZE: 128
+        LEARNING_RATE: 2e-5
         # Путь к базе данных для обучения (по умолчанию: db/training_data_ci.db для CI/CD)
         TRAINING_DB_PATH: ${{ github.event.inputs.db_path || 'db/training_data_ci.db' }}
       run: |
