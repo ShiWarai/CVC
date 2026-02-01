@@ -28,7 +28,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          driver: docker  # чтобы FROM cvc-api при сборке cvc-dev видел образ с хоста
+          driver: docker  # чтобы FROM cvc-api видел образ с хоста (кэш GHA не используем)
 
       - name: Create network for Docker Compose
         run: |
@@ -42,8 +42,6 @@ jobs:
           tags: cvc-api:latest
           load: true
           push: false
-          cache-from: type=gha,scope=cvc-api
-          cache-to: type=gha,mode=max,scope=cvc-api
 
       - name: Build dev image
         uses: docker/build-push-action@v6
@@ -53,8 +51,6 @@ jobs:
           tags: cvc-dev:latest
           load: true
           push: false
-          cache-from: type=gha,scope=cvc-dev
-          cache-to: type=gha,mode=max,scope=cvc-dev
 
       - name: Lint with ruff
         run: |
