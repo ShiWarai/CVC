@@ -56,6 +56,26 @@ def _normalize_db_path(db_path: str) -> str:
     return db_path
 
 
+def check_connection(db_path: str) -> bool:
+    """
+    Проверяет доступность базы данных.
+
+    Args:
+        db_path: Путь к файлу базы данных SQLite (или директории с training_data.db)
+
+    Returns:
+        True если соединение установлено и запрос выполняется, False иначе.
+    """
+    path = _normalize_db_path(db_path)
+    try:
+        conn = sqlite3.connect(path, timeout=2.0)
+        conn.execute("SELECT 1")
+        conn.close()
+        return True
+    except Exception:
+        return False
+
+
 def _example_exists(cursor: sqlite3.Cursor, text: str, command: str) -> bool:
     """
     Проверяет, существует ли пример с указанным text и command в БД.

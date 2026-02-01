@@ -1,6 +1,6 @@
 """Эндпоинты для проверки здоровья и метрик."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Response
 
 from commands_classifier.api.state import get_classifier, get_config, get_training_manager
 from commands_classifier import db
@@ -9,20 +9,31 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/health")
-async def health():
+async def health(response: Response):
     """
     Проверка работоспособности сервера (TEI совместимый).
-    
-    Returns:
-        Статус сервера
+    Возвращает 503 при недоступности БД.
     """
     classifier = get_classifier()
     training_manager = get_training_manager()
-    
+    config = get_config()
+    db_path = config["database"]["path"]
+    db_ok = db.check_connection(db_path)
+
+    if not db_ok:
+        response.status_code = 503
+        return {
+            "status": "unhealthy",
+            "model_loaded": classifier is not None,
+            "training_active": training_manager.is_training() if training_manager else False,
+            "database_available": False,
+        }
+
     return {
         "status": "healthy",
         "model_loaded": classifier is not None,
-        "training_active": training_manager.is_training() if training_manager else False
+        "training_active": training_manager.is_training() if training_manager else False,
+        "database_available": True,
     }
 
 

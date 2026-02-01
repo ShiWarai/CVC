@@ -20,6 +20,8 @@ except ImportError:
 from datasets import Dataset
 from setfit import SetFitModel, SetFitTrainer
 
+from commands_classifier.hf_retry import retry_hf
+
 
 def _get_hf_token() -> Optional[str]:
     """
@@ -123,22 +125,23 @@ class CommandsClassifier:
         
         # Получаем токен Hugging Face для доступа к gated моделям
         hf_token = _get_hf_token()
-        
-        # Создаем модель
-        try:
-            self.model = SetFitModel.from_pretrained(
-                self.model_name,
-                cache_dir=cache_dir_path,
-                use_safetensors=True,
-                token=hf_token
-            )
-        except Exception:
-            # Если safetensors не доступны, пробуем без них
-            self.model = SetFitModel.from_pretrained(
-                self.model_name,
-                cache_dir=cache_dir_path,
-                token=hf_token
-            )
+
+        def _load_base_model():
+            try:
+                return SetFitModel.from_pretrained(
+                    self.model_name,
+                    cache_dir=cache_dir_path,
+                    use_safetensors=True,
+                    token=hf_token,
+                )
+            except Exception:
+                return SetFitModel.from_pretrained(
+                    self.model_name,
+                    cache_dir=cache_dir_path,
+                    token=hf_token,
+                )
+
+        self.model = retry_hf(_load_base_model)
         
         # Перемещаем модель на устройство (SetFitModel автоматически обрабатывает это)
         self.model = self.model.to(device)
@@ -373,20 +376,23 @@ class CommandsClassifier:
         # Получаем токен Hugging Face для доступа к gated моделям
         hf_token = _get_hf_token()
         
-        # Если модель не загружена, загружаем базовую модель
+        # Если модель не загружена, загружаем базовую модель (с retry для HF)
         if self.model is None:
-            # Пытаемся загрузить с safetensors, если доступно
-            try:
-                self.model = SetFitModel.from_pretrained(
-                    self.model_name, 
-                    use_safetensors=True,
-                    token=hf_token
-                )
-            except Exception:
-                self.model = SetFitModel.from_pretrained(
-                    self.model_name,
-                    token=hf_token
-                )
+
+            def _load_base():
+                try:
+                    return SetFitModel.from_pretrained(
+                        self.model_name,
+                        use_safetensors=True,
+                        token=hf_token,
+                    )
+                except Exception:
+                    return SetFitModel.from_pretrained(
+                        self.model_name,
+                        token=hf_token,
+                    )
+
+            self.model = retry_hf(_load_base)
         
         # Получаем базовую модель эмбеддингов (sentence-transformers)
         # SetFitModel имеет атрибут model_body для доступа к базовой модели

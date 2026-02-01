@@ -5,8 +5,9 @@
 ![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 ![Docker Ready](https://img.shields.io/badge/docker-ready-blue?logo=docker)
 ![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-yellow)
+[![CVC-Panda on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20CVC--Panda-Model-yellow)](https://huggingface.co/ShiWarai/CVC-Panda)
 
-Мини-сервис для классификации голосовых команд с использованием SetFit (few-shot learning). Позволяет обучать модель на малом датасете (8-16 примеров на класс) и классифицировать текстовые команды.
+Мини-сервис для классификации голосовых команд с использованием SetFit (few-shot learning). Позволяет обучать модель на малом датасете (8-16 примеров на класс) и классифицировать текстовые команды. Деплоимая модель: [CVC-Panda](https://huggingface.co/ShiWarai/CVC-Panda) на Hugging Face.
 
 ## Особенности
 
@@ -30,7 +31,7 @@
 Для работы на CPU без GPU ускорения:
 
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-docker.txt
 ```
 
 ### NVIDIA CUDA
@@ -214,10 +215,10 @@ docker run -d `
 
 ### Запуск тестов
 
-Тесты выполняются в Docker (образ уже содержит pytest и тестовые зависимости):
+Тесты запускаются в Docker — так же, как в CI (образ уже содержит pytest и pytest-cov):
 
 ```bash
-docker compose run --rm cvc-api pytest tests/ -v --tb=short
+docker compose run --rm cvc-api pytest tests/ -v --tb=short --cov=commands_classifier --cov-report=term-missing
 ```
 
 ### Использование клиента с Docker контейнером
@@ -435,7 +436,7 @@ python -m commands_classifier.cli serve \
 - Если установлен PyTorch с ROCm поддержкой и ROCm доступен → используется AMD GPU
 - Иначе → используется CPU
 
-После запуска сервер будет доступен по адресу `http://localhost:20001`. Документация API (Swagger UI) доступна по адресу `http://localhost:20001/docs`.
+После запуска сервер будет доступен по адресу `http://localhost:20001`. Документация API в интерактивном виде: [Swagger UI](http://localhost:20001/docs) и [ReDoc](http://localhost:20001/redoc); схема OpenAPI: `http://localhost:20001/openapi.json`.
 
 ### Локальное обучение с GPU
 
@@ -786,7 +787,21 @@ text,command
 
 ## CI/CD и автоматическое обучение
 
-Проект включает CI/CD пайплайн для автоматического обучения моделей через GitHub Actions. Подробная документация находится в [docs/cicd_setup.md](docs/cicd_setup.md).
+Проект включает CI/CD пайплайн ([.github/workflows/deploy.yml](.github/workflows/deploy.yml)) для автоматического обучения и деплоя моделей через GitHub Actions.
+
+### Этапы пайплайна
+
+1. **Job `test`** (ubuntu-latest):
+   - Линтинг кода: **ruff** `check .`
+   - Сборка Docker-образа и запуск тестов в контейнере: **pytest** с отчётом покрытия (`--cov=commands_classifier --cov-report=term-missing`)
+   - При падении тестов или ruff пайплайн останавливается
+
+2. **Job `train-and-deploy`** (self-hosted runner с GPU):
+   - Запускается только после успешного прохождения `test`
+   - Подготовка окружения, запуск контейнера с CUDA, обучение модели через API
+   - Загрузка обученной модели на Hugging Face Hub
+
+Подробная настройка: [docs/cicd_setup.md](docs/cicd_setup.md).
 
 ### Настройка self-hosted runner для GPU
 
@@ -891,25 +906,31 @@ docker run --rm --gpus all nvidia/cuda:12.0.0-base-ubuntu22.04 nvidia-smi
 
 ```
 CVC/
-├── requirements.txt              # Зависимости
-├── README.md                     # Документация
-├── config.yaml                   # Конфигурация сервера
+├── requirements-docker.txt     # Зависимости для Docker + тесты (CPU)
+├── requirements-cuda.txt       # Зависимости для NVIDIA CUDA
+├── requirements-rocm.txt       # Зависимости для AMD ROCm
+├── README.md
+├── config.yaml                 # Конфигурация сервера
 ├── commands_classifier/
 │   ├── __init__.py
 │   ├── model.py                 # Класс CommandsClassifier
 │   ├── dataset.py               # Утилиты для загрузки датасетов
+│   ├── db.py                    # Работа с SQLite базой данных
 │   ├── cli.py                   # CLI для запуска сервера
 │   ├── client.py                # Консольный клиент для API
-│   ├── db.py                    # Работа с SQLite базой данных
+│   ├── hf_retry.py              # Retry для вызовов Hugging Face Hub
 │   └── api/
 │       ├── __init__.py
 │       ├── server.py            # FastAPI сервер
-│       └── training.py          # Менеджер фонового обучения
-├── data/
-│   └── commands_example.csv     # Пример датасета
-├── models/                      # Сохраненные модели (создается автоматически)
-└── db/
-    └── training_data.db         # SQLite база данных (создается автоматически)
+│       ├── state.py             # Глобальное состояние
+│       ├── training.py         # Менеджер фонового обучения
+│       ├── utils.py
+│       └── routes/              # Эндпоинты API
+├── data/                        # CSV датасеты для миграции
+├── models/                     # Сохранённые модели (создаётся автоматически)
+├── db/                          # SQLite (training_data.db создаётся автоматически)
+├── tests/
+└── docs/
 ```
 
 

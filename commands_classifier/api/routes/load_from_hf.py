@@ -11,6 +11,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
 from commands_classifier.api.state import get_config, get_training_manager, load_model
+from commands_classifier.hf_retry import retry_hf
 
 router = APIRouter(tags=["load_from_hf"])
 
@@ -107,13 +108,15 @@ def _run_load_from_hf_task(repo_id: str, local_dir: str, load_id: str):
         with _load_from_hf_lock:
             _load_from_hf_status["progress"] = 0.3
         
-        # Загружаем модель
+        # Загружаем модель (с retry при сетевых сбоях)
         try:
-            downloaded_path = snapshot_download(
-                repo_id=repo_id,
-                local_dir=str(local_path_obj),
-                token=hf_token,
-                local_dir_use_symlinks=False  # Не используем симлинки для Docker
+            downloaded_path = retry_hf(
+                lambda: snapshot_download(
+                    repo_id=repo_id,
+                    local_dir=str(local_path_obj),
+                    token=hf_token,
+                    local_dir_use_symlinks=False,  # Не используем симлинки для Docker
+                )
             )
             with _load_from_hf_lock:
                 _load_from_hf_status["progress"] = 0.9
