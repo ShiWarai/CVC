@@ -1,10 +1,12 @@
 # Dev-образ для линта и тестов (линт + pytest в одном окружении)
+# В CI задаём RUNNER_UID/RUNNER_GID — файлы в workspace создаются от пользователя runner'а
 services:
   cvc-dev:
     image: cvc-dev
     build:
       context: .
       dockerfile: Dockerfile.dev
+    user: "${RUNNER_UID:-0}:${RUNNER_GID:-0}"
     volumes:
       - .:/app
     environment:

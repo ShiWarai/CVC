@@ -17,12 +17,13 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     steps:
-      - name: Clean stale cache (root-owned dirs from previous Docker runs)
-        run: |
-          docker run --rm -v "${{ github.workspace }}:/w" alpine sh -c "rm -rf /w/cache" || true
-
       - name: Checkout code
         uses: actions/checkout@v4
+
+      - name: Set runner user for containers
+        run: |
+          echo "RUNNER_UID=$(id -u)" >> $GITHUB_ENV
+          echo "RUNNER_GID=$(id -g)" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -74,6 +75,11 @@ jobs:
       with:
         fetch-depth: 0  # Полная история для git pull
         clean: false  # Не удалять существующие файлы (избегаем проблем с правами доступа)
+
+    - name: Set runner user for containers
+      run: |
+        echo "RUNNER_UID=$(id -u)" >> $GITHUB_ENV
+        echo "RUNNER_GID=$(id -g)" >> $GITHUB_ENV
 
     - name: Prepare directories
       run: |

@@ -1,9 +1,11 @@
+# В CI задаём RUNNER_UID/RUNNER_GID — файлы в cache/models/checkpoints создаются от пользователя runner'а
 services:
   cvc-api:
     image: cvc-api
     build:
       context: .
       dockerfile: Dockerfile
+    user: "${RUNNER_UID:-0}:${RUNNER_GID:-0}"
     container_name: cvc-api
     ports:
       - "20001:20001"
