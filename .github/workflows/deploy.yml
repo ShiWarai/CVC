@@ -41,6 +41,8 @@ jobs:
 
       - name: Build API image
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false # не загружать архив .dockerbuild
         with:
           context: .
           file: ./Dockerfile
@@ -50,6 +52,8 @@ jobs:
 
       - name: Build dev image
         uses: docker/build-push-action@v6
+        env:
+          DOCKER_BUILD_RECORD_UPLOAD: false
         with:
           context: .
           file: ./Dockerfile.dev
@@ -167,7 +171,7 @@ jobs:
         HF_TOKEN: ${{ secrets.HF_TOKEN }}
         NUM_ITERATIONS: 20
         NUM_EPOCHS: 1
-        BATCH_SIZE: 128
+        BATCH_SIZE: 256
         LEARNING_RATE: 2e-5
         # Путь к базе данных для обучения (по умолчанию: db/training_data_ci.db для CI/CD)
         TRAINING_DB_PATH: ${{ github.event.inputs.db_path || 'db/training_data_ci.db' }}
