@@ -8,8 +8,6 @@
 
 Мини-сервис для классификации голосовых команд (SetFit). Обучает модель на малом датасете и классифицирует текстовые команды. Создан для использования в проекте навыка для Sber Salute.
 
----
-
 ## Стек технологий
 
 | Категория | Технологии |
@@ -20,8 +18,6 @@
 | Интерфейсы | REST API, CLI (Python) |
 | Инфраструктура | Docker |
 | Разработка | pytest, ruff, httpx |
-
----
 
 ## Оглавление
 
@@ -37,8 +33,6 @@
 | [CI/CD](#cicd) | Пайплайн и ссылка на настройку |
 | [Лицензия](#лицензия) | MIT |
 
----
-
 ## Быстрый старт
 
 1. Создайте `.env` с `HF_TOKEN` и `HF_REPO_ID` ([токен](https://huggingface.co/settings/tokens), [модель](https://huggingface.co/google/embeddinggemma-300M) — принять условия).
@@ -51,8 +45,6 @@
 3. Сервер: **http://localhost:20001**. Документация API: http://localhost:20001/docs
 
 Остановка: `docker-compose down`.
-
----
 
 ## Установка и запуск
 
@@ -86,8 +78,6 @@ python -m commands_classifier.cli serve
 
 Опции: `--host`, `--port`, `--config`. БД создаётся при первом запуске, данные из `data/` или CSV из `config.yaml`.
 
----
-
 ## Использование
 
 ### CLI
@@ -113,8 +103,6 @@ python -m commands_classifier.client load-from-hf-status
 
 - **API-клиент:** `CVCApiClient(base_url)` — методы `predict`, `predict_batch`, `embed`, `train`, `get_training_status`, `get_examples`, `add_example`, `delete_example`.
 - **Библиотека (без сервера):** `CommandsClassifier()` + `load_dataset(path)` → `train(texts, labels)`, `predict(text)`, `save(path)`, `load(path)`.
-
----
 
 ## Конфигурация и API
 
@@ -161,8 +149,6 @@ training:
 
 Интерактивная документация: **http://localhost:20001/docs**. Устройство (CPU/CUDA/ROCm) определяется при запуске автоматически.
 
----
-
 ## Данные
 
 ### Формат датасета
@@ -176,8 +162,6 @@ training:
 ### Параметры обучения
 
 `--iterations`, `--epochs`, `--batch-size`, `--learning-rate`. Значения по умолчанию — в `config.yaml` (секция `training`).
-
----
 
 ## Разработка
 
@@ -207,8 +191,6 @@ CVC/
 └── docs/                    # cicd_setup.md и др.
 ```
 
----
-
 ## CI/CD
 
 Пайплайн [.github/workflows/deploy.yml](.github/workflows/deploy.yml):
@@ -218,12 +200,8 @@ CVC/
 
 Подробная настройка (self-hosted runner, GPU, секреты): [docs/cicd_setup.md](docs/cicd_setup.md).
 
----
-
 ## Лицензия
 
 MIT
-
----
 
 *Проект создан с использованием нейросетей.*
