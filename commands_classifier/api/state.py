@@ -1,9 +1,10 @@
 """Глобальное состояние приложения."""
 
-from typing import Optional, Dict, Any
 from pathlib import Path
-from commands_classifier.model import CommandsClassifier
+from typing import Any, Dict, Optional
+
 from commands_classifier.api.training import TrainingManager
+from commands_classifier.model import CommandsClassifier
 
 # Глобальные переменные состояния
 _classifier: Optional[CommandsClassifier] = None
@@ -26,29 +27,32 @@ def set_classifier(classifier: Optional[CommandsClassifier]) -> None:
 def unload_classifier() -> None:
     """Выгружает классификатор из памяти с очисткой GPU."""
     global _classifier
-    
+
     if _classifier is not None:
         try:
-            import torch
             import gc
-            
+
+            import torch
+
             # Перемещаем модель на CPU перед удалением
             if _classifier.model is not None:
-                if hasattr(_classifier.model, 'to'):
+                if hasattr(_classifier.model, "to"):
                     try:
-                        _classifier.model = _classifier.model.to('cpu')
+                        _classifier.model = _classifier.model.to("cpu")
                     except Exception:
                         pass
-                if hasattr(_classifier.model, 'model_body') and hasattr(_classifier.model.model_body, 'to'):
+                if hasattr(_classifier.model, "model_body") and hasattr(
+                    _classifier.model.model_body, "to"
+                ):
                     try:
-                        _classifier.model.model_body = _classifier.model.model_body.to('cpu')
+                        _classifier.model.model_body = _classifier.model.model_body.to("cpu")
                     except Exception:
                         pass
-            
+
             del _classifier
             _classifier = None
             gc.collect()
-            
+
             # Очищаем кэш CUDA
             try:
                 if torch.cuda.is_available():
@@ -98,22 +102,22 @@ def load_model() -> bool:
     config = get_config()
     model_path = config["model"]["path"]
     model_path_obj = Path(model_path)
-    
+
     if model_path_obj.exists():
         try:
             # Убеждаемся, что confidence_threshold - это float
             confidence_threshold = float(config["model"].get("confidence_threshold", 0.5))
-            
+
             # Выгружаем старую модель из памяти
             unload_classifier()
-            
+
             # Загружаем новую модель
             cache_dir = config["model"].get("cache_dir")
             model_name = config["model"]["name"]
             classifier = CommandsClassifier(
                 model_name=model_name,
                 confidence_threshold=confidence_threshold,
-                cache_dir=cache_dir
+                cache_dir=cache_dir,
             )
             classifier.load(model_path, confidence_threshold=confidence_threshold)
             set_classifier(classifier)

@@ -1,24 +1,25 @@
 """Общие фикстуры для тестов CVC."""
 
-import pytest
 from contextlib import asynccontextmanager
 from unittest.mock import MagicMock
+
+import pytest
 from fastapi import FastAPI
 
+from commands_classifier import db
 from commands_classifier.api.routes import (
+    examples_router,
+    health_router,
+    load_from_hf_router,
     predict_router,
     training_router,
-    examples_router,
-    load_from_hf_router,
-    health_router,
 )
 from commands_classifier.api.state import (
-    set_config,
     set_classifier,
-    set_training_manager,
+    set_config,
     set_default_device,
+    set_training_manager,
 )
-from commands_classifier import db
 
 
 def _test_config(db_path: str, model_path: str):
@@ -47,7 +48,9 @@ def _setup_test_state(db_path: str, model_path: str, classifier=None, training_m
     config = _test_config(db_path, model_path)
     set_config(config)
     db.init_db(db_path, None)
-    set_training_manager(training_manager if training_manager is not None else _make_mock_training_manager())
+    set_training_manager(
+        training_manager if training_manager is not None else _make_mock_training_manager()
+    )
     set_classifier(classifier)
 
 
@@ -77,7 +80,9 @@ def _make_mock_classifier():
     """Мок CommandsClassifier для API-тестов predict/embed."""
     mock = MagicMock()
     mock.predict.return_value = "unknown"
-    mock.predict.side_effect = lambda text, return_confidence=False: ("unknown", 0.5) if return_confidence else "unknown"
+    mock.predict.side_effect = (
+        lambda text, return_confidence=False: ("unknown", 0.5) if return_confidence else "unknown"
+    )
     mock.predict_batch.return_value = ["unknown", "unknown"]
     mock.predict_batch.side_effect = (
         lambda texts, return_confidence=False: (["unknown"] * len(texts), [0.5] * len(texts))
@@ -135,6 +140,7 @@ def app_with_mock_classifier(temp_db_path, temp_model_dir):
 def client(app, temp_db_path, temp_model_dir):
     """HTTP-клиент для тестового приложения (без реальной модели)."""
     from fastapi.testclient import TestClient
+
     _setup_test_state(temp_db_path, temp_model_dir, classifier=None)
     return TestClient(app)
 
@@ -143,6 +149,7 @@ def client(app, temp_db_path, temp_model_dir):
 def client_with_mock_classifier(app_with_mock_classifier, temp_db_path, temp_model_dir):
     """HTTP-клиент для приложения с мок-классификатором."""
     from fastapi.testclient import TestClient
+
     mock_clf = _make_mock_classifier()
     _setup_test_state(temp_db_path, temp_model_dir, classifier=mock_clf)
     return TestClient(app_with_mock_classifier)

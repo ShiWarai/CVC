@@ -5,7 +5,10 @@ def test_predict_without_model_returns_503(client):
     """POST /predict без загруженной модели возвращает 503."""
     response = client.post("/predict", json={"text": "лягись"})
     assert response.status_code == 503
-    assert "модель" in response.json().get("detail", "").lower() or "model" in response.json().get("detail", "").lower()
+    assert (
+        "модель" in response.json().get("detail", "").lower()
+        or "model" in response.json().get("detail", "").lower()
+    )
 
 
 def test_predict_with_mock_classifier_returns_200(client_with_mock_classifier):

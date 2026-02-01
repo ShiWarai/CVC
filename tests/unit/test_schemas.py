@@ -5,11 +5,10 @@ from pydantic import ValidationError
 
 from commands_classifier.api.routes.predict import (
     EmbedRequest,
-    PredictRequest,
     PredictBatchRequest,
+    PredictRequest,
 )
 from commands_classifier.api.routes.training import TrainRequest
-
 
 # --- EmbedRequest ---
 

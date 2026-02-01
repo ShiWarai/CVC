@@ -3,28 +3,28 @@ E2E-тест: тестовая БД (3 класса), загрузка прил�
 Выполняется в контейнере с реальной моделью и реальным обучением.
 """
 
-import pytest
 import time
 from pathlib import Path  # noqa: F401 - используется в FIXTURES_DIR
+
+import pytest
 from fastapi import FastAPI
 
+from commands_classifier import db
 from commands_classifier.api.routes import (
+    examples_router,
+    health_router,
+    load_from_hf_router,
     predict_router,
     training_router,
-    examples_router,
-    load_from_hf_router,
-    health_router,
 )
 from commands_classifier.api.state import (
-    set_config,
-    set_classifier,
-    set_training_manager,
-    set_default_device,
     load_model,
+    set_classifier,
+    set_config,
+    set_default_device,
+    set_training_manager,
 )
 from commands_classifier.api.training import TrainingManager
-from commands_classifier import db
-
 
 # Путь к фикстурам с тестовым датасетом (3 класса: lie_down, dismiss, unknown)
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"
@@ -33,8 +33,8 @@ EXPECTED_CLASSES = {"lie_down", "dismiss", "unknown"}
 
 # Примеры из датасета по одному на класс (для проверки predict после обучения)
 SAMPLE_TEXTS_BY_CLASS = [
-    "лягись",   # lie_down
-    "отмена",   # dismiss
+    "лягись",  # lie_down
+    "отмена",  # dismiss
     "не знаю",  # unknown
 ]
 
@@ -92,6 +92,7 @@ def e2e_app(temp_db_path, temp_model_dir):
 def e2e_client(e2e_app, temp_db_path, temp_model_dir):
     """HTTP-клиент для E2E-приложения."""
     from fastapi.testclient import TestClient
+
     _setup_e2e_state(temp_db_path, temp_model_dir)
     return TestClient(e2e_app)
 

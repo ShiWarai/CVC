@@ -1,6 +1,7 @@
 """Unit-тесты для загрузки датасетов."""
 
 import json
+
 import pytest  # noqa: F401 - используется для фикстур (tmp_path)
 
 from commands_classifier.dataset import load_dataset
