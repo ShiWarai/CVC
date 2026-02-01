@@ -66,7 +66,6 @@ class TrainingManager:
         self.error: Optional[str] = None
         self.started_at: Optional[datetime] = None
         self.completed_at: Optional[datetime] = None
-        self.metrics: Optional[Dict[str, Any]] = None  # Метрики качества модели
 
     def start_training(
         self,
@@ -101,7 +100,6 @@ class TrainingManager:
             self.error = None
             self.started_at = datetime.now()
             self.completed_at = None
-            self.metrics = None  # Сбрасываем метрики при новом обучении
 
             # Запускаем обучение в отдельном потоке
             self.training_thread = threading.Thread(
@@ -233,7 +231,7 @@ class TrainingManager:
 
             # Обучаем модель
             try:
-                eval_metrics = classifier.train(
+                classifier.train(
                     texts=texts,
                     labels=labels,
                     num_iterations=num_iterations_int,
@@ -242,14 +240,6 @@ class TrainingManager:
                     learning_rate=learning_rate_float,
                     device=device,
                 )
-                # Сохраняем метрики
-                with self.lock:
-                    self.metrics = eval_metrics
-
-                if eval_metrics:
-                    logger.info(f"[Обучение {self.training_id}] Метрики качества:")
-                    for metric, value in eval_metrics.items():
-                        logger.info(f"[Обучение {self.training_id}]   {metric}: {value:.4f}")
             except Exception as train_error:
                 import traceback
 
@@ -355,7 +345,7 @@ class TrainingManager:
             Словарь со статусом обучения и метриками качества
         """
         with self.lock:
-            status = {
+            return {
                 "training_id": self.training_id,
                 "status": self.status.value,
                 "progress": self.progress,
@@ -363,10 +353,6 @@ class TrainingManager:
                 "started_at": self.started_at.isoformat() if self.started_at else None,
                 "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             }
-            # Добавляем метрики, если они есть
-            if self.metrics:
-                status["metrics"] = self.metrics
-            return status
 
     def is_training(self) -> bool:
         """

@@ -635,7 +635,7 @@ curl -X POST "http://localhost:20001/embed" \
 curl http://localhost:20001/health
 ```
 
-**GET /metrics** - Метрики сервера
+**GET /metrics** - Счётчики примеров и статус обучения
 ```bash
 curl http://localhost:20001/metrics
 ```

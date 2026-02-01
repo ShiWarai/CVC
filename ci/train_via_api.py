@@ -136,7 +136,7 @@ def main():
         )
 
         print("  Обучение модели...")
-        metrics = classifier.train(
+        classifier.train(
             texts=texts,
             labels=labels,
             num_iterations=num_iterations,
@@ -152,10 +152,6 @@ def main():
         classifier.save(model_path)
 
         print("\n✓ Обучение завершено успешно!")
-        if metrics:
-            print("\nМетрики качества модели:")
-            for metric, value in metrics.items():
-                print(f"  {metric}: {value:.4f}")
 
         # Помечаем примеры как обученные
         print("\nОбновление статуса примеров в БД...")

@@ -293,10 +293,6 @@ def train_command(args):
 
             if status["status"] == "completed":
                 print("\n✓ Обучение завершено успешно!")
-                if "metrics" in status and status["metrics"]:
-                    print("\nМетрики качества модели:")
-                    for metric, value in status["metrics"].items():
-                        print(f"  {metric}: {value:.4f}")
                 break
             elif status["status"] == "failed":
                 print(
@@ -336,12 +332,6 @@ def train_status_command(args):
             print(f"Завершено: {status['completed_at']}")
         if status["error"]:
             print(f"Ошибка: {status['error']}")
-
-        # Показываем метрики качества, если они есть
-        if "metrics" in status and status["metrics"]:
-            print("\nМетрики качества модели:")
-            for metric, value in status["metrics"].items():
-                print(f"  {metric}: {value:.4f}")
 
     except Exception as e:
         print(f"Ошибка: {e}", file=sys.stderr)
@@ -430,7 +420,7 @@ def main():
     subparsers.add_parser("health", help="Проверить работоспособность сервера")
 
     # Команда metrics
-    subparsers.add_parser("metrics", help="Получить метрики сервера")
+    subparsers.add_parser("metrics", help="Получить счётчики примеров и статус обучения")
 
     # Команда reset
     subparsers.add_parser(

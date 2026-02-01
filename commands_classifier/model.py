@@ -2,7 +2,7 @@
 
 import os
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 
@@ -63,56 +63,28 @@ class CommandsClassifier:
         self,
         texts: List[str],
         labels: List[str],
-        eval_texts: Optional[List[str]] = None,
-        eval_labels: Optional[List[str]] = None,
-        eval_split: float = 0.2,
         num_iterations: int = 20,
         num_epochs: int = 1,
         batch_size: int = 16,
         learning_rate: float = 2e-5,  # Может быть float или str, будет преобразовано
         device: Optional[str] = None,
-    ) -> Optional[Dict[str, float]]:
+    ) -> None:
         """
         Обучает модель на предоставленных данных.
 
         Args:
             texts: Список текстов для обучения
             labels: Список меток (команд) для каждого текста
-            eval_texts: Опциональный список текстов для валидации
-            eval_labels: Опциональный список меток для валидации
-            eval_split: Доля данных для валидации (0.0-1.0), если eval_texts не передан. По умолчанию 0.2 (20%)
             num_iterations: Количество итераций контрастного обучения (используется как num_epochs для body)
             num_epochs: Количество эпох для fine-tuning head
             batch_size: Размер батча (больше = быстрее, но требует больше памяти)
             learning_rate: Скорость обучения
             device: Устройство для обучения ('cpu', 'cuda' или None - определяется автоматически)
-
-        Returns:
-            Словарь с метриками качества на валидационном датасете (accuracy, f1 и т.д.) или None, если метрики не удалось вычислить
         """
         if len(texts) != len(labels):
             raise ValueError(
                 f"Количество текстов ({len(texts)}) не совпадает с количеством меток ({len(labels)})"
             )
-
-        # Автоматическое разделение данных если eval не передан
-        if eval_texts is None:
-            from sklearn.model_selection import train_test_split
-
-            try:
-                texts, eval_texts, labels, eval_labels = train_test_split(
-                    texts, labels, test_size=eval_split, random_state=42, stratify=labels
-                )
-            except ValueError:
-                # Если stratify не работает (недостаточно примеров в классах), используем без stratify
-                texts, eval_texts, labels, eval_labels = train_test_split(
-                    texts, labels, test_size=eval_split, random_state=42
-                )
-        else:
-            if eval_labels is None or len(eval_texts) != len(eval_labels):
-                raise ValueError(
-                    f"Количество eval_texts ({len(eval_texts) if eval_texts else 0}) не совпадает с количеством eval_labels ({len(eval_labels) if eval_labels else 0})"
-                )
 
         # Определяем устройство
         import torch
@@ -149,9 +121,8 @@ class CommandsClassifier:
         # Перемещаем модель на устройство (SetFitModel автоматически обрабатывает это)
         self.model = self.model.to(device)
 
-        # Создаем датасеты
+        # Создаем датасет для обучения
         train_dataset = Dataset.from_dict({"text": texts, "label": labels})
-        eval_dataset = Dataset.from_dict({"text": eval_texts, "label": eval_labels})
 
         # Убеждаемся, что learning_rate это float (может прийти как str из config)
         learning_rate_float = float(learning_rate)
@@ -161,7 +132,6 @@ class CommandsClassifier:
         trainer = SetFitTrainer(
             model=self.model,
             train_dataset=train_dataset,
-            eval_dataset=eval_dataset,
             num_iterations=num_iterations,
             num_epochs=num_epochs,
             batch_size=batch_size,
@@ -172,18 +142,7 @@ class CommandsClassifier:
         # Обучаем модель
         trainer.train()
 
-        # Вычисляем метрики на eval датасете
-        eval_metrics = None
-        try:
-            eval_results = trainer.evaluate()
-            eval_metrics = eval_results
-        except Exception:
-            pass
-
         self.is_trained = True
-
-        # Возвращаем метрики для использования в API и клиенте
-        return eval_metrics
 
     def predict(self, text: str, return_confidence: bool = False) -> str | Tuple[str, float]:
         """
