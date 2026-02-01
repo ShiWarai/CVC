@@ -24,20 +24,19 @@ jobs:
         run: |
           docker network create robot-services-network 2>/dev/null || true
 
+      - name: Build dev image
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache cvc-dev
+
       - name: Lint with ruff
         run: |
-          pip install ruff
-          ruff check . --output-format=github
-
-      - name: Build image
-        run: |
-          docker compose build --no-cache cvc-api
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev ruff check . --output-format=github
 
       - name: Run tests in container
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          docker compose run --rm cvc-api pytest tests/ -v --tb=short --cov=commands_classifier --cov-report=term-missing
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=commands_classifier --cov-report=term-missing
 
   train-and-deploy:
     needs: test
@@ -144,12 +143,12 @@ jobs:
         # Удаляем старый контейнер (если есть) для избежания ошибки ContainerConfig
         docker rm -f cvc-api || true
         # Запускаем контейнер с CUDA поддержкой
-        # Используем docker-compose.ci.yml для GPU доступа
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml build cvc-api
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml up -d cvc-api
+        # Используем docker-compose.cuda.yml для GPU доступа
+        docker compose -f docker-compose.yml -f docker-compose.cuda.yml build cvc-api
+        docker compose -f docker-compose.yml -f docker-compose.cuda.yml up -d cvc-api
         sleep 5
         # Запускаем скрипт внутри Docker контейнера, где есть все зависимости
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml exec -T \
+        docker compose -f docker-compose.yml -f docker-compose.cuda.yml exec -T \
           -e HF_TOKEN="${HF_TOKEN}" \
           -e NUM_ITERATIONS="${NUM_ITERATIONS}" \
           -e NUM_EPOCHS="${NUM_EPOCHS}" \
@@ -190,7 +189,7 @@ jobs:
         echo "Очистка временных файлов"
         echo "=========================================="
         # Останавливаем контейнер, если он был запущен этим job
-        docker compose -f docker-compose.yml -f docker-compose.ci.yml down || true
+        docker compose -f docker-compose.yml -f docker-compose.cuda.yml down || true
         echo "✓ Очистка завершена"
 
     - name: Summary

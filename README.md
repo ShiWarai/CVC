@@ -213,13 +213,27 @@ docker run -d `
 
 **Примечание о базе данных:** База данных монтируется как директория (`./db`), а не как файл, чтобы избежать проблемы Docker, когда несуществующий файл при монтировании создается как директория. Файл `training_data.db` будет автоматически создан внутри директории `./db` при первом запуске.
 
-### Запуск тестов
+### Запуск тестов и линта
 
-Тесты запускаются в Docker — так же, как в CI (образ уже содержит pytest и pytest-cov):
+Для линта и тестов используется отдельный compose-файл [docker-compose.dev.yml](docker-compose.dev.yml) и образ **cvc-dev** (на базе cvc-api + ruff). Сначала соберите образ:
 
 ```bash
-docker compose run --rm cvc-api pytest tests/ -v --tb=short --cov=commands_classifier --cov-report=term-missing
+docker compose -f docker-compose.yml -f docker-compose.dev.yml build cvc-dev
 ```
+
+Линт (ruff):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev ruff check .
+```
+
+Тесты с покрытием (как в CI):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=commands_classifier --cov-report=term-missing
+```
+
+Основной [docker-compose.yml](docker-compose.yml) — только для запуска API (cvc-api). **cvc-dev** — для разработки и CI (линт + тесты).
 
 ### Использование клиента с Docker контейнером
 
@@ -792,9 +806,10 @@ text,command
 ### Этапы пайплайна
 
 1. **Job `test`** (ubuntu-latest):
-   - Линтинг кода: **ruff** `check .`
-   - Сборка Docker-образа и запуск тестов в контейнере: **pytest** с отчётом покрытия (`--cov=commands_classifier --cov-report=term-missing`)
-   - При падении тестов или ruff пайплайн останавливается
+   - Сборка dev-образа **cvc-dev** по [docker-compose.dev.yml](docker-compose.dev.yml) (на базе cvc-api + ruff)
+   - Линтинг в контейнере: **ruff** `check . --output-format=github`
+   - Тесты в контейнере: **pytest** с отчётом покрытия (`--cov=commands_classifier --cov-report=term-missing`)
+   - При падении линта или тестов пайплайн останавливается
 
 2. **Job `train-and-deploy`** (self-hosted runner с GPU):
    - Запускается только после успешного прохождения `test`
