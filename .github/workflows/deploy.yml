@@ -1,10 +1,15 @@
-name: ML Pipeline - Train and Deploy
+name: ML Pipeline - Train and Publish
 
 on:
   push:
     branches: [ main, master, dev ]  # Триггер на push в main/master/dev (новый датасет)
   workflow_dispatch:  # Позволяет запускать вручную через GitHub UI
     inputs:
+      run_training:
+        description: 'Запустить обучение и публикацию модели в HF'
+        required: false
+        default: true
+        type: boolean
       db_path:
         description: 'Путь к базе данных для обучения (относительно корня проекта, по умолчанию: db/training_data_ci.db)'
         required: false
@@ -62,9 +67,11 @@ jobs:
         run: |
           docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=commands_classifier --cov-report=term-missing
 
+  # Запускается только при push с меткой [retrain] в сообщении коммита или при ручном запуске (с опцией run_training)
   train-and-publish:
     name: Train model and publish to Hugging Face
     needs: test
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_training != 'false' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[retrain]'))
     runs-on: self-hosted  # Используется GPU-машина с self-hosted runner
     timeout-minutes: 60  # Таймаут для всего job (60 минут)
     steps:
