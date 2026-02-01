@@ -4,7 +4,6 @@
 [![License: MIT](https://img.shields.io/github/license/ShiWarai/CVC)](https://opensource.org/licenses/MIT)
 ![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 ![Docker Ready](https://img.shields.io/badge/docker-ready-blue?logo=docker)
-![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Models-yellow)
 [![CVC-Panda on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20CVC--Panda-Model-yellow)](https://huggingface.co/ShiWarai/CVC-Panda)
 
 Мини-сервис для классификации голосовых команд с использованием SetFit (few-shot learning). Позволяет обучать модель на малом датасете (8-16 примеров на класс) и классифицировать текстовые команды. Деплоимая модель: [CVC-Panda](https://huggingface.co/ShiWarai/CVC-Panda) на Hugging Face.
@@ -812,7 +811,7 @@ text,command
    - Тесты в контейнере: **pytest** с отчётом покрытия (`--cov=commands_classifier --cov-report=term-missing`)
    - При падении линта или тестов пайплайн останавливается
 
-2. **Job `train-and-deploy`** (self-hosted runner с GPU):
+2. **Job `train-and-publish`** (self-hosted runner с GPU):
    - Запускается только после успешного прохождения `test`
    - Подготовка окружения, запуск контейнера с CUDA, обучение модели через API
    - Загрузка обученной модели на Hugging Face Hub

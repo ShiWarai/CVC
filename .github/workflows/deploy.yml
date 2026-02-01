@@ -62,11 +62,11 @@ jobs:
         run: |
           docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=commands_classifier --cov-report=term-missing
 
-  train-and-deploy:
+  train-and-publish:
+    name: Train model and publish to Hugging Face
     needs: test
     runs-on: self-hosted  # Используется GPU-машина с self-hosted runner
     timeout-minutes: 60  # Таймаут для всего job (60 минут)
-    
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
