@@ -34,23 +34,31 @@ logging.basicConfig(
 
 
 def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
-    """Загружает конфигурацию из YAML файла."""
+    """Загружает конфигурацию из YAML файла. Требуется наличие config.yaml."""
     config_file = Path(config_path)
-    if config_file.exists():
-        with open(config_file, "r", encoding="utf-8") as f:
-            config = yaml.safe_load(f)
-    else:
-        # Конфигурация по умолчанию (минимальная, основные параметры должны быть в config.yaml)
-        config = {
-            "server": {"host": "0.0.0.0", "port": 20001},
-            "model": {
-                "path": "models/my_model",
-                "name": None,  # Должно быть в config.yaml
-                "confidence_threshold": 0.5,
-            },
-            "database": {"path": "db/training_data.db", "csv_migration_path": None},
-            "training": {"iterations": 20, "epochs": 1, "batch_size": 32, "learning_rate": 2e-5},
-        }
+    if not config_file.exists():
+        raise FileNotFoundError(
+            f"Конфигурация не найдена: {config_file}. Создайте config.yaml в корне проекта (см. config.yaml.example или README)."
+        )
+    with open(config_file, "r", encoding="utf-8") as f:
+        config = yaml.safe_load(f)
+    if not config:
+        raise ValueError(f"Конфигурация в {config_file} пуста или невалидна.")
+    # Проверка обязательных параметров
+    model = config.get("model") or {}
+    database = config.get("database") or {}
+    if not (model.get("name") or "").strip():
+        raise ValueError(
+            f"В {config_file} отсутствует или пуст обязательный параметр model.name (базовая модель для обучения/эмбеддингов)."
+        )
+    if not (model.get("path") or "").strip():
+        raise ValueError(
+            f"В {config_file} отсутствует или пуст обязательный параметр model.path."
+        )
+    if not (database.get("path") or "").strip():
+        raise ValueError(
+            f"В {config_file} отсутствует или пуст обязательный параметр database.path."
+        )
     set_config(config)
     return config
 
