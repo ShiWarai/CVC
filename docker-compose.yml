@@ -1,37 +1,39 @@
-version: '3.8'
-
+# В CI задаём RUNNER_UID/RUNNER_GID — файлы в cache/models/checkpoints создаются от пользователя runner'а
 services:
   cvc-api:
+    image: cvc-api
     build:
       context: .
       dockerfile: Dockerfile
+    user: "${RUNNER_UID:-0}:${RUNNER_GID:-0}"
     container_name: cvc-api
     ports:
-      - "8000:8000"
+      - "20001:20001"
     volumes:
-      # Монтируем модели, чтобы они сохранялись между перезапусками
+      - ./commands_classifier:/app/commands_classifier:ro
+      - ./tests:/app/tests:ro
       - ./models:/app/models
       - ./checkpoints:/app/checkpoints
-      # Монтируем кэш Hugging Face, чтобы не скачивать оригинальную модель каждый раз
       - ./cache/huggingface:/app/.cache/huggingface
-      # Монтируем базу данных
-      - ./training_data.db:/app/training_data.db
-      # Монтируем конфигурацию (опционально, для изменения без пересборки)
+      - ./db:/app/db
       - ./config.yaml:/app/config.yaml:ro
-      # Монтируем данные (опционально)
       - ./data:/app/data:ro
+      - ./ci:/app/ci:ro
     environment:
-      # Переменные окружения для Hugging Face
       - HF_HOME=/app/.cache/huggingface
-      # Токен для доступа к gated моделям (загружается из .env файла)
       - HF_TOKEN=${HF_TOKEN}
-      # Альтернативное имя переменной (на случай если используется другое)
       - HUGGING_FACE_HUB_TOKEN=${HF_TOKEN}
+      - HF_REPO_ID=${HF_REPO_ID}
     restart: unless-stopped
+    networks:
+      - robot-services-network
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health', timeout=5).raise_for_status()"]
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:20001/health', timeout=5).raise_for_status()"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
+networks:
+  robot-services-network:
+    external: true

@@ -1,30 +1,27 @@
-FROM python:3.11-slim
+FROM pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime
 
-# Обновляем список пакетов (build-essential и git не нужны для большинства современных Python пакетов)
-RUN apt-get update && apt-get clean && rm -rf /var/lib/apt/lists/*
-
-# Создаем рабочую директорию
-WORKDIR /app
-
-# Копируем requirements.txt и устанавливаем зависимости
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Копируем код приложения
-COPY commands_classifier/ ./commands_classifier/
-COPY config.yaml .
-COPY data/ ./data/
-
-# Создаем директории для моделей и базы данных
-RUN mkdir -p models checkpoints
-
-# Устанавливаем переменные окружения
+ENV PIP_NO_CACHE_DIR=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PATH=/opt/conda/bin:$PATH
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Открываем порт
-EXPOSE 8000
+WORKDIR /app
 
-# Команда по умолчанию - запуск сервера
-CMD ["python", "-m", "commands_classifier.cli", "serve", "--host", "0.0.0.0", "--port", "8000"]
+# Обновляем pip и устанавливаем зависимости
+RUN pip install --root-user-action=ignore --upgrade pip setuptools wheel
 
+COPY requirements-docker.txt .
+RUN pip install --root-user-action=ignore -r requirements-docker.txt
+
+COPY commands_classifier/ ./commands_classifier/
+COPY config.yaml .
+COPY pytest.ini .
+COPY data/ ./data/
+COPY tests/ ./tests/
+
+RUN mkdir -p models checkpoints
+
+EXPOSE 20001
+
+CMD ["python", "-m", "commands_classifier.cli", "serve", "--host", "0.0.0.0", "--port", "20001"]

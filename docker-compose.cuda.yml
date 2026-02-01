@@ -1,0 +1,17 @@
+services:
+  cvc-api:
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    networks:
+      - robot-services-network
+    environment:
+      - BATCH_SIZE=128
+
+networks:
+  robot-services-network:
+    driver: bridge

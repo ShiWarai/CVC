@@ -1,0 +1,478 @@
+text,command
+привет,unknown
+как дела,unknown
+что происходит,unknown
+сегодня хорошая погода,unknown
+робот ты здесь,unknown
+сколько времени,unknown
+расскажи анекдот,unknown
+пока,unknown
+как тебя зовут,unknown
+что ты умеешь,unknown
+расскажи о себе,unknown
+какая погода,unknown
+что на ужин,unknown
+включи музыку,unknown
+выключи свет,unknown
+открой дверь,unknown
+закрой окно,unknown
+принеси мне воды,unknown
+где ты находишься,unknown
+как дела на работе,unknown
+что нового,unknown
+как настроение,unknown
+давай посмотрим фильм,unknown
+поиграем в игру,unknown
+что ты думаешь,unknown
+расскажи историю,unknown
+спой песню,unknown
+танцуй,unknown
+покажи фокус,unknown
+не лежать,unknown
+не ложись,unknown
+не беги,unknown
+не давай лапу,unknown
+не вращайся,unknown
+не кувырок,unknown
+не равняйся,unknown
+не отставить,unknown
+не держи джойстик,unknown
+не останавливайся,unknown
+может лежать,unknown
+может беги,unknown
+может лапу дай,unknown
+может кувырок,unknown
+может равняйся,unknown
+можно лежать,unknown
+можно лапу,unknown
+можно беги,unknown
+лежать нельзя,unknown
+лапу не показывай,unknown
+беги потом,unknown
+давай не будем лежать,unknown
+не надо лежать,unknown
+не хочу чтобы ты лежал,unknown
+лежать не нужно,unknown
+зачем лежать,unknown
+почему лежать,unknown
+когда лежать,unknown
+ты лежал,unknown
+ты бегал,unknown
+ты давал лапу,unknown
+лежать хорошо,unknown
+беги плохо,unknown
+лапу красиво,unknown
+кувырок весело,unknown
+робот лежит,unknown
+панда бежит,unknown
+он дает лапу,unknown
+она вращается,unknown
+лежать будешь,unknown
+беги завтра,unknown
+лапу потом дай,unknown
+кувырок вчера,unknown
+я хочу чтобы ты лежал,unknown
+мне нравится когда ты бежишь,unknown
+лежать это команда,unknown
+беги это приказ,unknown
+что значит лежать,unknown
+как лежать,unknown
+зачем давать лапу,unknown
+почему вращаться,unknown
+лежать или бежать,unknown
+лапу или кувырок,unknown
+давай поговорим,unknown
+расскажи про себя,unknown
+что ты делаешь,unknown
+куда ты идешь,unknown
+откуда ты,unknown
+сколько тебе лет,unknown
+ты устал,unknown
+ты голодный,unknown
+ты спишь,unknown
+ты работаешь,unknown
+панда милая,unknown
+робот классный,unknown
+ты умный,unknown
+ты быстрый,unknown
+ты сильный,unknown
+мне нравится панда,unknown
+робот хороший,unknown
+отличная панда,unknown
+супер робот,unknown
+молодец панда,unknown
+хорошо робот,unknown
+спасибо панда,unknown
+спасибо робот,unknown
+спасибо тебе,unknown
+благодарю,unknown
+отлично,unknown
+супер,unknown
+класс,unknown
+круто,unknown
+ничего,unknown
+ладно,unknown
+хорошо,unknown
+понятно,unknown
+ясно,unknown
+согласен,unknown
+да,unknown
+нет,unknown
+может быть,unknown
+не знаю,unknown
+посмотрим,unknown
+увидим,unknown
+подумаю,unknown
+наверное,unknown
+конечно,unknown
+точно,unknown
+правда,unknown
+серьезно,unknown
+шутишь,unknown
+обманываешь,unknown
+лапа,unknown
+лапы,unknown
+лапой,unknown
+лапах,unknown
+лапами,unknown
+беги сюда,unknown
+беги туда,unknown
+беги домой,unknown
+беги в школу,unknown
+лежать можно,unknown
+лежать нельзя здесь,unknown
+дай мне,unknown
+дай ему,unknown
+покажи мне,unknown
+покажи ему,unknown
+стой здесь,unknown
+стой там,unknown
+остановись здесь,unknown
+остановись там,unknown
+вращайся там,unknown
+кувыркайся здесь,unknown
+робот и панда,unknown
+панда или робот,unknown
+робот с пандой,unknown
+панда без робота,unknown
+лежать и бегать,unknown
+лапу и кувырок,unknown
+равняться или отставить,unknown
+джойстик и контроллер,unknown
+это панда,unknown
+это робот,unknown
+это лапа,unknown
+это кувырок,unknown
+вот панда,unknown
+вот робот,unknown
+смотри панда,unknown
+смотри робот,unknown
+слушай панда,unknown
+слушай робот,unknown
+эй панда привет,unknown
+эй робот привет,unknown
+ну панда как дела,unknown
+ну робот что там,unknown
+панда ты где,unknown
+робот ты кто,unknown
+панда скажи,unknown
+робот ответь,unknown
+панда помоги,unknown
+робот помоги,unknown
+давай панда поговорим,unknown
+давай робот пообщаемся,unknown
+а панда лежать,unknown
+а робот беги,unknown
+ну лапу панда,unknown
+ну кувырок робот,unknown
+так лежать панда,unknown
+так беги робот,unknown
+вообще лежать,unknown
+вообще беги,unknown
+просто лежать,unknown
+просто беги,unknown
+только лежать,unknown
+только беги,unknown
+еще лежать,unknown
+еще беги,unknown
+опять лежать,unknown
+опять беги,unknown
+снова лежать,unknown
+снова беги,unknown
+опять ты лежишь,unknown
+снова бежишь,unknown
+всегда лежишь,unknown
+часто бегаешь,unknown
+редко даешь лапу,unknown
+иногда вращаешься,unknown
+никогда не лежишь,unknown
+никогда не бегаешь,unknown
+лежать бы,unknown
+беги бы,unknown
+лапу бы дал,unknown
+кувырок бы сделал,unknown
+лежать ли,unknown
+беги ли,unknown
+лапу ли дать,unknown
+надо ли лежать,unknown
+стоит ли бегать,unknown
+можно ли лапу,unknown
+лежи если хочешь,unknown
+беги когда скажу,unknown
+лапу когда попросят,unknown
+лежать что ли,unknown
+беги что ли,unknown
+лапу дать что ли,unknown
+кувырок сделать что ли,unknown
+панда а что делать,unknown
+робот а куда идти,unknown
+ну и лежать,unknown
+ну и беги,unknown
+вот и лапу,unknown
+так и кувырок,unknown
+лежать же,unknown
+беги же,unknown
+лапу же,unknown
+разве лежать,unknown
+разве беги,unknown
+разве лапу дать,unknown
+неужели лежать,unknown
+неужели беги,unknown
+будто лежать,unknown
+будто беги,unknown
+словно лежать,unknown
+словно беги,unknown
+типа лежать,unknown
+типа беги,unknown
+как бы лежать,unknown
+как бы беги,unknown
+вроде лежать,unknown
+вроде беги,unknown
+похоже лежать,unknown
+похоже беги,unknown
+панда хочет лежать,unknown
+робот хочет бегать,unknown
+панда может лежать,unknown
+робот может бегать,unknown
+панда должен лежать,unknown
+робот должен бегать,unknown
+панда умеет лежать,unknown
+робот умеет бегать,unknown
+панда любит лежать,unknown
+робот любит бегать,unknown
+панда начал лежать,unknown
+робот начал бегать,unknown
+панда продолжай лежать,unknown
+робот продолжай бегать,unknown
+панда перестань лежать,unknown
+робот перестань бегать,unknown
+будешь лежать,unknown
+будешь бегать,unknown
+будешь давать лапу,unknown
+хочешь лежать,unknown
+хочешь бегать,unknown
+хочешь дать лапу,unknown
+можешь лежать,unknown
+можешь бегать,unknown
+можешь дать лапу,unknown
+умеешь лежать,unknown
+умеешь бегать,unknown
+умеешь давать лапу,unknown
+любишь лежать,unknown
+любишь бегать,unknown
+любишь давать лапу,unknown
+научись лежать,unknown
+научись бегать,unknown
+научись давать лапу,unknown
+попробуй лежать,unknown
+попробуй бегать,unknown
+попробуй дать лапу,unknown
+забудь про лежать,unknown
+забудь про бегать,unknown
+забудь про лапу,unknown
+помни про лежать,unknown
+помни про бегать,unknown
+помни про лапу,unknown
+думай о лежать,unknown
+думай о бегать,unknown
+думай о лапе,unknown
+говорю лежать,unknown
+говорю бегать,unknown
+говорю лапу,unknown
+прошу лежать,unknown
+прошу бегать,unknown
+прошу лапу,unknown
+требую лежать,unknown
+требую бегать,unknown
+требую лапу,unknown
+советую лежать,unknown
+советую бегать,unknown
+советую лапу,unknown
+рекомендую лежать,unknown
+рекомендую бегать,unknown
+рекомендую лапу,unknown
+предлагаю лежать,unknown
+предлагаю бегать,unknown
+предлагаю лапу,unknown
+заставляю лежать,unknown
+заставляю бегать,unknown
+заставляю давать лапу,unknown
+позволяю лежать,unknown
+позволяю бегать,unknown
+позволяю давать лапу,unknown
+запрещаю лежать,unknown
+запрещаю бегать,unknown
+запрещаю давать лапу,unknown
+лежать запрещено,unknown
+бегать запрещено,unknown
+лапу давать запрещено,unknown
+лежать разрешено,unknown
+бегать разрешено,unknown
+лапу давать разрешено,unknown
+лежать можно здесь,unknown
+бегать можно там,unknown
+лапу дать можно мне,unknown
+лежать нужно тут,unknown
+бегать нужно сейчас,unknown
+лапу нужно дать потом,unknown
+панда не должен лежать,unknown
+робот не должен бегать,unknown
+панда не может лежать,unknown
+робот не может бегать,unknown
+панда не умеет лежать,unknown
+робот не умеет бегать,unknown
+панда не хочет лежать,unknown
+робот не хочет бегать,unknown
+панда не любит лежать,unknown
+робот не любит бегать,unknown
+какой панда,unknown
+какой робот,unknown
+какая лапа,unknown
+какой кувырок,unknown
+который панда,unknown
+который робот,unknown
+чей панда,unknown
+чей робот,unknown
+чья лапа,unknown
+чей джойстик,unknown
+сколько панд,unknown
+сколько роботов,unknown
+сколько лап,unknown
+много панд,unknown
+много роботов,unknown
+мало панд,unknown
+мало роботов,unknown
+один панда,unknown
+два робота,unknown
+три лапы,unknown
+первый панда,unknown
+второй робот,unknown
+последний панда,unknown
+следующий робот,unknown
+предыдущий панда,unknown
+другой робот,unknown
+такой панда,unknown
+такой робот,unknown
+этот панда лежит,unknown
+тот робот бежит,unknown
+здешний панда,unknown
+тамошний робот,unknown
+мой панда,unknown
+твой робот,unknown
+его панда,unknown
+ее робот,unknown
+наш панда,unknown
+ваш робот,unknown
+их панда,unknown
+свой робот,unknown
+большой панда,unknown
+маленький робот,unknown
+хороший панда,unknown
+плохой робот,unknown
+красивый панда,unknown
+умный робот,unknown
+быстрый панда,unknown
+медленный робот,unknown
+сильный панда,unknown
+слабый робот,unknown
+новый панда,unknown
+старый робот,unknown
+молодой панда,unknown
+взрослый робот,unknown
+веселый панда,unknown
+грустный робот,unknown
+добрый панда,unknown
+злой робот,unknown
+живой панда,unknown
+мертвый робот,unknown
+панда в комнате,unknown
+робот на улице,unknown
+панда под столом,unknown
+робот над полом,unknown
+панда за дверью,unknown
+робот перед окном,unknown
+панда с джойстиком,unknown
+робот без лапы,unknown
+панда для игры,unknown
+робот из металла,unknown
+панда про команды,unknown
+робот о себе,unknown
+у панды лапа,unknown
+к роботу иду,unknown
+от панды бегу,unknown
+с роботом играю,unknown
+по панде скучаю,unknown
+о роботе думаю,unknown
+панде холодно,unknown
+роботу жарко,unknown
+панду вижу,unknown
+робота слышу,unknown
+панде помогаю,unknown
+робота зову,unknown
+о панде говорю,unknown
+роботом доволен,unknown
+пандой горжусь,unknown
+лапой машу,unknown
+кувырком удивлен,unknown
+джойстиком играю,unknown
+в лапе что-то,unknown
+на роботе пятно,unknown
+лежать лучше,unknown
+бегать хуже,unknown
+лапу интереснее,unknown
+кувырок веселее,unknown
+равняться важнее,unknown
+отставить проще,unknown
+джойстик нужнее,unknown
+остановиться легче,unknown
+панда лежать хочет,unknown
+робот бегать любит,unknown
+лапу дать готов,unknown
+кувырок сделать может,unknown
+равняться должен,unknown
+отставить надо,unknown
+сегодня лежать,unknown
+завтра бегать,unknown
+вчера лежал,unknown
+сейчас бежит,unknown
+потом дам лапу,unknown
+раньше давал лапу,unknown
+скоро кувырок,unknown
+недавно кувырок был,unknown
+всегда лежит,unknown
+никогда не бегает,unknown
+иногда дает лапу,unknown
+часто вращается,unknown
+редко равняется,unknown
+постоянно лежит,unknown
+временами бегает,unknown
+обычно лапу дает,unknown
+освежи робота,unknown
+положи трубку,unknown
+положи лапу,unknown
+салют вперёд,unknown
+салют впереди,unknown
+олежи робота,unknown
+запусти робота,unknown
+робот запустись,unknown
+опусти руку,unknown
