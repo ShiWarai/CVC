@@ -17,6 +17,10 @@ jobs:
     runs-on: self-hosted
     timeout-minutes: 30
     steps:
+      - name: Clean stale cache (root-owned dirs from previous Docker runs)
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/w" alpine sh -c "rm -rf /w/cache" || true
+
       - name: Checkout code
         uses: actions/checkout@v4
 
