@@ -61,7 +61,6 @@ class LoadFromHfStatusResponse(BaseModel):
 
 
 # Статус загрузки модели (модульный уровень)
-import threading
 _load_from_hf_lock = threading.Lock()
 _load_from_hf_status: Dict[str, Any] = {
     "load_id": None,
@@ -110,7 +109,7 @@ def _run_load_from_hf_task(repo_id: str, local_dir: str, load_id: str):
         
         # Загружаем модель (с retry при сетевых сбоях)
         try:
-            downloaded_path = retry_hf(
+            retry_hf(
                 lambda: snapshot_download(
                     repo_id=repo_id,
                     local_dir=str(local_path_obj),

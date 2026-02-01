@@ -1,7 +1,5 @@
 """Unit-тесты для утилит (remove_punctuation)."""
 
-import pytest
-
 from commands_classifier.api.utils import remove_punctuation
 
 

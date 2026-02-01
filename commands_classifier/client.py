@@ -2,7 +2,6 @@
 
 import argparse
 import sys
-import os
 import requests
 import json
 from typing import Optional
@@ -267,7 +266,7 @@ def predict_command(args):
             try:
                 error_detail = e.response.json()
                 print(f"Детали: {error_detail}", file=sys.stderr)
-            except:
+            except Exception:
                 print(f"Ответ сервера: {e.response.text}", file=sys.stderr)
         sys.exit(1)
     except Exception as e:
@@ -299,7 +298,7 @@ def train_command(args):
             status = client.get_training_status()
             
             if status['status'] == 'completed':
-                print(f"\n✓ Обучение завершено успешно!")
+                print("\n✓ Обучение завершено успешно!")
                 if 'metrics' in status and status['metrics']:
                     print("\nМетрики качества модели:")
                     for metric, value in status['metrics'].items():
@@ -495,11 +494,11 @@ def main():
             payload = {}
             if args.repo_id:
                 payload["repo_id"] = args.repo_id
-                print(f"Запуск загрузки модели с Hugging Face Hub...")
+                print("Запуск загрузки модели с Hugging Face Hub...")
                 print(f"Репозиторий: {args.repo_id}")
             else:
-                print(f"Запуск загрузки модели с Hugging Face Hub...")
-                print(f"Репозиторий: будет использован из конфигурации сервера (HF_REPO_ID)")
+                print("Запуск загрузки модели с Hugging Face Hub...")
+                print("Репозиторий: будет использован из конфигурации сервера (HF_REPO_ID)")
             
             if args.local_dir:
                 payload["local_dir"] = args.local_dir
@@ -516,7 +515,7 @@ def main():
                 status = client.get_load_from_hf_status()
                 
                 if status['status'] == 'completed':
-                    print(f"\n✓ Загрузка завершена успешно!")
+                    print("\n✓ Загрузка завершена успешно!")
                     print(f"  Модель загружена в: {status['local_path']}")
                     break
                 elif status['status'] == 'failed':

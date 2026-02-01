@@ -5,8 +5,7 @@ E2E-тест: тестовая БД (3 класса), загрузка прил�
 
 import pytest
 import time
-from pathlib import Path
-from contextlib import asynccontextmanager
+from pathlib import Path  # noqa: F401 - используется в FIXTURES_DIR
 from fastapi import FastAPI
 
 from commands_classifier.api.routes import (

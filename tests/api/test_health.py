@@ -1,7 +1,5 @@
 """API-тесты для эндпоинтов /health и /metrics."""
 
-import pytest
-
 
 def test_health_returns_200(client):
     """GET /health возвращает 200 и структуру status, model_loaded, training_active."""

@@ -4,13 +4,11 @@ import shutil
 from pathlib import Path
 from typing import Optional
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field
 
 from commands_classifier.api.state import (
     get_config, 
     get_training_manager,
-    get_classifier,
-    set_classifier,
     unload_classifier
 )
 from commands_classifier import db

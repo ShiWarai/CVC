@@ -27,7 +27,7 @@ jobs:
       - name: Lint with ruff
         run: |
           pip install ruff
-          ruff check .
+          ruff check . --output-format=github
 
       - name: Build image
         run: |

@@ -9,10 +9,10 @@ from pathlib import Path
 
 # Добавляем корневую директорию проекта в путь
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
+sys.path.insert(0, str(project_root))  # noqa: E402
 
-import yaml
-from huggingface_hub import login, HfApi, create_repo
+import yaml  # noqa: E402
+from huggingface_hub import login, HfApi, create_repo  # noqa: E402
 
 
 def load_config(config_path: str = "config.yaml") -> dict:
@@ -58,7 +58,7 @@ def main():
         print("Сначала обучите модель", file=sys.stderr)
         return 1
     
-    print(f"\nПараметры загрузки:")
+    print("\nПараметры загрузки:")
     print(f"  Репозиторий HF: {hf_repo_id}")
     print(f"  Путь к модели: {model_path}")
     if commit_sha:
@@ -66,7 +66,7 @@ def main():
     
     try:
         # Авторизуемся в HF
-        print(f"\nАвторизация в Hugging Face...")
+        print("\nАвторизация в Hugging Face...")
         login(token=hf_token, add_to_git_credential=False)
         print("✓ Авторизация успешна")
         
@@ -89,7 +89,7 @@ def main():
             print("✓ Репозиторий создан")
         
         # Загружаем модель
-        print(f"\nЗагрузка модели на Hugging Face Hub...")
+        print("\nЗагрузка модели на Hugging Face Hub...")
         # Формируем уникальное сообщение коммита с SHA из GitHub
         if commit_sha:
             commit_message = f"CI: модель обучена и загружена ({commit_sha})"
@@ -104,7 +104,7 @@ def main():
             ignore_patterns=["*.pyc", "__pycache__", "*.log"]
         )
         
-        print(f"\n✓ Модель успешно загружена на Hugging Face Hub")
+        print("\n✓ Модель успешно загружена на Hugging Face Hub")
         print(f"  Репозиторий: https://huggingface.co/{hf_repo_id}")
         return 0
         

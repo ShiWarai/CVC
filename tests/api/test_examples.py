@@ -1,7 +1,5 @@
 """API-тесты для эндпоинтов /examples."""
 
-import pytest
-
 
 def test_get_examples_empty(client):
     """GET /examples при пустой БД возвращает []."""

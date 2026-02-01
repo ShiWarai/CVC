@@ -1,7 +1,5 @@
 """API-тесты для эндпоинтов predict и embed."""
 
-import pytest
-
 
 def test_predict_without_model_returns_503(client):
     """POST /predict без загруженной модели возвращает 503."""

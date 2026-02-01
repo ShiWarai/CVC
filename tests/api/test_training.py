@@ -1,7 +1,5 @@
 """API-тесты для эндпоинтов /train, /train/status, /reset."""
 
-import pytest
-
 
 def test_train_returns_200(client):
     """POST /train с моком TrainingManager возвращает 200 и training_id."""

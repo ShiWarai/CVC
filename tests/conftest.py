@@ -2,7 +2,6 @@
 
 import pytest
 from contextlib import asynccontextmanager
-from pathlib import Path
 from unittest.mock import MagicMock
 from fastapi import FastAPI
 

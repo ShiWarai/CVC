@@ -2,7 +2,6 @@
 
 import argparse
 import sys
-import os
 
 
 def serve_command(args):

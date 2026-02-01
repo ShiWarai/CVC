@@ -37,12 +37,12 @@ def unload_classifier() -> None:
                 if hasattr(_classifier.model, 'to'):
                     try:
                         _classifier.model = _classifier.model.to('cpu')
-                    except:
+                    except Exception:
                         pass
                 if hasattr(_classifier.model, 'model_body') and hasattr(_classifier.model.model_body, 'to'):
                     try:
                         _classifier.model.model_body = _classifier.model.model_body.to('cpu')
-                    except:
+                    except Exception:
                         pass
             
             del _classifier
@@ -54,7 +54,7 @@ def unload_classifier() -> None:
                 if torch.cuda.is_available():
                     torch.cuda.empty_cache()
                     torch.cuda.synchronize()
-            except:
+            except Exception:
                 pass
         except Exception:
             _classifier = None

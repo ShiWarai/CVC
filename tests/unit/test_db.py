@@ -1,7 +1,5 @@
 """Unit-тесты для модуля БД (init_db, add_example, count_examples, get_all_examples)."""
 
-import pytest
-
 from commands_classifier import db
 
 

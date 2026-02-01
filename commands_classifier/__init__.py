@@ -1,7 +1,6 @@
 """CVC - Classification of Voice Commands. Few-shot learning классификатор голосовых команд с использованием SetFit."""
 
 from pathlib import Path
-import os
 
 # Загружаем переменные окружения из .env файла (для локального использования)
 # Только загружаем переменные, без вызова huggingface_hub.login() - это будет сделано

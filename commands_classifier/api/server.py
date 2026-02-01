@@ -7,13 +7,11 @@ from typing import Dict, Any
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
-from commands_classifier.model import CommandsClassifier
 from commands_classifier import db
 from commands_classifier.api.training import TrainingManager
 from commands_classifier.api.state import (
-    get_classifier, set_classifier, unload_classifier,
-    get_config, set_config,
-    get_training_manager, set_training_manager,
+    set_config,
+    set_training_manager,
     get_default_device, set_default_device,
     load_model
 )

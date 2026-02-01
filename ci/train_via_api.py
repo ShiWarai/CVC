@@ -52,23 +52,23 @@ def main():
     
     original_db_path = config.get("database", {}).get("path", "db/training_data.db")
     
-    print(f"\nБаза данных:")
+    print("\nБаза данных:")
     print(f"  Основная БД (из config): {original_db_path}")
     print(f"  БД для обучения: {training_db_path}")
     
     # Удаляем старую БД для обеспечения чистой БД при каждом запуске CI/CD
     training_db_path_obj = Path(training_db_path)
     if training_db_path_obj.exists():
-        print(f"  Удаление существующей БД для создания чистой БД...")
+        print("  Удаление существующей БД для создания чистой БД...")
         training_db_path_obj.unlink()
-        print(f"✓ Старая БД удалена")
+        print("✓ Старая БД удалена")
     
     # Инициализируем БД для обучения (загружает данные из CSV/TXT)
     # В Docker пути работают относительно /app, но скрипт запускается на хосте
     # Поэтому используем пути относительно project_root
     csv_path = config.get("database", {}).get("csv_migration_path", "data")
     db_module.init_db(training_db_path, csv_path)
-    print(f"✓ База данных для обучения инициализирована (чистая БД)")
+    print("✓ База данных для обучения инициализирована (чистая БД)")
     
     # Параметры обучения из конфига или переменных окружения
     training_config = config.get("training", {})
@@ -90,7 +90,7 @@ def main():
         # Преобразуем в float (может быть str из YAML или уже float)
         learning_rate = float(lr_from_config)
     
-    print(f"\nПараметры обучения:")
+    print("\nПараметры обучения:")
     print(f"  Итераций: {num_iterations}")
     print(f"  Эпох: {num_epochs}")
     print(f"  Размер батча: {batch_size}")
@@ -100,7 +100,7 @@ def main():
     # Сброс статуса не нужен, так как БД была создана заново
     
     # Загружаем данные из БД для обучения
-    print(f"\nЗагрузка данных из БД для обучения...")
+    print("\nЗагрузка данных из БД для обучения...")
     texts, labels, example_ids = db_module.get_examples_for_training(training_db_path)
     
     if len(texts) == 0:
@@ -111,7 +111,7 @@ def main():
     print(f"✓ Загружено {len(texts)} примеров для обучения")
     
     # Обучаем модель напрямую (не через API)
-    print(f"\nЗапуск обучения модели...")
+    print("\nЗапуск обучения модели...")
     try:
         model_config = config.get("model", {})
         model_path = model_config.get("path", "models/panda_commands")
@@ -147,20 +147,20 @@ def main():
         Path(model_path).parent.mkdir(parents=True, exist_ok=True)
         classifier.save(model_path)
         
-        print(f"\n✓ Обучение завершено успешно!")
+        print("\n✓ Обучение завершено успешно!")
         if metrics:
             print("\nМетрики качества модели:")
             for metric, value in metrics.items():
                 print(f"  {metric}: {value:.4f}")
         
         # Помечаем примеры как обученные
-        print(f"\nОбновление статуса примеров в БД...")
+        print("\nОбновление статуса примеров в БД...")
         from commands_classifier.db import mark_examples_as_trained
         mark_examples_as_trained(training_db_path, example_ids)
         print(f"✓ {len(example_ids)} примеров помечено как обученные")
         
         print(f"\n✓ Обучение завершено. Модель сохранена в {model_path}")
-        print(f"Модель будет загружена на Hugging Face Hub на следующем этапе CI/CD")
+        print("Модель будет загружена на Hugging Face Hub на следующем этапе CI/CD")
         
         return 0
         
