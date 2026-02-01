@@ -20,13 +20,34 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Create network for Docker Compose
         run: |
           docker network create robot-services-network 2>/dev/null || true
 
+      - name: Build API image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile
+          tags: cvc-api:latest
+          load: true
+          push: false
+          cache-from: type=gha,scope=cvc-api
+          cache-to: type=gha,mode=max,scope=cvc-api
+
       - name: Build dev image
-        run: |
-          docker compose -f docker-compose.yml -f docker-compose.dev.yml build --no-cache cvc-dev
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: ./Dockerfile.dev
+          tags: cvc-dev:latest
+          load: true
+          push: false
+          cache-from: type=gha,scope=cvc-dev
+          cache-to: type=gha,mode=max,scope=cvc-dev
 
       - name: Lint with ruff
         run: |

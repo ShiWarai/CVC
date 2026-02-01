@@ -215,9 +215,10 @@ docker run -d `
 
 ### Запуск тестов и линта
 
-Для линта и тестов используется отдельный compose-файл [docker-compose.dev.yml](docker-compose.dev.yml) и образ **cvc-dev** (на базе cvc-api + ruff). Сначала соберите образ:
+Для линта и тестов используется отдельный compose-файл [docker-compose.dev.yml](docker-compose.dev.yml) и образ **cvc-dev** (на базе cvc-api + pytest, ruff). Сначала соберите базовый образ cvc-api, затем cvc-dev:
 
 ```bash
+docker compose -f docker-compose.yml build cvc-api
 docker compose -f docker-compose.yml -f docker-compose.dev.yml build cvc-dev
 ```
 
