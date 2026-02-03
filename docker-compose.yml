@@ -8,7 +8,7 @@ services:
     user: "${RUNNER_UID:-0}:${RUNNER_GID:-0}"
     container_name: cvc-api
     ports:
-      - "20001:20001"
+      - "127.0.0.1:20001:20001"  # только localhost + robot-services-network (контейнеры)
     volumes:
       - ./commands_classifier:/app/commands_classifier:ro
       - ./tests:/app/tests:ro

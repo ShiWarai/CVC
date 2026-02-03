@@ -62,6 +62,12 @@ cat ~/.cvc_ssh_keys/deploy_key.pub
    Для переопределения параметров обучения из config.yaml
    ```
 
+4. **TELEGRAM_TOKEN**, **TELEGRAM_TO** (опционально)
+   ```
+   Для уведомлений в Telegram при падении пайплайна.
+   Подробная настройка: см. docs/telegram_notifications.md
+   ```
+
 ## Шаг 4: Настройка self-hosted runner на GPU-машине
 
 Если вы используете GitHub Actions с self-hosted runner:
