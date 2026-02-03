@@ -121,7 +121,7 @@ def test_e2e_train_then_predict_then_reset_then_predict_fails(e2e_client):
     """
     # Запуск обучения (минимальные итерации для скорости)
     train_resp = e2e_client.post(
-        "/train",
+        "/v1/train",
         json={"num_iterations": 2, "num_epochs": 1, "batch_size": 32},
     )
     assert train_resp.status_code == 200
@@ -147,7 +147,7 @@ def test_e2e_train_then_predict_then_reset_then_predict_fails(e2e_client):
 
     # Predict по трём строкам из датасета (по одной на класс)
     for text in SAMPLE_TEXTS_BY_CLASS:
-        pred_resp = e2e_client.post("/predict", json={"text": text})
+        pred_resp = e2e_client.post("/v1/predict", json={"text": text})
         assert pred_resp.status_code == 200, f"predict для '{text}' вернул {pred_resp.status_code}"
         data = pred_resp.json()
         assert "command" in data
