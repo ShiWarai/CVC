@@ -38,7 +38,7 @@ class ResetResponse(BaseModel):
     model_deleted: bool
 
 
-@router.post("/train", response_model=TrainResponse)
+@router.post("/v1/train", response_model=TrainResponse)
 async def train(request: TrainRequest):
     """
     Запускает обучение модели в фоновом режиме.
@@ -89,7 +89,7 @@ async def train(request: TrainRequest):
         raise HTTPException(status_code=500, detail=f"Ошибка при запуске обучения: {str(e)}")
 
 
-@router.get("/train/status")
+@router.get("/v1/train/status")
 async def get_training_status():
     """
     Возвращает статус текущего обучения.
@@ -105,7 +105,7 @@ async def get_training_status():
     return training_manager.get_status()
 
 
-@router.post("/reset", response_model=ResetResponse)
+@router.post("/v1/reset", response_model=ResetResponse)
 async def reset_training():
     """
     Полностью сбрасывает обучение:

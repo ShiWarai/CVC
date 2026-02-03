@@ -158,7 +158,7 @@ def _run_load_from_hf_task(repo_id: str, local_dir: str, load_id: str):
             _load_from_hf_status["completed_at"] = datetime.now().isoformat()
 
 
-@router.post("/load_from_hf", response_model=LoadFromHfResponse)
+@router.post("/v1/load_from_hf", response_model=LoadFromHfResponse)
 async def load_from_hf(request: LoadFromHfRequest):
     """
     Загружает модель с Hugging Face Hub.
@@ -239,7 +239,7 @@ async def load_from_hf(request: LoadFromHfRequest):
     return LoadFromHfResponse(message="Загрузка модели запущена в фоновом режиме", load_id=load_id)
 
 
-@router.get("/load_from_hf/status", response_model=LoadFromHfStatusResponse)
+@router.get("/v1/load_from_hf/status", response_model=LoadFromHfStatusResponse)
 async def get_load_from_hf_status():
     """
     Возвращает статус загрузки модели.

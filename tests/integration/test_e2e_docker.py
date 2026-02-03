@@ -81,13 +81,12 @@ def e2e_app(temp_db_path, temp_model_dir):
     """Приложение для E2E с реальной БД и реальным TrainingManager."""
     _setup_e2e_state(temp_db_path, temp_model_dir)
     app = FastAPI(title="CVC E2E Test")
-    api_v1 = "/v1"
-    app.include_router(predict_router, prefix=api_v1)
-    app.include_router(training_router, prefix=api_v1)
-    app.include_router(examples_router, prefix=api_v1)
-    app.include_router(load_from_hf_router, prefix=api_v1)
-    app.include_router(health_router, prefix=api_v1)
-    app.include_router(command_feedback_router, prefix=api_v1)
+    app.include_router(predict_router)
+    app.include_router(training_router)
+    app.include_router(examples_router)
+    app.include_router(load_from_hf_router)
+    app.include_router(health_router)
+    app.include_router(command_feedback_router)
     return app
 
 

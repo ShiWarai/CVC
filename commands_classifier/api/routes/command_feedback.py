@@ -17,7 +17,7 @@ DEFAULT_COMMAND_FEEDBACK_URL = "http://rds-2p-salute-app:8000/v1/admin/command-f
 REQUEST_TIMEOUT = 30
 
 
-@router.get("/command-feedback")
+@router.get("/v1/command-feedback")
 def get_command_feedback() -> List[dict]:
     """
     Загружает записи обратной связи по командам из приложения RDS-2P-Salute.

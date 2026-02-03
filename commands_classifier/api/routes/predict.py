@@ -75,7 +75,7 @@ class PredictBatchResponse(BaseModel):
     confidences: Optional[List[float]] = None
 
 
-@router.post("/embed", response_model=EmbedResponse)
+@router.post("/v1/embed", response_model=EmbedResponse)
 async def embed(request: EmbedRequest):
     """
     Получает эмбеддинги для текстов (TEI совместимый эндпоинт).
@@ -106,7 +106,7 @@ async def embed(request: EmbedRequest):
     return EmbedResponse(embeddings=embeddings)
 
 
-@router.post("/predict", response_model=PredictResponse)
+@router.post("/v1/predict", response_model=PredictResponse)
 async def predict(request: PredictRequest):
     """
     Классифицирует один текст в команду.
@@ -136,7 +136,7 @@ async def predict(request: PredictRequest):
         raise HTTPException(status_code=500, detail=f"Ошибка при предсказании: {str(e)}")
 
 
-@router.post("/predict/batch", response_model=PredictBatchResponse)
+@router.post("/v1/predict/batch", response_model=PredictBatchResponse)
 async def predict_batch(request: PredictBatchRequest):
     """
     Классифицирует список текстов в команды.
