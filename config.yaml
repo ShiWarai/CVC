@@ -25,6 +25,11 @@ database:
   # Если указана директория, загружаются все CSV файлы из неё
   csv_migration_path: "data"
 
+# Репорты «исправить команду» из RDS-2P-Salute (опционально)
+# По умолчанию: http://rds-2p-salute-app:8000/v1/admin/command-feedback
+# command_feedback:
+#   url: "http://rds-2p-salute-app:8000/v1/admin/command-feedback"
+
 # Параметры обучения по умолчанию
 # Можно переопределить через HTTP API /train endpoint
 training:

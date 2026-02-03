@@ -50,6 +50,7 @@ Thumbs.db
 
 # Hugging Face cache (для Docker)
 cache/
+.cache/
 
 # Environment variables
 .env

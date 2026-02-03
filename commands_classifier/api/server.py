@@ -10,6 +10,7 @@ from fastapi import FastAPI
 
 from commands_classifier import db
 from commands_classifier.api.routes import (
+    command_feedback_router,
     examples_router,
     health_router,
     load_from_hf_router,
@@ -133,9 +134,10 @@ app = FastAPI(
     title="CVC API", description="API для классификации голосовых команд", lifespan=lifespan
 )
 
-# Подключаем роутеры
+# Подключаем роутеры (версионирование указано в самих роутах)
 app.include_router(predict_router)
 app.include_router(training_router)
 app.include_router(examples_router)
 app.include_router(load_from_hf_router)
 app.include_router(health_router)
+app.include_router(command_feedback_router)

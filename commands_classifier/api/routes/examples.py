@@ -36,7 +36,7 @@ class ExampleResponse(BaseModel):
     command: str
 
 
-@router.get("/examples", response_model=List[ExampleResponse])
+@router.get("/v1/examples", response_model=List[ExampleResponse])
 async def get_examples():
     """
     Получает все примеры из базы данных.
@@ -50,7 +50,7 @@ async def get_examples():
     return [ExampleResponse(id=ex[0], text=ex[1], command=ex[2]) for ex in examples]
 
 
-@router.post("/examples", response_model=ExampleResponse, status_code=201)
+@router.post("/v1/examples", response_model=ExampleResponse, status_code=201)
 async def add_example(request: ExampleRequest):
     """
     Добавляет новый пример в базу данных.
@@ -79,7 +79,7 @@ async def add_example(request: ExampleRequest):
         raise HTTPException(status_code=500, detail=f"Ошибка при добавлении примера: {str(e)}")
 
 
-@router.delete("/examples/{example_id}")
+@router.delete("/v1/examples/{example_id}")
 async def delete_example(example_id: int):
     """
     Удаляет пример по ID.
@@ -102,7 +102,7 @@ async def delete_example(example_id: int):
     return {"message": f"Пример {example_id} успешно удален"}
 
 
-@router.get("/examples/{example_id}", response_model=ExampleResponse)
+@router.get("/v1/examples/{example_id}", response_model=ExampleResponse)
 async def get_example(example_id: int):
     """
     Получает пример по ID.

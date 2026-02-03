@@ -8,8 +8,6 @@
 
 Мини-сервис для классификации голосовых команд (SetFit). Обучает модель на малом датасете и классифицирует текстовые команды. Создан для использования в проекте навыка для Sber Salute.
 
----
-
 ## Стек технологий
 
 | Категория | Технологии |
@@ -20,8 +18,6 @@
 | Интерфейсы | REST API, CLI (Python) |
 | Инфраструктура | Docker |
 | Разработка | pytest, ruff, httpx |
-
----
 
 ## Оглавление
 
@@ -37,8 +33,6 @@
 | [CI/CD](#cicd) | Пайплайн и ссылка на настройку |
 | [Лицензия](#лицензия) | MIT |
 
----
-
 ## Быстрый старт
 
 1. Создайте `.env` с `HF_TOKEN` и `HF_REPO_ID` ([токен](https://huggingface.co/settings/tokens), [модель](https://huggingface.co/google/embeddinggemma-300M) — принять условия).
@@ -51,8 +45,6 @@
 3. Сервер: **http://localhost:20001**. Документация API: http://localhost:20001/docs
 
 Остановка: `docker-compose down`.
-
----
 
 ## Установка и запуск
 
@@ -86,8 +78,6 @@ python -m commands_classifier.cli serve
 
 Опции: `--host`, `--port`, `--config`. БД создаётся при первом запуске, данные из `data/` или CSV из `config.yaml`.
 
----
-
 ## Использование
 
 ### CLI
@@ -103,18 +93,19 @@ python -m commands_classifier.client examples list
 python -m commands_classifier.client examples add --text "команда" --command "label"
 python -m commands_classifier.client examples delete --id 1
 python -m commands_classifier.client health
+python -m commands_classifier.client metrics
+python -m commands_classifier.client reset
 python -m commands_classifier.client load-from-hf [--repo-id "username/model-name"]
 python -m commands_classifier.client load-from-hf-status
+python -m commands_classifier.client command-feedback   # репорт «исправить команду» из RDS-2P-Salute
 ```
 
 По умолчанию клиент подключается к `http://localhost:20001` (флаг `--url` для другого адреса).
 
 ### Python
 
-- **API-клиент:** `CVCApiClient(base_url)` — методы `predict`, `predict_batch`, `embed`, `train`, `get_training_status`, `get_examples`, `add_example`, `delete_example`.
+- **API-клиент:** `CVCApiClient(base_url)` — методы `predict`, `predict_batch`, `embed`, `train`, `get_training_status`, `get_examples`, `add_example`, `delete_example`, `health`, `metrics`, `reset`, `load_from_hf`, `get_load_from_hf_status`, `get_command_feedback`.
 - **Библиотека (без сервера):** `CommandsClassifier()` + `load_dataset(path)` → `train(texts, labels)`, `predict(text)`, `save(path)`, `load(path)`.
-
----
 
 ## Конфигурация и API
 
@@ -137,6 +128,10 @@ database:
   path: "db/training_data.db"
   csv_migration_path: "data"
 
+# Опционально: URL репорта «исправить команду» из RDS-2P-Salute (по умолчанию: rds-2p-salute-app:8000)
+# command_feedback:
+#   url: "http://rds-2p-salute-app:8000/v1/admin/command-feedback"
+
 training:
   iterations: 20
   epochs: 1
@@ -144,24 +139,26 @@ training:
   learning_rate: 2e-5
 ```
 
-### Эндпоинты
+### Эндпоинты (API v1)
+
+Все ручки версионированы префиксом `/v1`.
 
 | Метод | Путь | Описание |
 |-------|------|----------|
-| POST | /embed | Эмбеддинги (TEI) |
-| GET | /health | Проверка работоспособности |
-| GET | /metrics | Счётчики примеров и статус обучения |
-| POST | /predict | Классификация одного текста |
-| POST | /predict/batch | Batch классификация |
-| POST | /train | Запуск обучения (фоновый) |
-| GET | /train/status | Статус обучения |
-| GET, POST, DELETE | /examples, /examples/{id} | Обучающие примеры |
-| POST | /load_from_hf | Загрузка модели с Hugging Face |
-| GET | /load_from_hf/status | Статус загрузки |
+| POST | /v1/embed | Эмбеддинги (TEI) |
+| GET | /v1/health | Проверка работоспособности |
+| GET | /v1/metrics | Счётчики примеров и статус обучения |
+| POST | /v1/predict | Классификация одного текста |
+| POST | /v1/predict/batch | Batch классификация |
+| POST | /v1/train | Запуск обучения (фоновый) |
+| GET | /v1/train/status | Статус обучения |
+| GET, POST, DELETE | /v1/examples, /v1/examples/{id} | Обучающие примеры |
+| POST | /v1/reset | Сброс обучения (удаление модели, пометка примеров как необученных) |
+| POST | /v1/load_from_hf | Загрузка модели с Hugging Face |
+| GET | /v1/load_from_hf/status | Статус загрузки |
+| GET | /v1/command-feedback | Репорт «исправить команду» из RDS-2P-Salute (прокси) |
 
 Интерактивная документация: **http://localhost:20001/docs**. Устройство (CPU/CUDA/ROCm) определяется при запуске автоматически.
-
----
 
 ## Данные
 
@@ -176,8 +173,6 @@ training:
 ### Параметры обучения
 
 `--iterations`, `--epochs`, `--batch-size`, `--learning-rate`. Значения по умолчанию — в `config.yaml` (секция `training`).
-
----
 
 ## Разработка
 
@@ -207,23 +202,18 @@ CVC/
 └── docs/                    # cicd_setup.md и др.
 ```
 
----
-
 ## CI/CD
 
 Пайплайн [.github/workflows/deploy.yml](.github/workflows/deploy.yml):
 
 - При каждом push — **тесты** (линт + pytest в Docker).
 - Job **Train and Publish** — при метке `[retrain]` в сообщении коммита или при ручном запуске (Actions → Run workflow). Секреты: `HF_TOKEN`, `HF_REPO_ID`.
+- **Уведомления в Telegram** при успешной и неуспешной сборке (опционально: секреты `TELEGRAM_TOKEN`, `TELEGRAM_TO`). Подробнее: [docs/telegram_notifications.md](docs/telegram_notifications.md).
 
 Подробная настройка (self-hosted runner, GPU, секреты): [docs/cicd_setup.md](docs/cicd_setup.md).
-
----
 
 ## Лицензия
 
 MIT
-
----
 
 *Проект создан с использованием нейросетей.*

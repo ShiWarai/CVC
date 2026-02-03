@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from commands_classifier import db
 from commands_classifier.api.routes import (
+    command_feedback_router,
     examples_router,
     health_router,
     load_from_hf_router,
@@ -119,6 +120,7 @@ def app(temp_db_path, temp_model_dir):
     test_app.include_router(examples_router)
     test_app.include_router(load_from_hf_router)
     test_app.include_router(health_router)
+    test_app.include_router(command_feedback_router)
     return test_app
 
 
@@ -133,6 +135,7 @@ def app_with_mock_classifier(temp_db_path, temp_model_dir):
     test_app.include_router(examples_router)
     test_app.include_router(load_from_hf_router)
     test_app.include_router(health_router)
+    test_app.include_router(command_feedback_router)
     return test_app
 
 

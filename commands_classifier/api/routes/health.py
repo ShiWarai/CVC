@@ -8,7 +8,7 @@ from commands_classifier.api.state import get_classifier, get_config, get_traini
 router = APIRouter(tags=["health"])
 
 
-@router.get("/health")
+@router.get("/v1/health")
 async def health(response: Response):
     """
     Проверка работоспособности сервера (TEI совместимый).
@@ -37,7 +37,7 @@ async def health(response: Response):
     }
 
 
-@router.get("/metrics")
+@router.get("/v1/metrics")
 async def metrics():
     """
     Метрики сервера (TEI совместимый).

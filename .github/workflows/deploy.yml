@@ -246,3 +246,40 @@ jobs:
           echo "✗ Пайплайн завершился с ошибкой"
           echo "  Проверьте логи выше для деталей"
         fi
+
+  notify-telegram-on-success:
+    name: Notify Telegram on success
+    if: always() && needs.test.result == 'success' && (needs.train-and-publish.result == 'success' || needs.train-and-publish.result == 'skipped')
+    needs: [test, train-and-publish]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram notification (silent)
+        uses: appleboy/telegram-action@v1.0.1
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
+          disable_notification: true
+          message: |
+            *Пайплайн прошёл успешно*
+            Репо: `${{ github.repository }}`
+            Ветка: `${{ github.ref_name }}`
+            [Открыть run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+  notify-telegram-on-failure:
+    name: Notify Telegram on failure
+    if: always() && (needs.test.result == 'failure' || needs.train-and-publish.result == 'failure')
+    needs: [test, train-and-publish]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram notification
+        uses: appleboy/telegram-action@v1.0.1
+        with:
+          to: ${{ secrets.TELEGRAM_TO }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          format: markdown
+          message: |
+            *Пайплайн упал*
+            Репо: `${{ github.repository }}`
+            Ветка: `${{ github.ref_name }}`
+            [Открыть run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
