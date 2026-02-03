@@ -261,10 +261,10 @@ jobs:
           format: markdown
           disable_notification: true
           message: |
-            *Pipeline succeeded*
-            Repo: `${{ github.repository }}`
-            Branch: `${{ github.ref_name }}`
-            [View run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            *Пайплайн прошёл успешно*
+            Репо: `${{ github.repository }}`
+            Ветка: `${{ github.ref_name }}`
+            [Открыть run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
   notify-telegram-on-failure:
     name: Notify Telegram on failure
@@ -279,7 +279,7 @@ jobs:
           token: ${{ secrets.TELEGRAM_TOKEN }}
           format: markdown
           message: |
-            *Pipeline failed*
-            Repo: `${{ github.repository }}`
-            Branch: `${{ github.ref_name }}`
-            [View run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            *Пайплайн упал*
+            Репо: `${{ github.repository }}`
+            Ветка: `${{ github.ref_name }}`
+            [Открыть run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

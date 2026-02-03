@@ -35,3 +35,8 @@ def test_metrics_empty_db(client):
     response = client.get("/metrics")
     assert response.status_code == 200
     assert response.json()["total_examples"] == 0
+
+
+def test_ci_fail_notification_remove_me():
+    """Временный тест для проверки Telegram-уведомления при падении. Удалить после проверки."""
+    assert False, "Проверка fail-уведомления в Telegram — удалить этот тест после проверки"
