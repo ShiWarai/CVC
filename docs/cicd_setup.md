@@ -222,8 +222,10 @@ cat ~/.cvc_ssh_keys/deploy_key.pub
 
 Скрипты уже созданы в директории `ci/`:
 - `ci/generate_ssh_key.sh` - генерация SSH-ключа (опционально, если нужен SSH для других задач)
-- `ci/train_via_api.py` - запуск обучения модели через API
+- `ci/train_via_api.py` - запуск обучения модели (напрямую, без вызова API)
 - `ci/upload_to_hf.py` - загрузка модели на Hugging Face Hub
+
+**API:** все эндпоинты CVC версионированы префиксом `/v1` (например, `/v1/health`, `/v1/train`). Полный список — в [README](../README.md#эндпоинты-api-v1).
 
 ## Шаг 6: Проверка workflow
 

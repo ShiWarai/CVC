@@ -16,7 +16,7 @@ class CVCApiClient:
         Инициализирует клиент.
 
         Args:
-            base_url: Базовый URL API сервера (по умолчанию: http://localhost:20001)
+            base_url: Базовый URL сервера (по умолчанию: http://localhost:20001)
             use_proxy: Использовать ли системный прокси (по умолчанию: False)
         """
         self.base_url = base_url.rstrip("/")
@@ -40,7 +40,7 @@ class CVCApiClient:
             Результат классификации
         """
         response = self.session.post(
-            f"{self.base_url}/predict", json={"text": text, "return_confidence": return_confidence}
+            f"{self.base_url}/v1/predict", json={"text": text, "return_confidence": return_confidence}
         )
         response.raise_for_status()
         return response.json()
@@ -57,7 +57,7 @@ class CVCApiClient:
             Результаты классификации
         """
         response = self.session.post(
-            f"{self.base_url}/predict/batch",
+            f"{self.base_url}/v1/predict/batch",
             json={"texts": texts, "return_confidence": return_confidence},
         )
         response.raise_for_status()
@@ -73,7 +73,7 @@ class CVCApiClient:
         Returns:
             Эмбеддинги
         """
-        response = self.session.post(f"{self.base_url}/embed", json={"inputs": texts})
+        response = self.session.post(f"{self.base_url}/v1/embed", json={"inputs": texts})
         response.raise_for_status()
         return response.json()
 
@@ -107,19 +107,19 @@ class CVCApiClient:
         if learning_rate is not None:
             payload["learning_rate"] = learning_rate
 
-        response = self.session.post(f"{self.base_url}/train", json=payload)
+        response = self.session.post(f"{self.base_url}/v1/train", json=payload)
         response.raise_for_status()
         return response.json()
 
     def get_training_status(self) -> dict:
         """Получает статус обучения."""
-        response = self.session.get(f"{self.base_url}/train/status")
+        response = self.session.get(f"{self.base_url}/v1/train/status")
         response.raise_for_status()
         return response.json()
 
     def get_examples(self) -> list:
         """Получает все примеры."""
-        response = self.session.get(f"{self.base_url}/examples")
+        response = self.session.get(f"{self.base_url}/v1/examples")
         response.raise_for_status()
         return response.json()
 
@@ -135,7 +135,7 @@ class CVCApiClient:
             Созданный пример
         """
         response = self.session.post(
-            f"{self.base_url}/examples", json={"text": text, "command": command}
+            f"{self.base_url}/v1/examples", json={"text": text, "command": command}
         )
         response.raise_for_status()
         return response.json()
@@ -150,7 +150,7 @@ class CVCApiClient:
         Returns:
             Результат удаления
         """
-        response = self.session.delete(f"{self.base_url}/examples/{example_id}")
+        response = self.session.delete(f"{self.base_url}/v1/examples/{example_id}")
         response.raise_for_status()
         return response.json()
 
@@ -164,19 +164,19 @@ class CVCApiClient:
         Returns:
             Пример
         """
-        response = self.session.get(f"{self.base_url}/examples/{example_id}")
+        response = self.session.get(f"{self.base_url}/v1/examples/{example_id}")
         response.raise_for_status()
         return response.json()
 
     def health(self) -> dict:
         """Проверяет работоспособность сервера."""
-        response = self.session.get(f"{self.base_url}/health")
+        response = self.session.get(f"{self.base_url}/v1/health")
         response.raise_for_status()
         return response.json()
 
     def metrics(self) -> dict:
         """Получает метрики сервера."""
-        response = self.session.get(f"{self.base_url}/metrics")
+        response = self.session.get(f"{self.base_url}/v1/metrics")
         response.raise_for_status()
         return response.json()
 
@@ -189,7 +189,7 @@ class CVCApiClient:
         Returns:
             Результат сброса (reset_examples, model_deleted)
         """
-        response = self.session.post(f"{self.base_url}/reset")
+        response = self.session.post(f"{self.base_url}/v1/reset")
         response.raise_for_status()
         return response.json()
 
@@ -211,7 +211,7 @@ class CVCApiClient:
         if local_dir:
             payload["local_dir"] = local_dir
 
-        response = self.session.post(f"{self.base_url}/load_from_hf", json=payload)
+        response = self.session.post(f"{self.base_url}/v1/load_from_hf", json=payload)
         response.raise_for_status()
         return response.json()
 
@@ -222,7 +222,18 @@ class CVCApiClient:
         Returns:
             Статус загрузки (load_id, status, progress, local_path, error)
         """
-        response = self.session.get(f"{self.base_url}/load_from_hf/status")
+        response = self.session.get(f"{self.base_url}/v1/load_from_hf/status")
+        response.raise_for_status()
+        return response.json()
+
+    def get_command_feedback(self) -> list:
+        """
+        Загружает репорт «исправить команду» из сервиса RDS-2P-Salute через CVC.
+
+        Returns:
+            Список записей обратной связи (user_utterance, classified_function, created_at, ...)
+        """
+        response = self.session.get(f"{self.base_url}/v1/command-feedback")
         response.raise_for_status()
         return response.json()
 
@@ -374,7 +385,7 @@ def main():
         "--url",
         type=str,
         default="http://localhost:20001",
-        help="URL API сервера (по умолчанию: http://localhost:20001)",
+        help="URL сервера (по умолчанию: http://localhost:20001)",
     )
 
     subparsers = parser.add_subparsers(dest="command", help="Команды")
@@ -444,6 +455,12 @@ def main():
 
     # Команда load-from-hf-status
     subparsers.add_parser("load-from-hf-status", help="Проверить статус загрузки модели")
+
+    # Команда command-feedback — выгрузка некорректных выражений из RDS-2P-Salute
+    subparsers.add_parser(
+        "command-feedback",
+        help="Загрузить репорт «исправить команду» из RDS-2P-Salute (некорректные выражения)",
+    )
 
     args = parser.parse_args()
 
@@ -568,6 +585,24 @@ def main():
             if status["error"]:
                 print(f"Ошибка: {status['error']}")
 
+        except Exception as e:
+            print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif args.command == "command-feedback":
+        try:
+            client = CVCApiClient(args.url)
+            items = client.get_command_feedback()
+            print(json.dumps(items, indent=2, ensure_ascii=False))
+        except requests.exceptions.HTTPError as e:
+            if e.response is not None:
+                try:
+                    detail = e.response.json().get("detail", e.response.text)
+                except Exception:
+                    detail = e.response.text
+                print(f"Ошибка: {detail}", file=sys.stderr)
+            else:
+                print(f"Ошибка: {e}", file=sys.stderr)
+            sys.exit(1)
         except Exception as e:
             print(f"Ошибка: {e}", file=sys.stderr)
             sys.exit(1)

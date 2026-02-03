@@ -1,5 +1,6 @@
 """Routes для API сервера CVC."""
 
+from commands_classifier.api.routes.command_feedback import router as command_feedback_router
 from commands_classifier.api.routes.examples import router as examples_router
 from commands_classifier.api.routes.health import router as health_router
 from commands_classifier.api.routes.load_from_hf import router as load_from_hf_router
@@ -12,4 +13,5 @@ __all__ = [
     "examples_router",
     "load_from_hf_router",
     "health_router",
+    "command_feedback_router",
 ]

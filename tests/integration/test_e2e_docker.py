@@ -11,6 +11,7 @@ from fastapi import FastAPI
 
 from commands_classifier import db
 from commands_classifier.api.routes import (
+    command_feedback_router,
     examples_router,
     health_router,
     load_from_hf_router,
@@ -80,11 +81,13 @@ def e2e_app(temp_db_path, temp_model_dir):
     """Приложение для E2E с реальной БД и реальным TrainingManager."""
     _setup_e2e_state(temp_db_path, temp_model_dir)
     app = FastAPI(title="CVC E2E Test")
-    app.include_router(predict_router)
-    app.include_router(training_router)
-    app.include_router(examples_router)
-    app.include_router(load_from_hf_router)
-    app.include_router(health_router)
+    api_v1 = "/v1"
+    app.include_router(predict_router, prefix=api_v1)
+    app.include_router(training_router, prefix=api_v1)
+    app.include_router(examples_router, prefix=api_v1)
+    app.include_router(load_from_hf_router, prefix=api_v1)
+    app.include_router(health_router, prefix=api_v1)
+    app.include_router(command_feedback_router, prefix=api_v1)
     return app
 
 
@@ -98,8 +101,8 @@ def e2e_client(e2e_app, temp_db_path, temp_model_dir):
 
 
 def test_e2e_health(e2e_client):
-    """GET /health возвращает 200 и структуру."""
-    response = e2e_client.get("/health")
+    """GET /v1/health возвращает 200 и структуру."""
+    response = e2e_client.get("/v1/health")
     assert response.status_code == 200
     data = response.json()
     assert data["status"] == "healthy"
@@ -107,8 +110,8 @@ def test_e2e_health(e2e_client):
 
 
 def test_e2e_predict_without_model_fails(e2e_client):
-    """POST /predict без обученной модели возвращает ошибку (503)."""
-    response = e2e_client.post("/predict", json={"text": "лягись"})
+    """POST /v1/predict без обученной модели возвращает ошибку (503)."""
+    response = e2e_client.post("/v1/predict", json={"text": "лягись"})
     assert response.status_code == 503
 
 
@@ -130,7 +133,7 @@ def test_e2e_train_then_predict_then_reset_then_predict_fails(e2e_client):
     step = 5
     elapsed = 0
     while elapsed < max_wait:
-        status_resp = e2e_client.get("/train/status")
+        status_resp = e2e_client.get("/v1/train/status")
         assert status_resp.status_code == 200
         status_data = status_resp.json()
         if status_data.get("status") == "completed":
@@ -153,10 +156,10 @@ def test_e2e_train_then_predict_then_reset_then_predict_fails(e2e_client):
         )
 
     # Сброс модели
-    reset_resp = e2e_client.post("/reset")
+    reset_resp = e2e_client.post("/v1/reset")
     assert reset_resp.status_code == 200
     assert "reset_examples" in reset_resp.json()
 
     # После reset predict снова должен вернуть ошибку (модель выгружена)
-    predict_after_reset = e2e_client.post("/predict", json={"text": "лягись"})
+    predict_after_reset = e2e_client.post("/v1/predict", json={"text": "лягись"})
     assert predict_after_reset.status_code == 503

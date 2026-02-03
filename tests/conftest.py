@@ -8,6 +8,7 @@ from fastapi import FastAPI
 
 from commands_classifier import db
 from commands_classifier.api.routes import (
+    command_feedback_router,
     examples_router,
     health_router,
     load_from_hf_router,
@@ -114,11 +115,13 @@ def app(temp_db_path, temp_model_dir):
     """Тестовое приложение с подменённым state (без реальной модели и HF)."""
     _setup_test_state(temp_db_path, temp_model_dir, classifier=None)
     test_app = FastAPI(title="CVC API Test", lifespan=_noop_lifespan)
-    test_app.include_router(predict_router)
-    test_app.include_router(training_router)
-    test_app.include_router(examples_router)
-    test_app.include_router(load_from_hf_router)
-    test_app.include_router(health_router)
+    api_v1 = "/v1"
+    test_app.include_router(predict_router, prefix=api_v1)
+    test_app.include_router(training_router, prefix=api_v1)
+    test_app.include_router(examples_router, prefix=api_v1)
+    test_app.include_router(load_from_hf_router, prefix=api_v1)
+    test_app.include_router(health_router, prefix=api_v1)
+    test_app.include_router(command_feedback_router, prefix=api_v1)
     return test_app
 
 
@@ -128,11 +131,13 @@ def app_with_mock_classifier(temp_db_path, temp_model_dir):
     mock_clf = _make_mock_classifier()
     _setup_test_state(temp_db_path, temp_model_dir, classifier=mock_clf)
     test_app = FastAPI(title="CVC API Test", lifespan=_noop_lifespan)
-    test_app.include_router(predict_router)
-    test_app.include_router(training_router)
-    test_app.include_router(examples_router)
-    test_app.include_router(load_from_hf_router)
-    test_app.include_router(health_router)
+    api_v1 = "/v1"
+    test_app.include_router(predict_router, prefix=api_v1)
+    test_app.include_router(training_router, prefix=api_v1)
+    test_app.include_router(examples_router, prefix=api_v1)
+    test_app.include_router(load_from_hf_router, prefix=api_v1)
+    test_app.include_router(health_router, prefix=api_v1)
+    test_app.include_router(command_feedback_router, prefix=api_v1)
     return test_app
 
 
