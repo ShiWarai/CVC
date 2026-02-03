@@ -206,9 +206,11 @@ CVC/
 
 Пайплайн [.github/workflows/deploy.yml](.github/workflows/deploy.yml):
 
-- При каждом push — **тесты** (линт + pytest в Docker).
+- При каждом push в `main`, `master`, `dev` и при **Pull Request** к этим веткам — **тесты** (линт + pytest в Docker).
 - Job **Train and Publish** — при метке `[retrain]` в сообщении коммита или при ручном запуске (Actions → Run workflow). Секреты: `HF_TOKEN`, `HF_REPO_ID`.
 - **Уведомления в Telegram** при успешной и неуспешной сборке (опционально: секреты `TELEGRAM_TOKEN`, `TELEGRAM_TO`). Подробнее: [docs/telegram_notifications.md](docs/telegram_notifications.md).
+
+**Как запустить тесты вручную для PR:** [docs/running_tests_manually.md](docs/running_tests_manually.md)
 
 Подробная настройка (self-hosted runner, GPU, секреты): [docs/cicd_setup.md](docs/cicd_setup.md).
 

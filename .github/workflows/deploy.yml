@@ -3,6 +3,8 @@ name: ML Pipeline - Train and Publish
 on:
   push:
     branches: [ main, master, dev ]  # Триггер на push в main/master/dev (новый датасет)
+  pull_request:
+    branches: [ main, master, dev ]  # Триггер на PR к main/master/dev
   workflow_dispatch:  # Позволяет запускать вручную через GitHub UI
     inputs:
       run_training:
