@@ -249,7 +249,7 @@ jobs:
 
   notify-telegram-on-success:
     name: Notify Telegram on success
-    if: success()
+    if: always() && needs.test.result == 'success' && (needs.train-and-publish.result == 'success' || needs.train-and-publish.result == 'skipped')
     needs: [test, train-and-publish]
     runs-on: ubuntu-latest
     steps:
@@ -268,7 +268,7 @@ jobs:
 
   notify-telegram-on-failure:
     name: Notify Telegram on failure
-    if: failure()
+    if: always() && (needs.test.result == 'failure' || needs.train-and-publish.result == 'failure')
     needs: [test, train-and-publish]
     runs-on: ubuntu-latest
     steps:
