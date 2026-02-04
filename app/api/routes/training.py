@@ -7,8 +7,8 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from commands_classifier import db
-from commands_classifier.api.state import get_config, get_training_manager, unload_classifier
+from app import db
+from app.api.state import get_config, get_training_manager, unload_classifier
 
 router = APIRouter(tags=["training"])
 

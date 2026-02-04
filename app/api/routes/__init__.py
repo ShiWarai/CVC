@@ -1,0 +1,17 @@
+"""Routes для API сервера CVC."""
+
+from app.api.routes.command_feedback import router as command_feedback_router
+from app.api.routes.examples import router as examples_router
+from app.api.routes.health import router as health_router
+from app.api.routes.load_from_hf import router as load_from_hf_router
+from app.api.routes.predict import router as predict_router
+from app.api.routes.training import router as training_router
+
+__all__ = [
+    "predict_router",
+    "training_router",
+    "examples_router",
+    "load_from_hf_router",
+    "health_router",
+    "command_feedback_router",
+]

@@ -6,7 +6,7 @@
 ![Docker Ready](https://img.shields.io/badge/docker-ready-blue?logo=docker)
 [![CVC-Panda on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20CVC--Panda-Model-yellow)](https://huggingface.co/ShiWarai/CVC-Panda)
 
-Мини-сервис для классификации голосовых команд (SetFit). Обучает модель на малом датасете и классифицирует текстовые команды. Создан для использования в проекте навыка для Sber Salute.
+Мини-сервис для классификации голосовых команд (SetFit). Обучает модель на малом датасете и классифицирует текстовые команды. Создан для использования в проекте навыка для команд роботу-собаке.
 
 ## Стек технологий
 
@@ -73,7 +73,7 @@ HF_REPO_ID=your-username/model-name
 ### Локальный запуск
 
 ```bash
-python -m commands_classifier.cli serve
+python -m app.cli serve
 ```
 
 Опции: `--host`, `--port`, `--config`. БД создаётся при первом запуске, данные из `data/` или CSV из `config.yaml`.
@@ -85,19 +85,19 @@ python -m commands_classifier.cli serve
 После запуска сервера (Docker или локально):
 
 ```bash
-python -m commands_classifier.client predict --text "равняйся" [--show-confidence]
-python -m commands_classifier.client predict --file commands.txt
-python -m commands_classifier.client train [--batch-size 32 --iterations 30]
-python -m commands_classifier.client train-status
-python -m commands_classifier.client examples list
-python -m commands_classifier.client examples add --text "команда" --command "label"
-python -m commands_classifier.client examples delete --id 1
-python -m commands_classifier.client health
-python -m commands_classifier.client metrics
-python -m commands_classifier.client reset
-python -m commands_classifier.client load-from-hf [--repo-id "username/model-name"]
-python -m commands_classifier.client load-from-hf-status
-python -m commands_classifier.client command-feedback   # репорт «исправить команду» из RDS-2P-Salute
+python -m app.client predict --text "равняйся" [--show-confidence]
+python -m app.client predict --file commands.txt
+python -m app.client train [--batch-size 32 --iterations 30]
+python -m app.client train-status
+python -m app.client examples list
+python -m app.client examples add --text "команда" --command "label"
+python -m app.client examples delete --id 1
+python -m app.client health
+python -m app.client metrics
+python -m app.client reset
+python -m app.client load-from-hf [--repo-id "username/model-name"]
+python -m app.client load-from-hf-status
+python -m app.client command-feedback   # репорт «исправить команду» из RDS-2P-Salute
 ```
 
 По умолчанию клиент подключается к `http://localhost:20001` (флаг `--url` для другого адреса).
@@ -185,7 +185,7 @@ docker compose -f docker-compose.yml build cvc-api
 docker compose -f docker-compose.yml -f docker-compose.dev.yml build cvc-dev
 
 docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev ruff check .
-docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=commands_classifier --cov-report=term-missing
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
 ```
 
 ### Структура проекта
@@ -194,7 +194,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev 
 CVC/
 ├── config.yaml
 ├── requirements-docker.txt | requirements-cuda.txt | requirements-rocm.txt
-├── commands_classifier/     # Код: model, dataset, db, cli, client, api/
+├── app/     # Код: model, dataset, db, cli, client, api/
 ├── data/                    # CSV/JSON для миграции
 ├── models/                  # Сохранённые модели
 ├── db/                      # SQLite (training_data.db)

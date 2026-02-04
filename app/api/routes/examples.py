@@ -5,9 +5,9 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
-from commands_classifier import db
-from commands_classifier.api.state import get_config
-from commands_classifier.api.utils import remove_punctuation
+from app import db
+from app.api.state import get_config
+from app.api.utils import remove_punctuation
 
 router = APIRouter(tags=["examples"])
 

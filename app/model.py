@@ -24,7 +24,7 @@ except ImportError:
 from datasets import Dataset
 from setfit import SetFitModel, SetFitTrainer
 
-from commands_classifier.hf_retry import retry_hf
+from app.hf_retry import retry_hf
 
 
 def _get_hf_token() -> Optional[str]:

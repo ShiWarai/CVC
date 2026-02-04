@@ -3,8 +3,8 @@
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from commands_classifier.api.training import TrainingManager
-from commands_classifier.model import CommandsClassifier
+from app.api.training import TrainingManager
+from app.model import CommandsClassifier
 
 # Глобальные переменные состояния
 _classifier: Optional[CommandsClassifier] = None

@@ -6,8 +6,8 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import FastAPI
 
-from commands_classifier import db
-from commands_classifier.api.routes import (
+from app import db
+from app.api.routes import (
     command_feedback_router,
     examples_router,
     health_router,
@@ -15,7 +15,7 @@ from commands_classifier.api.routes import (
     predict_router,
     training_router,
 )
-from commands_classifier.api.state import (
+from app.api.state import (
     set_classifier,
     set_config,
     set_default_device,

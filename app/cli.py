@@ -21,14 +21,14 @@ def serve_command(args):
         # Для reload нужно передавать строку импорта, а не объект
         if args.reload:
             uvicorn.run(
-                "commands_classifier.api.server:app",
+                "app.api.server:app",
                 host=args.host,
                 port=args.port,
                 reload=args.reload,
             )
         else:
             # Без reload можно использовать объект напрямую
-            from commands_classifier.api.server import app
+            from app.api.server import app
 
             uvicorn.run(app, host=args.host, port=args.port, reload=False)
     except ImportError as e:

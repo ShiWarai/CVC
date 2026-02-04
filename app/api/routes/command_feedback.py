@@ -6,7 +6,7 @@ from typing import Any, List
 import requests
 from fastapi import APIRouter, HTTPException
 
-from commands_classifier.api.state import get_config
+from app.api.state import get_config
 
 logger = logging.getLogger(__name__)
 

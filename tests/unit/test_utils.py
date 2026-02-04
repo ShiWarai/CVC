@@ -1,6 +1,6 @@
 """Unit-тесты для утилит (remove_punctuation)."""
 
-from commands_classifier.api.utils import remove_punctuation
+from app.api.utils import remove_punctuation
 
 
 def test_remove_punctuation_empty_string():

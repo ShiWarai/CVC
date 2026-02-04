@@ -8,11 +8,11 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-from commands_classifier import db
-from commands_classifier.model import CommandsClassifier
+from app import db
+from app.model import CommandsClassifier
 
 # Настраиваем логгер для обучения
-logger = logging.getLogger("commands_classifier.training")
+logger = logging.getLogger("app.training")
 
 
 class TrainingStatus(str, Enum):

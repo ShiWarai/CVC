@@ -8,8 +8,8 @@ from typing import Any, Dict
 import yaml
 from fastapi import FastAPI
 
-from commands_classifier import db
-from commands_classifier.api.routes import (
+from app import db
+from app.api.routes import (
     command_feedback_router,
     examples_router,
     health_router,
@@ -17,14 +17,14 @@ from commands_classifier.api.routes import (
     predict_router,
     training_router,
 )
-from commands_classifier.api.state import (
+from app.api.state import (
     get_default_device,
     load_model,
     set_config,
     set_default_device,
     set_training_manager,
 )
-from commands_classifier.api.training import TrainingManager
+from app.api.training import TrainingManager
 
 # Настраиваем логирование
 logging.basicConfig(

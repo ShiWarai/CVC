@@ -14,7 +14,7 @@ RUN pip install --root-user-action=ignore --upgrade pip setuptools wheel
 COPY requirements-docker.txt .
 RUN pip install --root-user-action=ignore -r requirements-docker.txt
 
-COPY commands_classifier/ ./commands_classifier/
+COPY app/ ./app/
 COPY config.yaml .
 COPY pytest.ini .
 COPY data/ ./data/
@@ -24,4 +24,4 @@ RUN mkdir -p models checkpoints
 
 EXPOSE 20001
 
-CMD ["python", "-m", "commands_classifier.cli", "serve", "--host", "0.0.0.0", "--port", "20001"]
+CMD ["python", "-m", "app.cli", "serve", "--host", "0.0.0.0", "--port", "20001"]

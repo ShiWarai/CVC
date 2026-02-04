@@ -4,7 +4,7 @@ import json
 
 import pytest  # noqa: F401 - используется для фикстур (tmp_path)
 
-from commands_classifier.dataset import load_dataset
+from app.dataset import load_dataset
 
 
 def test_load_dataset_csv(tmp_path):

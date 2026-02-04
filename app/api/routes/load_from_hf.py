@@ -11,8 +11,8 @@ from typing import Any, Dict, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
-from commands_classifier.api.state import get_config, get_training_manager, load_model
-from commands_classifier.hf_retry import retry_hf
+from app.api.state import get_config, get_training_manager, load_model
+from app.hf_retry import retry_hf
 
 router = APIRouter(tags=["load_from_hf"])
 
