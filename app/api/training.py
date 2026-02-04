@@ -4,24 +4,30 @@ import logging
 import threading
 import uuid
 from datetime import datetime
-from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
-from app import db
-from app.model import CommandsClassifier
+from app.adapters import persistence as db
+from app.adapters.ml import CommandsClassifier
+from app.domain.entities import TrainingStatus
 
 # Настраиваем логгер для обучения
 logger = logging.getLogger("app.training")
 
 
-class TrainingStatus(str, Enum):
-    """Статусы обучения."""
+def _default_classifier_factory(
+    model_name: str, confidence_threshold: float, cache_dir: Optional[str]
+):
+    """Фабрика по умолчанию: создаёт CommandsClassifier с заданными параметрами."""
 
-    IDLE = "idle"
-    RUNNING = "running"
-    COMPLETED = "completed"
-    FAILED = "failed"
+    def factory():
+        return CommandsClassifier(
+            model_name=model_name,
+            confidence_threshold=confidence_threshold,
+            cache_dir=cache_dir,
+        )
+
+    return factory
 
 
 class TrainingManager:
@@ -36,6 +42,8 @@ class TrainingManager:
         on_training_complete: Optional[Callable[[], None]] = None,
         default_device: str = "cpu",
         cache_dir: Optional[str] = None,
+        example_repository: Optional[Any] = None,
+        classifier_factory: Optional[Callable[[], Any]] = None,
     ):
         """
         Инициализирует менеджер обучения.
@@ -48,14 +56,18 @@ class TrainingManager:
             on_training_complete: Callback функция, вызываемая после успешного обучения
             default_device: Устройство для обучения (определяется автоматически при старте)
             cache_dir: Путь для кэширования базовой модели (опционально)
+            example_repository: Реализация IExampleRepository (если None — app.adapters.persistence._default_repo)
+            classifier_factory: Callable[[], IClassifier] (если None — создаётся CommandsClassifier внутри)
         """
         self.db_path = db_path
         self.model_path = model_path
         self.model_name = model_name
-        self.confidence_threshold = float(confidence_threshold)  # Убеждаемся, что это float
+        self.confidence_threshold = float(confidence_threshold)
         self.on_training_complete = on_training_complete
-        self.default_device = default_device  # Устройство определяется автоматически при старте
+        self.default_device = default_device
         self.cache_dir = cache_dir
+        self._example_repository = example_repository
+        self._classifier_factory = classifier_factory
         self.lock = threading.Lock()
         self.training_thread: Optional[threading.Thread] = None
 
@@ -124,7 +136,12 @@ class TrainingManager:
             self.progress = 0.1
 
             # Загружаем данные из БД (только необученные)
-            texts, labels, example_ids = db.get_examples_for_training(self.db_path)
+            if self._example_repository is not None:
+                texts, labels, example_ids = self._example_repository.get_examples_for_training(
+                    self.db_path
+                )
+            else:
+                texts, labels, example_ids = db.get_examples_for_training(self.db_path)
 
             if len(texts) == 0:
                 raise ValueError("Нет необученных данных для обучения в базе данных")
@@ -211,11 +228,14 @@ class TrainingManager:
 
             # Создаем и обучаем модель
             threshold_float = float(self.confidence_threshold)
-            classifier = CommandsClassifier(
-                model_name=self.model_name,
-                confidence_threshold=threshold_float,
-                cache_dir=self.cache_dir,
-            )
+            if self._classifier_factory is not None:
+                classifier = self._classifier_factory()
+            else:
+                classifier = CommandsClassifier(
+                    model_name=self.model_name,
+                    confidence_threshold=threshold_float,
+                    cache_dir=self.cache_dir,
+                )
 
             # Обновляем прогресс: начало обучения
             self.progress = 0.3
@@ -291,7 +311,10 @@ class TrainingManager:
 
             # Отмечаем использованные строки как обученные
             if example_ids:
-                db.mark_examples_as_trained(self.db_path, example_ids)
+                if self._example_repository is not None:
+                    self._example_repository.mark_as_trained(self.db_path, example_ids)
+                else:
+                    db.mark_examples_as_trained(self.db_path, example_ids)
 
             # Обучение завершено успешно
             with self.lock:

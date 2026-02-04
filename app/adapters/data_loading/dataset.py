@@ -1,4 +1,4 @@
-"""Утилиты для загрузки и подготовки датасетов."""
+"""Загрузка датасета из CSV или JSON файла."""
 
 import json
 from pathlib import Path
@@ -21,30 +21,22 @@ def load_dataset(dataset_path: str) -> Tuple[List[str], List[str]]:
         ValueError: Если формат файла не поддерживается
     """
     path = Path(dataset_path)
-
     if not path.exists():
         raise FileNotFoundError(f"Файл датасета не найден: {dataset_path}")
 
     if path.suffix.lower() == ".csv":
         df = pd.read_csv(dataset_path)
-
-        # Проверяем наличие нужных колонок
         if "text" not in df.columns or "command" not in df.columns:
             raise ValueError(
                 "CSV файл должен содержать колонки 'text' и 'command'. "
                 f"Найдены колонки: {list(df.columns)}"
             )
-
         texts = df["text"].astype(str).tolist()
         labels = df["command"].astype(str).tolist()
 
     elif path.suffix.lower() == ".json":
         with open(dataset_path, "r", encoding="utf-8") as f:
             data = json.load(f)
-
-        # Поддерживаем два формата JSON:
-        # 1. Список объектов: [{"text": "...", "command": "..."}, ...]
-        # 2. Объект с ключами: {"texts": [...], "commands": [...]}
         if isinstance(data, list):
             texts = [item["text"] for item in data]
             labels = [item["command"] for item in data]

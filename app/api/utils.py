@@ -1,20 +1,5 @@
-"""Утилиты для API."""
+"""Утилиты для API. Реэкспорт из domain для обратной совместимости."""
 
-import re
+from app.domain.text_utils import remove_punctuation
 
-
-def remove_punctuation(text: str) -> str:
-    """
-    Удаляет все знаки препинания из текста.
-
-    Args:
-        text: Исходный текст
-
-    Returns:
-        Текст без знаков препинания
-    """
-    # Удаляем все знаки препинания, оставляя только буквы, цифры и пробелы
-    text = re.sub(r"[^\w\s]", "", text)
-    # Удаляем множественные пробелы и обрезаем
-    text = re.sub(r"\s+", " ", text).strip()
-    return text
+__all__ = ["remove_punctuation"]

@@ -1,6 +1,6 @@
 """Unit-тесты для модуля БД (init_db, add_example, count_examples, get_all_examples)."""
 
-from app import db
+from app.adapters import persistence as db
 
 
 def test_init_db_and_count_examples(temp_db_path):

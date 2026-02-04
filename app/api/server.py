@@ -8,7 +8,7 @@ from typing import Any, Dict
 import yaml
 from fastapi import FastAPI
 
-from app import db
+from app.adapters import persistence as db
 from app.api.routes import (
     command_feedback_router,
     examples_router,
@@ -18,13 +18,19 @@ from app.api.routes import (
     training_router,
 )
 from app.api.state import (
+    get_classifier,
+    get_config,
     get_default_device,
     load_model,
     set_config,
     set_default_device,
+    set_examples_use_case,
+    set_predict_use_case,
     set_training_manager,
 )
 from app.api.training import TrainingManager
+from app.application.examples_use_case import ExamplesUseCase
+from app.application.predict_use_case import PredictUseCase
 
 # Настраиваем логирование
 logging.basicConfig(
@@ -100,7 +106,13 @@ def init_app():
     csv_path = config["database"].get("csv_migration_path")
     db.init_db(db_path, csv_path)
 
-    # Инициализируем менеджер обучения с callback для перезагрузки модели
+    # Сценарии (use cases) для роутов
+    set_predict_use_case(PredictUseCase(get_classifier))
+    set_examples_use_case(
+        ExamplesUseCase(db._default_repo, lambda: get_config()["database"]["path"])
+    )
+
+    # Менеджер обучения с callback для перезагрузки модели
     model_path = config["model"]["path"]
     model_name = config["model"]["name"]
     confidence_threshold = float(config["model"].get("confidence_threshold", 0.5))
@@ -114,6 +126,7 @@ def init_app():
         on_training_complete=load_model,
         default_device=get_default_device(),
         cache_dir=cache_dir,
+        example_repository=db._default_repo,
     )
     set_training_manager(training_manager)
 

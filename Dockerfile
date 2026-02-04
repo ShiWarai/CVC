@@ -24,4 +24,4 @@ RUN mkdir -p models checkpoints
 
 EXPOSE 20001
 
-CMD ["python", "-m", "app.cli", "serve", "--host", "0.0.0.0", "--port", "20001"]
+CMD ["python", "-m", "app.main", "--host", "0.0.0.0", "--port", "20001"]

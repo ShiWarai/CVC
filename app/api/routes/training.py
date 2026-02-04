@@ -7,7 +7,7 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
-from app import db
+from app.adapters import persistence as db
 from app.api.state import get_config, get_training_manager, unload_classifier
 
 router = APIRouter(tags=["training"])

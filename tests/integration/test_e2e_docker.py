@@ -9,7 +9,7 @@ from pathlib import Path  # noqa: F401 - используется в FIXTURES_DI
 import pytest
 from fastapi import FastAPI
 
-from app import db
+from app.adapters import persistence as db
 from app.api.routes import (
     command_feedback_router,
     examples_router,

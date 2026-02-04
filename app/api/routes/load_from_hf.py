@@ -12,7 +12,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
 from app.api.state import get_config, get_training_manager, load_model
-from app.hf_retry import retry_hf
+from app.adapters.ml import retry_hf
 
 router = APIRouter(tags=["load_from_hf"])
 

@@ -29,7 +29,7 @@
 | [Использование](#использование) | CLI, Python-клиент, библиотека |
 | [Конфигурация и API](#конфигурация-и-api) | config.yaml, эндпоинты |
 | [Данные](#данные) | Формат датасета, параметры обучения |
-| [Разработка](#разработка) | Тесты, линт, структура проекта |
+| [Разработка](#разработка) | Тесты, линт, архитектура, структура проекта |
 | [CI/CD](#cicd) | Пайплайн и ссылка на настройку |
 | [Лицензия](#лицензия) | MIT |
 
@@ -73,10 +73,10 @@ HF_REPO_ID=your-username/model-name
 ### Локальный запуск
 
 ```bash
-python -m app.cli serve
+python -m app.main
 ```
 
-Опции: `--host`, `--port`, `--config`. БД создаётся при первом запуске, данные из `data/` или CSV из `config.yaml`.
+Опции: `--host`, `--port`, `--config`, `--reload`. БД создаётся при первом запуске, данные из `data/` или CSV из `config.yaml`.
 
 ## Использование
 
@@ -188,13 +188,32 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev 
 docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
 ```
 
+### Архитектура
+
+Проект построен по принципам чистой архитектуры (слои не зависят от деталей доставки и инфраструктуры).
+
+| Слой | Назначение |
+|------|------------|
+| **domain** | Сущности (`Example`, `PredictionResult`, `TrainingStatus`), порты (`IClassifier`, `IExampleRepository`), утилиты (`text_utils`). Без внешних зависимостей. |
+| **application** | Сценарии (use cases): предсказание (`PredictUseCase`), работа с примерами (`ExamplesUseCase`). Получают зависимости через конструктор. |
+| **adapters** | Реализации портов: **persistence** — SQLite-репозиторий примеров; **ml** — SetFit-классификатор и retry для HF; **data_loading** — загрузка датасета из CSV/JSON. |
+| **api** | FastAPI-приложение, роуты, глобальное состояние (state). В `init_app()` собираются use cases и адаптеры (composition root). |
+
+Точка входа сервера: `main.py` → `app.api.server`; CLI к API: `client.py`.
+
 ### Структура проекта
 
 ```
 CVC/
 ├── config.yaml
 ├── requirements-docker.txt | requirements-cuda.txt | requirements-rocm.txt
-├── app/     # Код: model, dataset, db, cli, client, api/
+├── app/                     # Точка входа: python -m app.main
+│   ├── main.py              # Запуск сервера
+│   ├── domain/              # Сущности, порты, text_utils
+│   ├── application/         # Use cases
+│   ├── adapters/            # persistence (SQLite), ml (SetFit), data_loading
+│   ├── api/                 # FastAPI, роуты, state
+│   └── client.py            # HTTP-клиент и библиотека
 ├── data/                    # CSV/JSON для миграции
 ├── models/                  # Сохранённые модели
 ├── db/                      # SQLite (training_data.db)

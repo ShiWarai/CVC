@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import FastAPI
 
-from app import db
+from app.adapters import persistence as db
 from app.api.routes import (
     command_feedback_router,
     examples_router,

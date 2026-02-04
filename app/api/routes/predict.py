@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field, field_validator
 
 from app.api.state import get_classifier, get_config
 from app.api.utils import remove_punctuation
-from app.model import CommandsClassifier
+from app.adapters.ml import CommandsClassifier
 
 router = APIRouter(tags=["predict"])
 
