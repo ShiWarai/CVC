@@ -1,6 +1,6 @@
 # CVC - Classification of Voice Commands
 
-[![ML Pipeline](https://github.com/ShiWarai/CVC/actions/workflows/deploy.yml/badge.svg)](https://github.com/ShiWarai/CVC/actions/workflows/deploy.yml)
+[![ML Pipeline](https://github.com/ShiWarai/CVC/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/ShiWarai/CVC/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/github/license/ShiWarai/CVC)](https://opensource.org/licenses/MIT)
 ![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 ![Docker Ready](https://img.shields.io/badge/docker-ready-blue?logo=docker)
