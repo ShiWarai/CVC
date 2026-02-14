@@ -2,7 +2,7 @@ name: ML Pipeline - Train and Publish
 
 on:
   push:
-    branches: [ main, master, dev ]  # Триггер на push в main/master/dev (новый датасет)
+    branches: [ main, dev ]  # Триггер на push в main/master/dev (новый датасет)
   workflow_dispatch:  # Позволяет запускать вручную через GitHub UI
     inputs:
       run_training:
@@ -262,7 +262,7 @@ jobs:
           disable_notification: true
           message: |
             *Пайплайн прошёл успешно*
-            Репо: `${{ github.repository }}`
+            Репозиторий: `${{ github.repository }}`
             Ветка: `${{ github.ref_name }}`
             [Открыть run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
@@ -280,6 +280,6 @@ jobs:
           format: markdown
           message: |
             *Пайплайн упал*
-            Репо: `${{ github.repository }}`
+            Репозиторий: `${{ github.repository }}`
             Ветка: `${{ github.ref_name }}`
             [Открыть run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
