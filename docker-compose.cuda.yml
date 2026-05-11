@@ -1,5 +1,9 @@
+# GPU: собирается из Dockerfile.cuda (PyTorch CUDA). Инференс/прод — обычный Dockerfile (CPU slim).
 services:
   cvc-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.cuda
     deploy:
       resources:
         reservations:
@@ -7,11 +11,5 @@ services:
             - driver: nvidia
               count: all
               capabilities: [gpu]
-    networks:
-      - robot-services-network
     environment:
       - BATCH_SIZE=128
-
-networks:
-  robot-services-network:
-    driver: bridge

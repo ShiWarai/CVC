@@ -2,7 +2,7 @@ name: ML Pipeline - Train and Publish
 
 on:
   push:
-    branches: [ main, master, dev ]  # Триггер на push в main/master/dev (новый датасет)
+    branches: [ main, dev ]  # Триггер на push в main/master/dev (новый датасет)
   workflow_dispatch:  # Позволяет запускать вручную через GitHub UI
     inputs:
       run_training:
@@ -17,9 +17,10 @@ on:
         type: string
 
 jobs:
+  # Линт и тесты: GitHub-hosted (CPU), образы из Dockerfile (slim + CPU PyTorch) — как в проде / GHCR.
   test:
     name: Run tests in Docker
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
       - name: Checkout code
@@ -33,13 +34,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
         with:
-          driver: docker  # чтобы FROM cvc-api видел образ с хоста (кэш GHA не используем)
+          driver: docker
 
       - name: Create network for Docker Compose
         run: |
           docker network create robot-services-network 2>/dev/null || true
 
-      - name: Build API image
+      # Прод/регрессия: только CPU-образ (не Dockerfile.cuda).
+      - name: Build API image (CPU)
         uses: docker/build-push-action@v6
         env:
           DOCKER_BUILD_RECORD_UPLOAD: false # не загружать архив .dockerbuild
@@ -69,14 +71,15 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=commands_classifier --cov-report=term-missing
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
 
-  # Запускается только при push с меткой [retrain] в сообщении коммита или при ручном запуске (с опцией run_training)
+  # Обучение + HF: только self-hosted с GPU (docker-compose.cuda.yml → Dockerfile.cuda).
+  # Запускается только при push с меткой [retrain] или при workflow_dispatch с run_training.
   train-and-publish:
     name: Train model and publish to Hugging Face
     needs: test
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_training != 'false' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[retrain]'))
-    runs-on: self-hosted  # Используется GPU-машина с self-hosted runner
+    runs-on: self-hosted # при нескольких раннерах добавьте метку gpu: runs-on: [self-hosted, gpu]
     timeout-minutes: 60  # Таймаут для всего job (60 минут)
     steps:
     - name: Checkout code
@@ -161,9 +164,9 @@ jobs:
         
         # Проверяем наличие образа (для переиспользования)
         if docker images | grep -q "cvc-api"; then
-          echo "ℹ️  Образ cvc-api будет пересобран с CUDA поддержкой"
+          echo "ℹ️  Образ cvc-api будет пересобран из Dockerfile.cuda"
         else
-          echo "ℹ️  Образ cvc-api будет собран с CUDA поддержкой"
+          echo "ℹ️  Образ cvc-api будет собран из Dockerfile.cuda"
         fi
 
     - name: Run training
@@ -179,7 +182,7 @@ jobs:
         echo "=========================================="
         echo "Запуск обучения модели"
         echo "=========================================="
-        echo "Использование CUDA версии Docker образа..."
+        echo "Сборка и запуск: Dockerfile.cuda + docker-compose.cuda.yml (GPU)..."
         # Удаляем старый контейнер (если есть) для избежания ошибки ContainerConfig
         docker rm -f cvc-api || true
         # Запускаем контейнер с CUDA поддержкой
@@ -262,7 +265,7 @@ jobs:
           disable_notification: true
           message: |
             *Пайплайн прошёл успешно*
-            Репо: `${{ github.repository }}`
+            Репозиторий: `${{ github.repository }}`
             Ветка: `${{ github.ref_name }}`
             [Открыть run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
@@ -280,6 +283,6 @@ jobs:
           format: markdown
           message: |
             *Пайплайн упал*
-            Репо: `${{ github.repository }}`
+            Репозиторий: `${{ github.repository }}`
             Ветка: `${{ github.ref_name }}`
             [Открыть run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

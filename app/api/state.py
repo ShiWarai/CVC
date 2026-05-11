@@ -3,14 +3,16 @@
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from commands_classifier.api.training import TrainingManager
-from commands_classifier.model import CommandsClassifier
+from app.adapters.ml import CommandsClassifier
+from app.api.training import TrainingManager
 
 # Глобальные переменные состояния
 _classifier: Optional[CommandsClassifier] = None
 _training_manager: Optional[TrainingManager] = None
 _config: Dict[str, Any] = {}
 _default_device: str = "cpu"
+_predict_use_case: Optional[Any] = None
+_examples_use_case: Optional[Any] = None
 
 
 def get_classifier() -> Optional[CommandsClassifier]:
@@ -95,6 +97,28 @@ def set_default_device(device: str) -> None:
     """Устанавливает устройство по умолчанию."""
     global _default_device
     _default_device = device
+
+
+def get_predict_use_case() -> Optional[Any]:
+    """Возвращает сценарий предсказания (PredictUseCase) или None."""
+    return _predict_use_case
+
+
+def set_predict_use_case(uc: Optional[Any]) -> None:
+    """Устанавливает сценарий предсказания."""
+    global _predict_use_case
+    _predict_use_case = uc
+
+
+def get_examples_use_case() -> Optional[Any]:
+    """Возвращает сценарий примеров (ExamplesUseCase) или None."""
+    return _examples_use_case
+
+
+def set_examples_use_case(uc: Optional[Any]) -> None:
+    """Устанавливает сценарий примеров."""
+    global _examples_use_case
+    _examples_use_case = uc
 
 
 def load_model() -> bool:

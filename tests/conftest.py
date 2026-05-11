@@ -1,13 +1,18 @@
 """Общие фикстуры для тестов CVC."""
 
+import os
+
+# До импорта torch (через transformers/setfit): UID без записи в /etc/passwd ломает getpass.getuser() в inductor.
+os.environ.setdefault("TORCHINDUCTOR_CACHE_DIR", "/tmp/torch-inductor-cache")
+
 from contextlib import asynccontextmanager
 from unittest.mock import MagicMock
 
 import pytest
 from fastapi import FastAPI
 
-from commands_classifier import db
-from commands_classifier.api.routes import (
+from app.adapters import persistence as db
+from app.api.routes import (
     command_feedback_router,
     examples_router,
     health_router,
@@ -15,7 +20,7 @@ from commands_classifier.api.routes import (
     predict_router,
     training_router,
 )
-from commands_classifier.api.state import (
+from app.api.state import (
     set_classifier,
     set_config,
     set_default_device,

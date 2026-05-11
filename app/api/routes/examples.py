@@ -5,9 +5,9 @@ from typing import List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
-from commands_classifier import db
-from commands_classifier.api.state import get_config
-from commands_classifier.api.utils import remove_punctuation
+from app.adapters import persistence as db
+from app.api.state import get_config, get_examples_use_case
+from app.api.utils import remove_punctuation
 
 router = APIRouter(tags=["examples"])
 
@@ -44,9 +44,12 @@ async def get_examples():
     Returns:
         Список всех примеров
     """
-    config = get_config()
-    db_path = config["database"]["path"]
-    examples = db.get_all_examples(db_path)
+    examples_uc = get_examples_use_case()
+    if examples_uc is not None:
+        examples = examples_uc.get_all()
+    else:
+        config = get_config()
+        examples = db.get_all_examples(config["database"]["path"])
     return [ExampleResponse(id=ex[0], text=ex[1], command=ex[2]) for ex in examples]
 
 
@@ -61,13 +64,19 @@ async def add_example(request: ExampleRequest):
     Returns:
         Созданный пример с ID
     """
-    config = get_config()
-    db_path = config["database"]["path"]
+    examples_uc = get_examples_use_case()
     try:
-        # Очищаем знаки препинания из текста перед сохранением
+        if examples_uc is not None:
+            cleaned_text = remove_punctuation(request.text)
+            if len(cleaned_text) == 0:
+                raise HTTPException(
+                    status_code=400, detail="После очистки строка оказалась пустой"
+                )
+            example_id = examples_uc.add(request.text, request.command)
+            return ExampleResponse(id=example_id, text=cleaned_text, command=request.command)
+        config = get_config()
+        db_path = config["database"]["path"]
         cleaned_text = remove_punctuation(request.text)
-
-        # Проверяем, что после очистки текст не пустой
         if len(cleaned_text) == 0:
             raise HTTPException(status_code=400, detail="Текст после очистки не может быть пустым")
 
@@ -94,9 +103,12 @@ async def delete_example(example_id: int):
     if example_id <= 0:
         raise HTTPException(status_code=400, detail="ID примера должен быть положительным числом")
 
-    config = get_config()
-    db_path = config["database"]["path"]
-    deleted = db.delete_example(db_path, example_id)
+    examples_uc = get_examples_use_case()
+    if examples_uc is not None:
+        deleted = examples_uc.delete(example_id)
+    else:
+        config = get_config()
+        deleted = db.delete_example(config["database"]["path"], example_id)
     if not deleted:
         raise HTTPException(status_code=404, detail=f"Пример с ID {example_id} не найден")
     return {"message": f"Пример {example_id} успешно удален"}
@@ -117,9 +129,12 @@ async def get_example(example_id: int):
     if example_id <= 0:
         raise HTTPException(status_code=400, detail="ID примера должен быть положительным числом")
 
-    config = get_config()
-    db_path = config["database"]["path"]
-    example = db.get_example_by_id(db_path, example_id)
+    examples_uc = get_examples_use_case()
+    if examples_uc is not None:
+        example = examples_uc.get_by_id(example_id)
+    else:
+        config = get_config()
+        example = db.get_example_by_id(config["database"]["path"], example_id)
     if example is None:
         raise HTTPException(status_code=404, detail=f"Пример с ID {example_id} не найден")
     return ExampleResponse(id=example[0], text=example[1], command=example[2])

@@ -1,12 +1,12 @@
 # CVC - Classification of Voice Commands
 
-[![ML Pipeline](https://github.com/ShiWarai/CVC/actions/workflows/deploy.yml/badge.svg)](https://github.com/ShiWarai/CVC/actions/workflows/deploy.yml)
+[![ML Pipeline](https://github.com/ShiWarai/CVC/actions/workflows/deploy.yml/badge.svg?branch=main)](https://github.com/ShiWarai/CVC/actions/workflows/deploy.yml)
 [![License: MIT](https://img.shields.io/github/license/ShiWarai/CVC)](https://opensource.org/licenses/MIT)
 ![Python Version](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue)
 ![Docker Ready](https://img.shields.io/badge/docker-ready-blue?logo=docker)
 [![CVC-Panda on Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20CVC--Panda-Model-yellow)](https://huggingface.co/ShiWarai/CVC-Panda)
 
-Мини-сервис для классификации голосовых команд (SetFit). Обучает модель на малом датасете и классифицирует текстовые команды. Создан для использования в проекте навыка для Sber Salute.
+Мини-сервис для классификации голосовых команд (SetFit). Обучает модель на малом датасете и классифицирует текстовые команды. Создан для использования в проекте навыка для команд роботу-собаке.
 
 ## Стек технологий
 
@@ -29,7 +29,7 @@
 | [Использование](#использование) | CLI, Python-клиент, библиотека |
 | [Конфигурация и API](#конфигурация-и-api) | config.yaml, эндпоинты |
 | [Данные](#данные) | Формат датасета, параметры обучения |
-| [Разработка](#разработка) | Тесты, линт, структура проекта |
+| [Разработка](#разработка) | Тесты, линт, архитектура, структура проекта |
 | [CI/CD](#cicd) | Пайплайн и ссылка на настройку |
 | [Лицензия](#лицензия) | MIT |
 
@@ -67,16 +67,19 @@ HF_REPO_ID=your-username/model-name
 
 ### Docker
 
-- Образ — CPU-only. Для GPU запускайте приложение локально (CUDA/ROCm).
-- Запуск: `docker-compose up -d`. Volumes: `./models`, `./checkpoints`, `./cache/huggingface`, `./db`.
+- **Инференс / прод** — образ из `Dockerfile`: `python:3.11-slim` + CPU PyTorch из `requirements-docker.txt` (лёгкий, публикация в GHCR).
+- **Обучение с GPU** — `Dockerfile.cuda` на базе `pytorch/pytorch:…-cuda…-runtime` и `requirements-docker-cuda.txt` (без переустановки PyTorch CPU-колёсами). Запуск: `docker compose -f docker-compose.yml -f docker-compose.cuda.yml up -d` (нужен NVIDIA Container Toolkit). В CI job *Train and publish* используется тот же overlay.
+- Для GPU **без** Docker — локально CUDA/ROCm по разделу «Варианты установки».
+- Тома по умолчанию: `./models`, `./checkpoints`, `./cache/huggingface`, `./db`.
+- Обычный запуск: `docker-compose up -d`.
 
 ### Локальный запуск
 
 ```bash
-python -m commands_classifier.cli serve
+python -m app.main
 ```
 
-Опции: `--host`, `--port`, `--config`. БД создаётся при первом запуске, данные из `data/` или CSV из `config.yaml`.
+Опции: `--host`, `--port`, `--config`, `--reload`. БД создаётся при первом запуске, данные из `data/` или CSV из `config.yaml`.
 
 ## Использование
 
@@ -85,19 +88,19 @@ python -m commands_classifier.cli serve
 После запуска сервера (Docker или локально):
 
 ```bash
-python -m commands_classifier.client predict --text "равняйся" [--show-confidence]
-python -m commands_classifier.client predict --file commands.txt
-python -m commands_classifier.client train [--batch-size 32 --iterations 30]
-python -m commands_classifier.client train-status
-python -m commands_classifier.client examples list
-python -m commands_classifier.client examples add --text "команда" --command "label"
-python -m commands_classifier.client examples delete --id 1
-python -m commands_classifier.client health
-python -m commands_classifier.client metrics
-python -m commands_classifier.client reset
-python -m commands_classifier.client load-from-hf [--repo-id "username/model-name"]
-python -m commands_classifier.client load-from-hf-status
-python -m commands_classifier.client command-feedback   # репорт «исправить команду» из RDS-2P-Salute
+python -m app.client predict --text "равняйся" [--show-confidence]
+python -m app.client predict --file commands.txt
+python -m app.client train [--batch-size 32 --iterations 30]
+python -m app.client train-status
+python -m app.client examples list
+python -m app.client examples add --text "команда" --command "label"
+python -m app.client examples delete --id 1
+python -m app.client health
+python -m app.client metrics
+python -m app.client reset
+python -m app.client load-from-hf [--repo-id "username/model-name"]
+python -m app.client load-from-hf-status
+python -m app.client command-feedback   # репорт «исправить команду» из RDS-2P-Salute
 ```
 
 По умолчанию клиент подключается к `http://localhost:20001` (флаг `--url` для другого адреса).
@@ -185,16 +188,39 @@ docker compose -f docker-compose.yml build cvc-api
 docker compose -f docker-compose.yml -f docker-compose.dev.yml build cvc-dev
 
 docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev ruff check .
-docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=commands_classifier --cov-report=term-missing
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
 ```
+
+### Архитектура
+
+Проект построен по принципам чистой архитектуры (слои не зависят от деталей доставки и инфраструктуры).
+
+| Слой | Назначение |
+|------|------------|
+| **domain** | Сущности (`Example`, `PredictionResult`, `TrainingStatus`), порты (`IClassifier`, `IExampleRepository`), утилиты (`text_utils`). Без внешних зависимостей. |
+| **application** | Сценарии (use cases): предсказание (`PredictUseCase`), работа с примерами (`ExamplesUseCase`). Получают зависимости через конструктор. |
+| **adapters** | Реализации портов: **persistence** — SQLite-репозиторий примеров; **ml** — SetFit-классификатор и retry для HF; **data_loading** — загрузка датасета из CSV/JSON. |
+| **api** | FastAPI-приложение, роуты, глобальное состояние (state). В `init_app()` собираются use cases и адаптеры (composition root). |
+
+Точка входа сервера: `main.py` → `app.api.server`; CLI к API: `client.py`.
 
 ### Структура проекта
 
 ```
 CVC/
 ├── config.yaml
-├── requirements-docker.txt | requirements-cuda.txt | requirements-rocm.txt
-├── commands_classifier/     # Код: model, dataset, db, cli, client, api/
+├── Dockerfile               # CPU slim: прод, GHCR, тест в CI
+├── Dockerfile.cuda          # PyTorch CUDA: обучение (compose + job train-and-publish)
+├── docker-compose.yml
+├── docker-compose.cuda.yml  # GPU + Dockerfile.cuda
+├── requirements-docker.txt | requirements-docker-cuda.txt | requirements-cuda.txt | requirements-rocm.txt
+├── app/                     # Точка входа: python -m app.main
+│   ├── main.py              # Запуск сервера
+│   ├── domain/              # Сущности, порты, text_utils
+│   ├── application/         # Use cases
+│   ├── adapters/            # persistence (SQLite), ml (SetFit), data_loading
+│   ├── api/                 # FastAPI, роуты, state
+│   └── client.py            # HTTP-клиент и библиотека
 ├── data/                    # CSV/JSON для миграции
 ├── models/                  # Сохранённые модели
 ├── db/                      # SQLite (training_data.db)
@@ -206,8 +232,8 @@ CVC/
 
 Пайплайн [.github/workflows/deploy.yml](.github/workflows/deploy.yml):
 
-- При каждом push — **тесты** (линт + pytest в Docker).
-- Job **Train and Publish** — при метке `[retrain]` в сообщении коммита или при ручном запуске (Actions → Run workflow). Секреты: `HF_TOKEN`, `HF_REPO_ID`.
+- При каждом push — job **test** на **ubuntu-latest**: линт + pytest в контейнере **`Dockerfile`** (CPU slim, как образ в GHCR).
+- Job **Train and Publish** только на **self-hosted** с GPU (`docker-compose.cuda.yml` → **`Dockerfile.cuda`**): при метке `[retrain]` в сообщении коммита или при ручном запуске (Actions → Run workflow). Секреты: `HF_TOKEN`, `HF_REPO_ID`. При нескольких self-hosted раннерах задайте метку GPU (например `runs-on: [self-hosted, gpu]`).
 - **Уведомления в Telegram** при успешной и неуспешной сборке (опционально: секреты `TELEGRAM_TOKEN`, `TELEGRAM_TO`). Подробнее: [docs/telegram_notifications.md](docs/telegram_notifications.md).
 
 Подробная настройка (self-hosted runner, GPU, секреты): [docs/cicd_setup.md](docs/cicd_setup.md).

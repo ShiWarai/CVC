@@ -20,8 +20,8 @@ sys.path.insert(0, str(project_root))
 
 import yaml
 
-from commands_classifier import db as db_module
-from commands_classifier.model import CommandsClassifier
+from app.adapters import persistence as db_module
+from app.adapters.ml import CommandsClassifier
 
 
 def load_config(config_path: str = "config.yaml") -> dict:
@@ -155,7 +155,7 @@ def main():
 
         # Помечаем примеры как обученные
         print("\nОбновление статуса примеров в БД...")
-        from commands_classifier.db import mark_examples_as_trained
+        from app.adapters.persistence import mark_examples_as_trained
 
         mark_examples_as_trained(training_db_path, example_ids)
         print(f"✓ {len(example_ids)} примеров помечено как обученные")

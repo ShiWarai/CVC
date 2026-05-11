@@ -2,8 +2,8 @@
 
 from fastapi import APIRouter, Response
 
-from commands_classifier import db
-from commands_classifier.api.state import get_classifier, get_config, get_training_manager
+from app.adapters import persistence as db
+from app.api.state import get_classifier, get_config, get_training_manager
 
 router = APIRouter(tags=["health"])
 

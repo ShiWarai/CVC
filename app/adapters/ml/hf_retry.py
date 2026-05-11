@@ -5,7 +5,6 @@ from typing import Callable, TypeVar
 
 T = TypeVar("T")
 
-# Задержки в секундах: 1, 2, 4
 DEFAULT_BACKOFF = (1.0, 2.0, 4.0)
 
 
@@ -20,7 +19,7 @@ def retry_hf(
     Args:
         fn: Безаргументный callable (например, lambda: from_pretrained(...)).
         max_retries: Максимальное число попыток (включая первую).
-        backoff: Кортеж задержек в секундах между попытками (длина должна быть >= max_retries - 1).
+        backoff: Кортеж задержек в секундах между попытками.
 
     Returns:
         Результат вызова fn().

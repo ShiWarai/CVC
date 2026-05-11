@@ -9,8 +9,8 @@ from pathlib import Path  # noqa: F401 - используется в FIXTURES_DI
 import pytest
 from fastapi import FastAPI
 
-from commands_classifier import db
-from commands_classifier.api.routes import (
+from app.adapters import persistence as db
+from app.api.routes import (
     command_feedback_router,
     examples_router,
     health_router,
@@ -18,14 +18,14 @@ from commands_classifier.api.routes import (
     predict_router,
     training_router,
 )
-from commands_classifier.api.state import (
+from app.api.state import (
     load_model,
     set_classifier,
     set_config,
     set_default_device,
     set_training_manager,
 )
-from commands_classifier.api.training import TrainingManager
+from app.api.training import TrainingManager
 
 # Путь к фикстурам с тестовым датасетом (3 класса: lie_down, dismiss, unknown)
 FIXTURES_DIR = Path(__file__).resolve().parent.parent / "fixtures"

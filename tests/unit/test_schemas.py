@@ -3,12 +3,12 @@
 import pytest
 from pydantic import ValidationError
 
-from commands_classifier.api.routes.predict import (
+from app.api.routes.predict import (
     EmbedRequest,
     PredictBatchRequest,
     PredictRequest,
 )
-from commands_classifier.api.routes.training import TrainRequest
+from app.api.routes.training import TrainRequest
 
 # --- EmbedRequest ---
 

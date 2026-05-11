@@ -5,9 +5,9 @@ from typing import List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field, field_validator
 
-from commands_classifier.api.state import get_classifier, get_config
-from commands_classifier.api.utils import remove_punctuation
-from commands_classifier.model import CommandsClassifier
+from app.adapters.ml import CommandsClassifier
+from app.api.state import get_classifier, get_config
+from app.api.utils import remove_punctuation
 
 router = APIRouter(tags=["predict"])
 
