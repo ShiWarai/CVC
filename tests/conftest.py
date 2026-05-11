@@ -1,5 +1,10 @@
 """Общие фикстуры для тестов CVC."""
 
+import os
+
+# До импорта torch (через transformers/setfit): UID без записи в /etc/passwd ломает getpass.getuser() в inductor.
+os.environ.setdefault("TORCHINDUCTOR_CACHE_DIR", "/tmp/torch-inductor-cache")
+
 from contextlib import asynccontextmanager
 from unittest.mock import MagicMock
 

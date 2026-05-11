@@ -6,6 +6,8 @@ ENV PIP_NO_CACHE_DIR=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
+# PyTorch inductor: без UID в /etc/passwd (docker user: GHA runner) getpass.getuser() падает при импорте.
+ENV TORCHINDUCTOR_CACHE_DIR=/tmp/torch-inductor-cache
 
 WORKDIR /app
 
