@@ -67,8 +67,11 @@ HF_REPO_ID=your-username/model-name
 
 ### Docker
 
-- Образ — CPU-only. Для GPU запускайте приложение локально (CUDA/ROCm).
-- Запуск: `docker-compose up -d`. Volumes: `./models`, `./checkpoints`, `./cache/huggingface`, `./db`.
+- **Инференс / прод** — образ из `Dockerfile`: `python:3.11-slim` + CPU PyTorch из `requirements-docker.txt` (лёгкий, публикация в GHCR).
+- **Обучение с GPU** — `Dockerfile.cuda` на базе `pytorch/pytorch:…-cuda…-runtime` и `requirements-docker-cuda.txt` (без переустановки PyTorch CPU-колёсами). Запуск: `docker compose -f docker-compose.yml -f docker-compose.cuda.yml up -d` (нужен NVIDIA Container Toolkit). В CI job *Train and publish* используется тот же overlay.
+- Для GPU **без** Docker — локально CUDA/ROCm по разделу «Варианты установки».
+- Тома по умолчанию: `./models`, `./checkpoints`, `./cache/huggingface`, `./db`.
+- Обычный запуск: `docker-compose up -d`.
 
 ### Локальный запуск
 
@@ -206,7 +209,11 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev 
 ```
 CVC/
 ├── config.yaml
-├── requirements-docker.txt | requirements-cuda.txt | requirements-rocm.txt
+├── Dockerfile               # CPU slim: прод, GHCR, тест в CI
+├── Dockerfile.cuda          # PyTorch CUDA: обучение (compose + job train-and-publish)
+├── docker-compose.yml
+├── docker-compose.cuda.yml  # GPU + Dockerfile.cuda
+├── requirements-docker.txt | requirements-docker-cuda.txt | requirements-cuda.txt | requirements-rocm.txt
 ├── app/                     # Точка входа: python -m app.main
 │   ├── main.py              # Запуск сервера
 │   ├── domain/              # Сущности, порты, text_utils
@@ -225,8 +232,8 @@ CVC/
 
 Пайплайн [.github/workflows/deploy.yml](.github/workflows/deploy.yml):
 
-- При каждом push — **тесты** (линт + pytest в Docker).
-- Job **Train and Publish** — при метке `[retrain]` в сообщении коммита или при ручном запуске (Actions → Run workflow). Секреты: `HF_TOKEN`, `HF_REPO_ID`.
+- При каждом push — job **test** на **ubuntu-latest**: линт + pytest в контейнере **`Dockerfile`** (CPU slim, как образ в GHCR).
+- Job **Train and Publish** только на **self-hosted** с GPU (`docker-compose.cuda.yml` → **`Dockerfile.cuda`**): при метке `[retrain]` в сообщении коммита или при ручном запуске (Actions → Run workflow). Секреты: `HF_TOKEN`, `HF_REPO_ID`. При нескольких self-hosted раннерах задайте метку GPU (например `runs-on: [self-hosted, gpu]`).
 - **Уведомления в Telegram** при успешной и неуспешной сборке (опционально: секреты `TELEGRAM_TOKEN`, `TELEGRAM_TO`). Подробнее: [docs/telegram_notifications.md](docs/telegram_notifications.md).
 
 Подробная настройка (self-hosted runner, GPU, секреты): [docs/cicd_setup.md](docs/cicd_setup.md).

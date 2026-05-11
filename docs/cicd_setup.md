@@ -229,11 +229,9 @@ cat ~/.cvc_ssh_keys/deploy_key.pub
 
 ## Шаг 6: Проверка workflow
 
-Workflow файл находится в `.github/workflows/deploy.yml`. Он автоматически:
-- Запускается при push в ветку `main`
-- Pull'ит последние изменения из репозитория
-- Запускает обучение модели на GPU через docker-compose
-- Загружает модель на Hugging Face Hub
+Workflow файл находится в `.github/workflows/deploy.yml`. Кратко:
+- При push в `main` / `dev` на **GitHub-hosted** (`ubuntu-latest`) выполняется job **test**: линт и pytest в Docker-образе из **`Dockerfile`** (CPU, как при публикации в GHCR).
+- Job **Train and Publish** запускается только при `[retrain]` в сообщении коммита или вручную (workflow_dispatch) и выполняется на **self-hosted** с GPU: `docker-compose.cuda.yml` + **`Dockerfile.cuda`**, затем загрузка на Hugging Face Hub.
 - Модель становится доступной по адресу: `https://huggingface.co/your-username/model-name`
 
 ## Тестирование

@@ -1,14 +1,19 @@
-FROM pytorch/pytorch:2.9.1-cuda12.8-cudnn9-runtime
+# Продакшен / инференс: CPU-only, компактный образ (публикация в GHCR и обычный docker compose).
+
+FROM python:3.11-slim-bookworm
 
 ENV PIP_NO_CACHE_DIR=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV PATH=/opt/conda/bin:$PATH
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
 WORKDIR /app
 
-# Обновляем pip и устанавливаем зависимости
+# libgomp1 — OpenMP для numpy/torch wheels; минимальный runtime без CUDA.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libgomp1 \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN pip install --root-user-action=ignore --upgrade pip setuptools wheel
 
 COPY requirements-docker.txt .
