@@ -1,4 +1,5 @@
-# В CI задаём RUNNER_UID/RUNNER_GID — файлы в cache/models/checkpoints создаются от пользователя runner'а
+# Данные (модели, БД, HF-кэш) — именованные тома, не bind-mount из репозитория.
+# Код и config — в образе. В CI: RUNNER_UID/RUNNER_GID для прав на томах при user:.
 services:
   cvc-api:
     image: cvc-api
@@ -10,11 +11,9 @@ services:
     ports:
       - "20001:20001"
     volumes:
-      - ./models:/app/models
-      - ./checkpoints:/app/checkpoints
-      - ./cache/huggingface:/app/.cache/huggingface
-      - ./db:/app/db
-      - cvc_logs:/app/logs
+      - cvc_models:/app/models
+      - cvc_hf_cache:/app/.cache/huggingface
+      - cvc_db:/app/db
     environment:
       - HF_HOME=/app/.cache/huggingface
       - HF_TOKEN=${HF_TOKEN}
@@ -31,7 +30,9 @@ services:
       start_period: 40s
 
 volumes:
-  cvc_logs:
+  cvc_models:
+  cvc_hf_cache:
+  cvc_db:
 
 networks:
   robot-services-network:

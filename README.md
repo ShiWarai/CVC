@@ -70,7 +70,7 @@ HF_REPO_ID=your-username/model-name
 - **Инференс / прод** — образ из `Dockerfile`: `python:3.11-slim` + CPU PyTorch из `requirements-docker.txt` (лёгкий, публикация в GHCR).
 - **Обучение с GPU** — `Dockerfile.cuda` на базе `pytorch/pytorch:…-cuda…-runtime` и `requirements-docker-cuda.txt` (без переустановки PyTorch CPU-колёсами). Запуск: `docker compose -f docker-compose.yml -f docker-compose.cuda.yml up -d` (нужен NVIDIA Container Toolkit). В CI job *Train and publish* используется тот же overlay.
 - Для GPU **без** Docker — локально CUDA/ROCm по разделу «Варианты установки».
-- Код, `config.yaml` и `data/` — в образе (`Dockerfile`); снаружи только `./models`, `./checkpoints`, `./cache/huggingface`, `./db` и том логов `cvc_logs`.
+- Код, `config.yaml` и `data/` — в образе (`Dockerfile`); данные — в именованных томах Docker (`cvc_models`, `cvc_hf_cache`, `cvc_db`), без bind-mount из репозитория.
 - Обычный запуск: `docker compose up --build -d` (после изменения кода — пересборка). Прод с GHCR: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`.
 
 ### Локальный запуск
