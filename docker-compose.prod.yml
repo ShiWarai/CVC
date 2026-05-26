@@ -4,14 +4,3 @@ services:
   cvc-api:
     image: ghcr.io/shiwarai/cvc-api:main
     build: !reset null
-    volumes:
-      - ./models:/app/models
-      - ./checkpoints:/app/checkpoints
-      - ./cache/huggingface:/app/.cache/huggingface
-      - ./db:/app/db
-      - ./config.yaml:/app/config.yaml:ro
-      - ./data:/app/data:ro
-      - cvc_logs:/app/logs
-
-volumes:
-  cvc_logs:

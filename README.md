@@ -39,7 +39,7 @@
 2. Соберите и запустите контейнер:
 
    ```bash
-   docker-compose up -d
+   docker compose up --build -d
    ```
 
 3. Сервер: **http://localhost:20001**. Документация API: http://localhost:20001/docs
@@ -70,8 +70,8 @@ HF_REPO_ID=your-username/model-name
 - **Инференс / прод** — образ из `Dockerfile`: `python:3.11-slim` + CPU PyTorch из `requirements-docker.txt` (лёгкий, публикация в GHCR).
 - **Обучение с GPU** — `Dockerfile.cuda` на базе `pytorch/pytorch:…-cuda…-runtime` и `requirements-docker-cuda.txt` (без переустановки PyTorch CPU-колёсами). Запуск: `docker compose -f docker-compose.yml -f docker-compose.cuda.yml up -d` (нужен NVIDIA Container Toolkit). В CI job *Train and publish* используется тот же overlay.
 - Для GPU **без** Docker — локально CUDA/ROCm по разделу «Варианты установки».
-- Тома по умолчанию: `./models`, `./checkpoints`, `./cache/huggingface`, `./db`.
-- Обычный запуск: `docker-compose up -d`.
+- Код, `config.yaml` и `data/` — в образе (`Dockerfile`); снаружи только `./models`, `./checkpoints`, `./cache/huggingface`, `./db` и том логов `cvc_logs`.
+- Обычный запуск: `docker compose up --build -d` (после изменения кода — пересборка). Прод с GHCR: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`.
 
 ### Локальный запуск
 
