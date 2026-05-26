@@ -26,6 +26,7 @@ COPY config.yaml .
 COPY pytest.ini .
 COPY data/ ./data/
 COPY tests/ ./tests/
+COPY ci/ ./ci/
 
 RUN mkdir -p models checkpoints
 
