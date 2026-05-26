@@ -80,7 +80,7 @@ jobs:
     needs: test
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.run_training != 'false' || (github.event_name == 'push' && contains(github.event.head_commit.message, '[retrain]'))
     runs-on: self-hosted # при нескольких раннерах добавьте метку gpu: runs-on: [self-hosted, gpu]
-    timeout-minutes: 60  # Таймаут для всего job (60 минут)
+    timeout-minutes: 30  # Таймаут для всего job (60 минут)
     steps:
     - name: Checkout code
       uses: actions/checkout@v4

@@ -10,15 +10,11 @@ services:
     ports:
       - "20001:20001"
     volumes:
-      - ./app:/app/app:ro
-      - ./tests:/app/tests:ro
       - ./models:/app/models
       - ./checkpoints:/app/checkpoints
       - ./cache/huggingface:/app/.cache/huggingface
       - ./db:/app/db
-      - ./config.yaml:/app/config.yaml:ro
-      - ./data:/app/data:ro
-      - ./ci:/app/ci:ro
+      - cvc_logs:/app/logs
     environment:
       - HF_HOME=/app/.cache/huggingface
       - HF_TOKEN=${HF_TOKEN}
@@ -33,6 +29,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+volumes:
+  cvc_logs:
 
 networks:
   robot-services-network:
