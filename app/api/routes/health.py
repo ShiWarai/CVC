@@ -1,11 +1,21 @@
 """Эндпоинты для проверки здоровья и метрик."""
 
-from fastapi import APIRouter, Response
+from fastapi import APIRouter, HTTPException, Response
 
 from app.adapters import persistence as db
 from app.api.state import get_classifier, get_config, get_training_manager
 
 router = APIRouter(tags=["health"])
+
+
+@router.get("/v1/ready")
+def ready():
+    """
+    Readiness: модель загружена и можно принимать predict-запросы (k8s readinessProbe).
+    """
+    if get_classifier() is None:
+        raise HTTPException(status_code=503, detail="model not loaded")
+    return {"status": "ready"}
 
 
 @router.get("/v1/health")

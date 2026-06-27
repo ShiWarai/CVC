@@ -71,7 +71,7 @@ HF_REPO_ID=your-username/model-name
 - **Обучение с GPU** — `Dockerfile.cuda` на базе `pytorch/pytorch:…-cuda…-runtime` и `requirements-docker-cuda.txt` (без переустановки PyTorch CPU-колёсами). Запуск: `docker compose -f docker-compose.yml -f docker-compose.cuda.yml up -d` (нужен NVIDIA Container Toolkit). В CI job *Train and publish* используется тот же overlay.
 - Для GPU **без** Docker — локально CUDA/ROCm по разделу «Варианты установки».
 - Код, `config.yaml` и `data/` — в образе (`Dockerfile`); данные — в именованных томах Docker (`cvc_models`, `cvc_hf_cache`, `cvc_db`), без bind-mount из репозитория.
-- Обычный запуск: `docker compose up --build -d` (после изменения кода — пересборка). Прод с GHCR: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`.
+- Обычный запуск: `docker compose up --build -d` (после изменения кода — пересборка). Прод с GHCR: `docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d`. Dev/staging с GHCR: `docker compose -f docker-compose.yml -f docker-compose.prod-dev.yml pull && docker compose -f docker-compose.yml -f docker-compose.prod-dev.yml up -d`.
 
 ### Локальный запуск
 
@@ -149,7 +149,8 @@ training:
 | Метод | Путь | Описание |
 |-------|------|----------|
 | POST | /v1/embed | Эмбеддинги (TEI) |
-| GET | /v1/health | Проверка работоспособности |
+| GET | /v1/health | Liveness: процесс жив, БД доступна |
+| GET | /v1/ready | Readiness: модель загружена (k8s readinessProbe) |
 | GET | /v1/metrics | Счётчики примеров и статус обучения |
 | POST | /v1/predict | Классификация одного текста |
 | POST | /v1/predict/batch | Batch классификация |
@@ -162,6 +163,22 @@ training:
 | GET | /v1/command-feedback | Репорт «исправить команду» из RDS-2P-Salute (прокси) |
 
 Интерактивная документация: **http://localhost:20001/docs**. Устройство (CPU/CUDA/ROCm) определяется при запуске автоматически.
+
+Переменные окружения сервера (опционально):
+
+| Переменная | По умолчанию | Назначение |
+|------------|--------------|------------|
+| `UVICORN_WORKERS` | `1` | Число worker-процессов Uvicorn (`workers>1` умножает RAM на число копий модели) |
+| `TORCH_NUM_THREADS` | `4` | Потоки OpenMP/PyTorch на CPU |
+
+Образы в GHCR (после зелёного CI на соответствующей ветке):
+
+| Ветка | Пакет | Теги | Назначение |
+|-------|--------|------|------------|
+| `main` | `ghcr.io/shiwarai/cvc-robot-dog` | `:main`, `:<sha>` | Прод / инференс |
+| `dev` | `ghcr.io/shiwarai/cvc-robot-dog` | `:dev`, `:<sha>` | Staging / dev-runtime |
+
+Контейнер на хосте: `cvc-robot-dog`. Образ **cvc-robot-dog-dev** (pytest, ruff) собирается только локально и в CI — в GHCR не публикуется.
 
 ## Данные
 
@@ -181,14 +198,13 @@ training:
 
 ### Тесты и линт
 
-Используется образ **cvc-dev** ([docker-compose.dev.yml](docker-compose.dev.yml)):
+Используется образ **cvc-robot-dog-dev** ([docker-compose.dev.yml](docker-compose.dev.yml)) — только локальная сборка / CI:
 
 ```bash
-docker compose -f docker-compose.yml build cvc-api
-docker compose -f docker-compose.yml -f docker-compose.dev.yml build cvc-dev
-
-docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev ruff check .
-docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
+docker compose -f docker-compose.yml build cvc-robot-dog
+docker compose -f docker-compose.yml -f docker-compose.dev.yml build cvc-robot-dog-dev
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-robot-dog-dev ruff check .
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-robot-dog-dev pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
 ```
 
 ### Архитектура
@@ -213,6 +229,8 @@ CVC/
 ├── Dockerfile.cuda          # PyTorch CUDA: обучение (compose + job train-and-publish)
 ├── docker-compose.yml
 ├── docker-compose.cuda.yml  # GPU + Dockerfile.cuda
+├── docker-compose.prod.yml    # GHCR :main
+├── docker-compose.prod-dev.yml # GHCR :dev (runtime)
 ├── requirements-docker.txt | requirements-docker-cuda.txt | requirements-cuda.txt | requirements-rocm.txt
 ├── app/                     # Точка входа: python -m app.main
 │   ├── main.py              # Запуск сервера
@@ -232,7 +250,10 @@ CVC/
 
 Пайплайн [.github/workflows/deploy.yml](.github/workflows/deploy.yml):
 
-- При каждом push — job **test** на **ubuntu-latest**: линт + pytest в контейнере **`Dockerfile`** (CPU slim, как образ в GHCR).
+- При каждом push — job **test** на **ubuntu-latest**: линт + pytest в Docker.
+- После успешного pipeline workflow [**Publish Docker image**](.github/workflows/publish.yml):
+  - ветка **`main`** → `ghcr.io/<owner>/cvc-robot-dog:main` (+ SHA);
+  - ветка **`dev`** → `cvc-robot-dog:dev` (+ SHA).
 - Job **Train and Publish** только на **self-hosted** с GPU (`docker-compose.cuda.yml` → **`Dockerfile.cuda`**): при метке `[retrain]` в сообщении коммита или при ручном запуске (Actions → Run workflow). Секреты: `HF_TOKEN`, `HF_REPO_ID`. При нескольких self-hosted раннерах задайте метку GPU (например `runs-on: [self-hosted, gpu]`).
 - **Уведомления в Telegram** при успешной и неуспешной сборке (опционально: секреты `TELEGRAM_TOKEN`, `TELEGRAM_TO`). Подробнее: [docs/telegram_notifications.md](docs/telegram_notifications.md).
 

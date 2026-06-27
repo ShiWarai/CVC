@@ -1,6 +1,6 @@
 # Запуск: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
 services:
-  cvc-api:
-    image: ghcr.io/shiwarai/cvc-api:main
+  cvc-robot-dog:
+    image: ghcr.io/shiwarai/cvc-robot-dog:main
     build: !reset null

@@ -1,6 +1,7 @@
 """Точка входа: запуск API сервера CVC."""
 
 import argparse
+import os
 import sys
 
 
@@ -26,7 +27,17 @@ def main():
         action="store_true",
         help="Автоперезагрузка при изменении кода (для разработки)",
     )
+    parser.add_argument(
+        "--workers",
+        type=int,
+        default=None,
+        help="Число worker-процессов Uvicorn (по умолчанию: UVICORN_WORKERS или 1)",
+    )
     args = parser.parse_args()
+
+    workers = args.workers
+    if workers is None:
+        workers = int(os.getenv("UVICORN_WORKERS", "1"))
 
     try:
         import uvicorn
@@ -36,6 +47,8 @@ def main():
 
     print(f"Запуск API на {args.host}:{args.port}")
     print(f"Конфигурация: {args.config}")
+    if not args.reload:
+        print(f"Workers: {workers}")
     print(f"Документация: http://{args.host}:{args.port}/docs")
 
     try:
@@ -47,9 +60,13 @@ def main():
                 reload=args.reload,
             )
         else:
-            from app.api.server import app
-
-            uvicorn.run(app, host=args.host, port=args.port, reload=False)
+            uvicorn.run(
+                "app.api.server:app",
+                host=args.host,
+                port=args.port,
+                reload=False,
+                workers=workers,
+            )
     except Exception as e:
         print(f"Ошибка при запуске: {e}", file=sys.stderr)
         import traceback

@@ -1,13 +1,13 @@
 # Данные (модели, БД, HF-кэш) — именованные тома, не bind-mount из репозитория.
 # Код и config — в образе. В CI: RUNNER_UID/RUNNER_GID для прав на томах при user:.
 services:
-  cvc-api:
-    image: cvc-api
+  cvc-robot-dog:
+    image: cvc-robot-dog
     build:
       context: .
       dockerfile: Dockerfile
     user: "${RUNNER_UID:-0}:${RUNNER_GID:-0}"
-    container_name: cvc-api
+    container_name: cvc-robot-dog
     ports:
       - "20001:20001"
     volumes:
