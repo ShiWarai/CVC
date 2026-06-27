@@ -78,8 +78,6 @@ def init_app():
     """Инициализирует приложение при запуске."""
     # Инициализируем токен Hugging Face
     try:
-        import os
-
         import huggingface_hub
 
         hf_token = os.getenv("HF_TOKEN")
