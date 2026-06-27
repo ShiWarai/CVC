@@ -76,7 +76,7 @@ class PredictBatchResponse(BaseModel):
 
 
 @router.post("/v1/embed", response_model=EmbedResponse)
-async def embed(request: EmbedRequest):
+def embed(request: EmbedRequest):
     """
     Получает эмбеддинги для текстов (TEI совместимый эндпоинт).
 
@@ -107,7 +107,7 @@ async def embed(request: EmbedRequest):
 
 
 @router.post("/v1/predict", response_model=PredictResponse)
-async def predict(request: PredictRequest):
+def predict(request: PredictRequest):
     """
     Классифицирует один текст в команду.
 
@@ -137,7 +137,7 @@ async def predict(request: PredictRequest):
 
 
 @router.post("/v1/predict/batch", response_model=PredictBatchResponse)
-async def predict_batch(request: PredictBatchRequest):
+def predict_batch(request: PredictBatchRequest):
     """
     Классифицирует список текстов в команды.
 

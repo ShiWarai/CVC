@@ -18,6 +18,19 @@ def test_health_model_not_loaded(client):
     assert response.json()["model_loaded"] is False
 
 
+def test_ready_without_model_returns_503(client):
+    """GET /v1/ready без загруженной модели возвращает 503."""
+    response = client.get("/v1/ready")
+    assert response.status_code == 503
+
+
+def test_ready_with_mock_classifier_returns_200(client_with_mock_classifier):
+    """GET /v1/ready с загруженной моделью возвращает 200."""
+    response = client_with_mock_classifier.get("/v1/ready")
+    assert response.status_code == 200
+    assert response.json()["status"] == "ready"
+
+
 def test_metrics_returns_200(client):
     """GET /v1/metrics возвращает 200 и счётчики примеров."""
     response = client.get("/v1/metrics")

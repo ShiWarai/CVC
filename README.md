@@ -149,7 +149,8 @@ training:
 | Метод | Путь | Описание |
 |-------|------|----------|
 | POST | /v1/embed | Эмбеддинги (TEI) |
-| GET | /v1/health | Проверка работоспособности |
+| GET | /v1/health | Liveness: процесс жив, БД доступна |
+| GET | /v1/ready | Readiness: модель загружена (k8s readinessProbe) |
 | GET | /v1/metrics | Счётчики примеров и статус обучения |
 | POST | /v1/predict | Классификация одного текста |
 | POST | /v1/predict/batch | Batch классификация |
@@ -162,6 +163,15 @@ training:
 | GET | /v1/command-feedback | Репорт «исправить команду» из RDS-2P-Salute (прокси) |
 
 Интерактивная документация: **http://localhost:20001/docs**. Устройство (CPU/CUDA/ROCm) определяется при запуске автоматически.
+
+Переменные окружения сервера (опционально):
+
+| Переменная | По умолчанию | Назначение |
+|------------|--------------|------------|
+| `UVICORN_WORKERS` | `1` | Число worker-процессов Uvicorn (`workers>1` умножает RAM на число копий модели) |
+| `TORCH_NUM_THREADS` | `4` | Потоки OpenMP/PyTorch на CPU |
+
+Образ в GHCR: `ghcr.io/shiwarai/cvc-robot-dog:main`. Контейнер: `cvc-robot-dog`.
 
 ## Данные
 
@@ -181,14 +191,14 @@ training:
 
 ### Тесты и линт
 
-Используется образ **cvc-dev** ([docker-compose.dev.yml](docker-compose.dev.yml)):
+Используется образ **cvc-robot-dog-dev** ([docker-compose.dev.yml](docker-compose.dev.yml)):
 
 ```bash
-docker compose -f docker-compose.yml build cvc-api
-docker compose -f docker-compose.yml -f docker-compose.dev.yml build cvc-dev
+docker compose -f docker-compose.yml build cvc-robot-dog
+docker compose -f docker-compose.yml -f docker-compose.dev.yml build cvc-robot-dog-dev
 
-docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev ruff check .
-docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-robot-dog-dev ruff check .
+docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-robot-dog-dev pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
 ```
 
 ### Архитектура

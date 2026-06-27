@@ -34,7 +34,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set image name
-        run: echo "IMAGE_BASE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/cvc-api" >> $GITHUB_ENV
+        run: echo "IMAGE_BASE=ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/cvc-robot-dog" >> $GITHUB_ENV
 
       - name: Build and push
         uses: docker/build-push-action@v6
@@ -66,5 +66,5 @@ jobs:
             *Образ CVC успешно опубликован в GHCR*
             Репозиторий: `${{ github.repository }}`
             Ветка: `${{ github.event.workflow_run.head_branch }}`
-            Образ: `ghcr.io/${{ github.repository_owner }}/cvc-api:main`
+            Образ: `ghcr.io/${{ github.repository_owner }}/cvc-robot-dog:main`
             [Открыть run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})

@@ -1,6 +1,9 @@
 """FastAPI сервер для классификатора команд."""
 
+import asyncio
 import logging
+import os
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any, Dict
@@ -38,6 +41,7 @@ logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
+logger = logging.getLogger(__name__)
 
 
 def load_config(config_path: str = "config.yaml") -> Dict[str, Any]:
@@ -92,6 +96,8 @@ def init_app():
     try:
         import torch
 
+        torch.set_num_threads(int(os.getenv("TORCH_NUM_THREADS", "4")))
+
         if torch.cuda.is_available():
             set_default_device("cuda")
         else:
@@ -130,17 +136,26 @@ def init_app():
     )
     set_training_manager(training_manager)
 
-    # Пытаемся загрузить модель
-    load_model()
-
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Управление жизненным циклом приложения."""
-    # Startup
     init_app()
+
+    t0 = time.monotonic()
+    loaded = await asyncio.to_thread(load_model)
+    load_sec = time.monotonic() - t0
+    if loaded:
+        logger.info("Модель загружена за %.1f с", load_sec)
+        classifier = get_classifier()
+        if classifier:
+            t1 = time.monotonic()
+            await asyncio.to_thread(classifier.predict, "warmup", False)
+            logger.info("Warmup predict завершён за %.1f с", time.monotonic() - t1)
+    else:
+        logger.warning("Модель не загружена (%.1f с)", load_sec)
+
     yield
-    # Shutdown (если нужно что-то очистить)
 
 
 app = FastAPI(

@@ -1,6 +1,6 @@
 # GPU: собирается из Dockerfile.cuda (PyTorch CUDA). Инференс/прод — обычный Dockerfile (CPU slim).
 services:
-  cvc-api:
+  cvc-robot-dog:
     build:
       context: .
       dockerfile: Dockerfile.cuda

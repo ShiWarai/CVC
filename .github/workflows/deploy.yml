@@ -48,7 +48,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile
-          tags: cvc-api:latest
+          tags: cvc-robot-dog:latest
           load: true
           push: false
 
@@ -59,19 +59,19 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.dev
-          tags: cvc-dev:latest
+          tags: cvc-robot-dog-dev:latest
           load: true
           push: false
 
       - name: Lint with ruff
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev ruff check . --output-format=github
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-robot-dog-dev ruff check . --output-format=github
 
       - name: Run tests in container
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-dev pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm cvc-robot-dog-dev pytest tests/ -v --tb=short --cov=app --cov-report=term-missing
 
   # Обучение + HF: только self-hosted с GPU (docker-compose.cuda.yml → Dockerfile.cuda).
   # Запускается только при push с меткой [retrain] или при workflow_dispatch с run_training.
@@ -158,10 +158,10 @@ jobs:
         fi
         
         # Проверяем наличие образа (для переиспользования)
-        if docker images | grep -q "cvc-api"; then
-          echo "ℹ️  Образ cvc-api будет пересобран из Dockerfile.cuda"
+        if docker images | grep -q "cvc-robot-dog"; then
+          echo "ℹ️  Образ cvc-robot-dog будет пересобран из Dockerfile.cuda"
         else
-          echo "ℹ️  Образ cvc-api будет собран из Dockerfile.cuda"
+          echo "ℹ️  Образ cvc-robot-dog будет собран из Dockerfile.cuda"
         fi
 
     - name: Run training
@@ -179,11 +179,11 @@ jobs:
         echo "=========================================="
         echo "Сборка и запуск: Dockerfile.cuda + docker-compose.cuda.yml (GPU)..."
         # Удаляем старый контейнер (если есть) для избежания ошибки ContainerConfig
-        docker rm -f cvc-api || true
+        docker rm -f cvc-robot-dog || true
         # Запускаем контейнер с CUDA поддержкой
         # Используем docker-compose.cuda.yml для GPU доступа
-        docker compose -f docker-compose.yml -f docker-compose.cuda.yml build cvc-api
-        docker compose -f docker-compose.yml -f docker-compose.cuda.yml up -d cvc-api
+        docker compose -f docker-compose.yml -f docker-compose.cuda.yml build cvc-robot-dog
+        docker compose -f docker-compose.yml -f docker-compose.cuda.yml up -d cvc-robot-dog
         sleep 5
         # Запускаем скрипт внутри Docker контейнера, где есть все зависимости
         docker compose -f docker-compose.yml -f docker-compose.cuda.yml exec -T \
@@ -193,7 +193,7 @@ jobs:
           -e BATCH_SIZE="${BATCH_SIZE}" \
           -e LEARNING_RATE="${LEARNING_RATE}" \
           -e TRAINING_DB_PATH="${TRAINING_DB_PATH}" \
-          cvc-api python /app/ci/train_via_api.py
+          cvc-robot-dog python /app/ci/train_via_api.py
         echo "✓ Обучение завершено"
 
     - name: Upload model to Hugging Face
@@ -221,7 +221,7 @@ jobs:
           -e HF_TOKEN="${HF_TOKEN}" \
           -e HF_REPO_ID="${HF_REPO_ID}" \
           -e GITHUB_SHA="${GITHUB_SHA}" \
-          cvc-api python /app/ci/upload_to_hf.py
+          cvc-robot-dog python /app/ci/upload_to_hf.py
         echo "✓ Модель загружена на Hugging Face Hub"
 
     - name: Cleanup
