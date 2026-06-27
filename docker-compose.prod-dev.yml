@@ -1,0 +1,7 @@
+# Staging / dev-ветка: runtime из GHCR (тег :dev), без локальной сборки.
+# Запуск: docker compose -f docker-compose.yml -f docker-compose.prod-dev.yml pull && docker compose -f docker-compose.yml -f docker-compose.prod-dev.yml up -d
+
+services:
+  cvc-robot-dog:
+    image: ghcr.io/shiwarai/cvc-robot-dog:dev
+    build: !reset null

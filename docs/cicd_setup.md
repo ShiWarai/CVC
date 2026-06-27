@@ -230,7 +230,10 @@ cat ~/.cvc_ssh_keys/deploy_key.pub
 ## Шаг 6: Проверка workflow
 
 Workflow файл находится в `.github/workflows/deploy.yml`. Кратко:
-- При push в `main` / `dev` на **GitHub-hosted** (`ubuntu-latest`) выполняется job **test**: линт и pytest в Docker-образе из **`Dockerfile`** (CPU, как при публикации в GHCR).
+- При push в `main` / `dev` на **GitHub-hosted** (`ubuntu-latest`) выполняется job **test**: линт и pytest в Docker.
+- После успешного pipeline [`.github/workflows/publish.yml`](.github/workflows/publish.yml):
+  - **`main`** → prod-образ `ghcr.io/<owner>/cvc-robot-dog:main`;
+  - **`dev`** → staging-образ `cvc-robot-dog:dev`.
 - Job **Train and Publish** запускается только при `[retrain]` в сообщении коммита или вручную (workflow_dispatch) и выполняется на **self-hosted** с GPU: `docker-compose.cuda.yml` + **`Dockerfile.cuda`**, затем загрузка на Hugging Face Hub.
 - Модель становится доступной по адресу: `https://huggingface.co/your-username/model-name`
 

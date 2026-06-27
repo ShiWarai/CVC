@@ -1,4 +1,6 @@
-# Dev-образ для линта и тестов (на базе cvc-robot-dog + pytest, ruff)
+# Dev-образ для линта и тестов (на базе cvc-robot-dog + pytest, ruff).
+# Только локально / в CI job test; в GHCR не публикуется.
 FROM cvc-robot-dog
+
 COPY requirements-dev.txt .
 RUN pip install --root-user-action=ignore -r requirements-dev.txt
